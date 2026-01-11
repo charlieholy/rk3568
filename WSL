@@ -1,0 +1,53 @@
+enable cpu virtialization ->
+      enable or close windows function menu , to enable WSL function.
+install ubuntu20.04.6 LTS ->
+      windows app store search and install.
+usb/ip install ->
+      host ->
+          winget install --interactive --exact dorssel.usbipd-win
+          usbipd list
+          usbipd bind --busid <BUSID>
+          usbipd attach --wsl --busid <BUSID>
+
+          demo
+              PS C:\Windows\system32> usbipd list
+              Connected:
+              BUSID  VID:PID    DEVICE                                                        STATE
+              2-1    2207:0006  Android ADB Interface                                         Not shared
+              2-8    04f2:b7ec  Integrated Camera, Camera DFU Device                          Not shared
+              2-9    1a86:55d3  USB-Enhanced-SERIAL CH343 (COM3)                              Attached
+              2-10   8087:0026  英特尔(R) 无线 Bluetooth(R)                                   Not shared
+              PS C:\Windows\system32> usbipd bind --busid 2-9
+              PS C:\Windows\system32> usbipd attach --wsl --busid 2-9
+              usbipd: info: Using WSL distribution 'Ubuntu-20.04' to attach; the device will be available in all WSL 2 distributions.
+              usbipd: info: Loading vhci_hcd module.
+              usbipd: info: Detected networking mode 'nat'.
+              usbipd: info: Using IP address 172.25.224.1 to reach the host.
+
+
+Persisted:
+GUID                                  DEVICE
+      wsl ->
+          sudo apt install -y hwdata linux-tools-generic linux-cloud-tools-generic
+          sudo ln -s /usr/lib/linux-tools/5.4.0-216-generic/usbip /usr/bin/usbip
+          usbip --version
+          
+          demo
+              sudo modprobe ch341
+              ubuntu20@NYX:~/opt$ lsmod | grep ch341
+              ch341                  20480  0
+              usbserial              49152  1 ch341
+              usbcore               290816  4 usbserial,cdc_acm,ch341,vhci_hcd
+              ubuntu20@NYX:~/opt$ sudo usermod -aG dialout $USER
+              ubuntu20@NYX:~/opt$ newgrp dialout
+              ubuntu20@NYX:~/opt$ sudo apt install -y screen
+              Reading package lists... Done
+              Building dependency tree
+              Reading state information... Done
+              screen is already the newest version (4.8.0-1ubuntu0.1).
+              screen set to manually installed.
+              0 upgraded, 0 newly installed, 0 to remove and 165 not upgraded.
+              ubuntu20@NYX:~/opt$ screen /dev/ttyACM0 115200
+              [screen is terminating]
+              ubuntu20@NYX:~/opt$ screen /dev/ttyACM0 1500000
+              [detached from 12469.pts-0.NYX]
