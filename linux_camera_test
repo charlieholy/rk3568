@@ -1,0 +1,2 @@
+# 仅指定设备和显示插件，自动匹配参数
+gst-launch-1.0 v4l2src device=/dev/video0 ! videoconvert ! kmssink
