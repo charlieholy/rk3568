@@ -1,0 +1,15 @@
+ubuntu20@NYX:~/opt/linux_sdk/u-boot$ /home/ubuntu20/opt/linux_sdk/prebuilts/gcc/linux-x86/aarch64/gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-gcc-nm u-boot  | grep dram_init
+0000000000a1a3dc t announce_dram_init
+0000000000aab9cc T bidram_initr
+0000000000a081ec T dram_init
+0000000000a081d4 T dram_init_banksize
+ubuntu20@NYX:~/opt/linux_sdk/u-boot$ aarch64-linux-gnu-addr2line -e u-boot -f -C 0000000000a081ec
+
+Command 'aarch64-linux-gnu-addr2line' not found, but can be installed with:
+
+sudo apt install binutils-aarch64-linux-gnu
+
+ubuntu20@NYX:~/opt/linux_sdk/u-boot$ /home/ubuntu20/opt/linux_sdk/prebuilts/gcc/linux-x86/aarch64/gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-addr2line  -e u-boot -f -C 0000000000a081ec
+dram_init
+/home/ubuntu20/opt/linux_sdk/u-boot/arch/arm/mach-rockchip/sdram.c:183
+ubuntu20@NYX:~/opt/linux_sdk/u-boot$
