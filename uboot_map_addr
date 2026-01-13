@@ -13,3 +13,18 @@ ubuntu20@NYX:~/opt/linux_sdk/u-boot$ /home/ubuntu20/opt/linux_sdk/prebuilts/gcc/
 dram_init
 /home/ubuntu20/opt/linux_sdk/u-boot/arch/arm/mach-rockchip/sdram.c:183
 ubuntu20@NYX:~/opt/linux_sdk/u-boot$
+
+
+ubuntu20@NYX:~/opt/linux_sdk/u-boot$ /home/ubuntu20/opt/linux_sdk/prebuilts/gcc/linux-x86/aarch64/gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-gdb u-boot
+GNU gdb (Linaro_GDB-2017.05) 7.12.1.20170417-git
+...
+Reading symbols from u-boot...done.
+(gdb) info line dram_init
+Line 183 of "arch/arm/mach-rockchip/sdram.c" starts at address 0xa081c0 <dram_init> and ends at 0xa081cc <dram_init+12>.
+
+ubuntu20@NYX:~/opt/linux_sdk/kernel$ /home/ubuntu20/opt/linux_sdk/prebuilts/gcc/linux-x86/aarch64/gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-gdb vmlinux
+GNU gdb (Linaro_GDB-2017.05) 7.12.1.20170417-git
+...
+Reading symbols from vmlinux...done.
+(gdb) info line start_kernel
+Line 558 of "init/main.c" starts at address 0xffffff80092b0b64 <start_kernel> and ends at 0xffffff80092b0b7c <start_kernel+24>.
