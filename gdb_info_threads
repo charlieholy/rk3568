@@ -1,0 +1,74 @@
+(gdb) info threads
+  Id   Target Id         Frame
+  1    Thread 4294967294 (shadowCPU0) __read_once_size (size=<optimized out>, res=<optimized out>, p=<optimized out>) at ./include/linux/compiler.h:263
+  2    Thread 4294967293 (shadowCPU1) __read_once_size (size=<optimized out>, res=<optimized out>, p=<optimized out>) at ./include/linux/compiler.h:263
+  3    Thread 4294967292 (shadowCPU2) arch_kgdb_breakpoint () at ./arch/arm64/include/asm/kgdb.h:32
+  4    Thread 4294967291 (shadowCPU3) __read_once_size (size=<optimized out>, res=<optimized out>, p=<optimized out>) at ./include/linux/compiler.h:263
+* 5    Thread 1 (swapper/0) arch_kgdb_breakpoint () at ./arch/arm64/include/asm/kgdb.h:32
+  6    Thread 2 (kthreadd) __switch_to (prev=0xffffffc0e9a48e40, next=0xffffffc0e8335580) at arch/arm64/kernel/process.c:568
+  7    Thread 3 (rcu_gp) __switch_to (prev=0xffffffc0e9a49c80, next=0xffffffc0e9a4aac0) at arch/arm64/kernel/process.c:568
+  8    Thread 4 (rcu_par_gp) __switch_to (prev=0xffffffc0e9a4aac0, next=0xffffffc0e9a4b900) at arch/arm64/kernel/process.c:568
+  9    Thread 5 (kworker/0:0) __switch_to (prev=0xffffffc0e9a4b900, next=0xffffffc0e9b51c80) at arch/arm64/kernel/process.c:568
+  10   Thread 6 (kworker/0:0H) __switch_to (prev=0xffffffc0e9a4c740, next=0xffffffc0e9a4d580) at arch/arm64/kernel/process.c:568
+  11   Thread 7 (kworker/u8:0) __switch_to (prev=0xffffffc0e9a4d580, next=0xffffff8009445b40 <init_task>) at arch/arm64/kernel/process.c:568
+  12   Thread 8 (mm_percpu_wq) __switch_to (prev=0xffffffc0e9a4e3c0, next=0xffffffc0e9a60000) at arch/arm64/kernel/process.c:568
+  13   Thread 9 (ksoftirqd/0) __switch_to (prev=0xffffffc0e9a60000, next=0xffffffc0e9a60e40) at arch/arm64/kernel/process.c:568
+  14   Thread 10 (rcu_sched) __switch_to (prev=0xffffffc0e9a60e40, next=0xffffff8009445b40 <init_task>) at arch/arm64/kernel/process.c:568
+  15   Thread 11 (rcu_bh) __switch_to (prev=0xffffffc0e9a61c80, next=0xffffffc0e9a62ac0) at arch/arm64/kernel/process.c:568
+  16   Thread 12 (migration/0) __switch_to (prev=0xffffffc0e9a62ac0, next=0xffffff8009445b40 <init_task>) at arch/arm64/kernel/process.c:568
+  17   Thread 13 (cpuhp/0) __switch_to (prev=0xffffffc0e9a663c0, next=0xffffff8009445b40 <init_task>) at arch/arm64/kernel/process.c:568
+  18   Thread 14 (cpuhp/1) __switch_to (prev=0xffffffc0e9ab0000, next=0xffffffc0e9a63900) at arch/arm64/kernel/process.c:568
+  19   Thread 15 (migration/1) __switch_to (prev=0xffffffc0e9ab0e40, next=0xffffffc0e9a48000) at arch/arm64/kernel/process.c:568
+  20   Thread 16 (ksoftirqd/1) __switch_to (prev=0xffffffc0e9ab1c80, next=0xffffffc0e9a48000) at arch/arm64/kernel/process.c:568
+  21   Thread 17 (kworker/1:0) __switch_to (prev=0xffffffc0e9ab2ac0, next=0xffffffc0e9248e40) at arch/arm64/kernel/process.c:568
+  22   Thread 18 (kworker/1:0H) __switch_to (prev=0xffffffc0e9ab3900, next=0xffffffc0e9a63900) at arch/arm64/kernel/process.c:568
+  23   Thread 19 (cpuhp/2) __switch_to (prev=0xffffffc0e9ab4740, next=0xffffffc0e9a48000) at arch/arm64/kernel/process.c:568
+  24   Thread 20 (migration/2) __switch_to (prev=0xffffffc0e9ab5580, next=0xffffffc0e9a64740) at arch/arm64/kernel/process.c:568
+  25   Thread 21 (ksoftirqd/2) __switch_to (prev=0xffffffc0e9ab63c0, next=0xffffffc0e9b08000) at arch/arm64/kernel/process.c:568
+  26   Thread 22 (kworker/2:0) __switch_to (prev=0xffffffc0e9b08000, next=0xffffffc0e9248000) at arch/arm64/kernel/process.c:568
+  27   Thread 23 (kworker/2:0H) __switch_to (prev=0xffffffc0e9b08e40, next=0xffffffc0e9a64740) at arch/arm64/kernel/process.c:568
+  28   Thread 24 (cpuhp/3) __switch_to (prev=0xffffffc0e9b09c80, next=0xffffffc0e9a65580) at arch/arm64/kernel/process.c:568
+  29   Thread 25 (migration/3) __switch_to (prev=0xffffffc0e9b0aac0, next=0xffffffc0e9a65580) at arch/arm64/kernel/process.c:568
+  30   Thread 26 (ksoftirqd/3) __switch_to (prev=0xffffffc0e9b0b900, next=0xffffffc0e9b0c740) at arch/arm64/kernel/process.c:568
+  31   Thread 27 (kworker/3:0) __switch_to (prev=0xffffffc0e9b0c740, next=0xffffffc0e9249c80) at arch/arm64/kernel/process.c:568
+  32   Thread 28 (kworker/3:0H) __switch_to (prev=0xffffffc0e9b0d580, next=0xffffffc0e9a65580) at arch/arm64/kernel/process.c:568
+  33   Thread 29 (kdevtmpfs) __switch_to (prev=0xffffffc0e9b50000, next=0xffffffc0e9a65580) at arch/arm64/kernel/process.c:568
+  34   Thread 30 (netns) __switch_to (prev=0xffffffc0e9b50e40, next=0xffffffc0e9a64740) at arch/arm64/kernel/process.c:568
+  35   Thread 31 (kworker/0:1) __switch_to (prev=0xffffffc0e9b51c80, next=0xffffffc0e9a48000) at arch/arm64/kernel/process.c:568
+  36   Thread 32 (kworker/2:1) __switch_to (prev=0xffffffc0e9248000, next=0xffffffc0e9a48000) at arch/arm64/kernel/process.c:568
+  37   Thread 33 (kworker/1:1) __switch_to (prev=0xffffffc0e9248e40, next=0xffffffc0e924e3c0) at arch/arm64/kernel/process.c:568
+  38   Thread 34 (kworker/3:1) __switch_to (prev=0xffffffc0e9249c80, next=0xffffffc0e9a65580) at arch/arm64/kernel/process.c:568
+  39   Thread 35 (oom_reaper) __switch_to (prev=0xffffffc0e924aac0, next=0xffffffc0e9a65580) at arch/arm64/kernel/process.c:568
+---Type <return> to continue, or q <return> to quit---
+  40   Thread 36 (writeback) __switch_to (prev=0xffffffc0e924b900, next=0xffffffc0e9a65580) at arch/arm64/kernel/process.c:568
+  41   Thread 37 (crypto) __switch_to (prev=0xffffffc0e924c740, next=0xffffffc0e9a63900) at arch/arm64/kernel/process.c:568
+  42   Thread 38 (kblockd) __switch_to (prev=0xffffffc0e924d580, next=0xffffffc0e9a64740) at arch/arm64/kernel/process.c:568
+  43   Thread 39 (kconsole) __switch_to (prev=0xffffffc0e924e3c0, next=0xffffffc0e9a65580) at arch/arm64/kernel/process.c:568
+  44   Thread 40 (devfreq_wq) __switch_to (prev=0xffffffc0e8d30000, next=0xffffff8009445b40 <init_task>) at arch/arm64/kernel/process.c:568
+  45   Thread 41 (watchdogd) __switch_to (prev=0xffffffc0e8d30e40, next=0xffffffc0e9a65580) at arch/arm64/kernel/process.c:568
+  46   Thread 42 (cfinteractive) __switch_to (prev=0xffffffc0e8d31c80, next=0xffffffc0e9a63900) at arch/arm64/kernel/process.c:568
+  47   Thread 43 (kworker/u8:1) __switch_to (prev=0xffffffc0e9b52ac0, next=0xffffffc0e9a63900) at arch/arm64/kernel/process.c:568
+  48   Thread 44 (rpciod) __switch_to (prev=0xffffffc0e9b53900, next=0xffffffc0e9a63900) at arch/arm64/kernel/process.c:568
+  49   Thread 45 (kworker/u9:0) __switch_to (prev=0xffffffc0e8d32ac0, next=0xffffffc0e9a65580) at arch/arm64/kernel/process.c:568
+  50   Thread 46 (xprtiod) __switch_to (prev=0xffffffc0e8d33900, next=0xffffffc0e9a64740) at arch/arm64/kernel/process.c:568
+  51   Thread 47 (cfg80211) __switch_to (prev=0xffffffc0e8d34740, next=0xffffff8009445b40 <init_task>) at arch/arm64/kernel/process.c:568
+  52   Thread 48 (kswapd0) __switch_to (prev=0xffffffc0e8d35580, next=0xffffffc0e9a64740) at arch/arm64/kernel/process.c:568
+  53   Thread 49 (nfsiod) __switch_to (prev=0xffffffc0e8d363c0, next=0xffffffc0e9a64740) at arch/arm64/kernel/process.c:568
+  54   Thread 50 (xfsalloc) __switch_to (prev=0xffffffc0e8250000, next=0xffffffc0e9a65580) at arch/arm64/kernel/process.c:568
+  55   Thread 51 (xfs_mru_cache) __switch_to (prev=0xffffffc0e8250e40, next=0xffffffc0e9a63900) at arch/arm64/kernel/process.c:568
+  56   Thread 52 (irq/76-rockchip) __switch_to (prev=0xffffffc0e82b8000, next=0xffffff8009445b40 <init_task>) at arch/arm64/kernel/process.c:568
+  57   Thread 53 (irq/77-rockchip) __switch_to (prev=0xffffffc0e82b8e40, next=0xffffff8009445b40 <init_task>) at arch/arm64/kernel/process.c:568
+  58   Thread 54 (rk-pcie) __switch_to (prev=0xffffffc0e82b9c80, next=0xffffffc0e9a63900) at arch/arm64/kernel/process.c:568
+  59   Thread 55 (rkvenc) __switch_to (prev=0xffffffc0e82baac0, next=0xffffff8009445b40 <init_task>) at arch/arm64/kernel/process.c:568
+  60   Thread 56 (iommu_wq) __switch_to (prev=0xffffffc0e82bb900, next=0xffffff8009445b40 <init_task>) at arch/arm64/kernel/process.c:568
+  61   Thread 57 (irq/29-fdf40000) __switch_to (prev=0xffffffc0e82bc740, next=0xffffffc0e9a60000) at arch/arm64/kernel/process.c:568
+  62   Thread 58 (vdpu)  __switch_to (prev=0xffffffc0e82bd580, next=0xffffffc0e9a65580) at arch/arm64/kernel/process.c:568
+  63   Thread 59 (irq/21-fdea0400) __switch_to (prev=0xffffffc0e82be3c0, next=0xffffff8009445b40 <init_task>) at arch/arm64/kernel/process.c:568
+  64   Thread 60 (vepu)  __switch_to (prev=0xffffffc0e8330000, next=0xffffffc0e9a65580) at arch/arm64/kernel/process.c:568
+  65   Thread 61 (irq/26-fdee0000) __switch_to (prev=0xffffffc0e8330e40, next=0xffffffc0e8332ac0) at arch/arm64/kernel/process.c:568
+  66   Thread 62 (iep)   __switch_to (prev=0xffffffc0e8331c80, next=0xffffffc0e9a65580) at arch/arm64/kernel/process.c:568
+  67   Thread 63 (irq/28-fdef0000) __switch_to (prev=0xffffffc0e8332ac0, next=0xffffffc0e8334740) at arch/arm64/kernel/process.c:568
+  68   Thread 64 (jpegd) __switch_to (prev=0xffffffc0e8333900, next=0xffffffc0e9a65580) at arch/arm64/kernel/process.c:568
+  69   Thread 65 (irq/24-fded0000) __switch_to (prev=0xffffffc0e8334740, next=0xffffffc0e9b51c80) at arch/arm64/kernel/process.c:568
+  70   Thread 66 (rkvdec) __switch_to (prev=0xffffffc0e8335580, next=0xffffffc0e9a65580) at arch/arm64/kernel/process.c:568
+(gdb)
