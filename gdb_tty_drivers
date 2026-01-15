@@ -1,0 +1,32 @@
+(gdb) info variable tty_drivers
+All variables matching regular expression "tty_drivers":
+
+File drivers/tty/tty_io.c:
+struct list_head tty_drivers;
+
+File fs/proc/proc_tty.c:
+static const struct seq_operations tty_drivers_op;
+(gdb) p &tty_drivers
+$14 = (struct list_head *) 0xffffff80094f0fd8 <tty_drivers>
+(gdb) list tty_drivers
+328
+329             const struct tty_operations *ops;
+330             struct list_head tty_drivers;
+331     } __randomize_layout;
+332
+333     extern struct list_head tty_drivers;
+334
+335     extern struct tty_driver *__tty_alloc_driver(unsigned int lines,
+336                     struct module *owner, unsigned long flags);
+337     extern void put_tty_driver(struct tty_driver *driver);
+(gdb) set $offset = (unsigned long)&((struct tty_driver *)0)->tty_drivers
+(gdb) p $offset
+$15 = 168
+(gdb) print *(struct tty_driver*)((char*)tty_drivers - 168)
+$16 = {magic = 21506, kref = {refcount = {refs = {counter = 1}}}, cdevs = 0xffffffc0e8248600, owner = 0x0, driver_name = 0xffffff80091d3ad4 "serial",
+  name = 0xffffff80091063da "ttyS", name_base = 0, major = 4, minor_start = 64, num = 10, type = 3, subtype = 1, init_termios = {c_iflag = 1280,
+    c_oflag = 5, c_cflag = 3261, c_lflag = 35387, c_line = 0 '\000', c_cc = "\003\034\177\025\004\000\001\000\021\023\032\000\022\017\027\026\000\000",
+    c_ispeed = 9600, c_ospeed = 9600}, flags = 13, proc_entry = 0xffffffc0e8c26900, other = 0x0, ttys = 0xffffffc0e8248480, ports = 0xffffffc0e8248580,
+  termios = 0xffffffc0e8248500, driver_state = 0xffffff80094f5cf8 <serial8250_reg>, ops = 0xffffff8008ea0f80 <uart_ops>, tty_drivers = {
+    next = 0xffffffc0e837afa8, prev = 0xffffff80094f0fd8 <tty_drivers>}}
+(gdb)
