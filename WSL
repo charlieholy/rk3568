@@ -51,3 +51,9 @@ GUID                                  DEVICE
               [screen is terminating]
               ubuntu20@NYX:~/opt$ screen /dev/ttyACM0 1500000
               [detached from 12469.pts-0.NYX]
+
+
+
+////target remote debug though Uart
+config to enable KDBG
+sudo stty -F /dev/ttyUSB0 115200 cs8 -cstopb -parenb -crtscts
