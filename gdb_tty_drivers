@@ -30,3 +30,26 @@ $16 = {magic = 21506, kref = {refcount = {refs = {counter = 1}}}, cdevs = 0xffff
   termios = 0xffffffc0e8248500, driver_state = 0xffffff80094f5cf8 <serial8250_reg>, ops = 0xffffff8008ea0f80 <uart_ops>, tty_drivers = {
     next = 0xffffffc0e837afa8, prev = 0xffffff80094f0fd8 <tty_drivers>}}
 (gdb)
+
+(gdb) print *(struct tty_driver*)((char*)(tty_drivers->prev->prev->prev->prev->prev->prev) - 168)
+$24 = {magic = 0, kref = {refcount = {refs = {counter = 0}}}, cdevs = 0x0, owner = 0x0, driver_name = 0x0, name = 0x0, name_base = 0, major = 0,
+  minor_start = 0, num = 0, type = 0, subtype = 0, init_termios = {c_iflag = 0, c_oflag = 0, c_cflag = 0, c_lflag = 3895962880, c_line = 192 '\300',
+    c_cc = "\377\377\377", '\000' <repeats 15 times>, c_ispeed = 0, c_ospeed = 0}, flags = 0, proc_entry = 0x0, other = 0xdead4ead00000000,
+  ttys = 0xffffffff, ports = 0xffffffffffffffff, termios = 0x0, driver_state = 0xffffff80094f0fc8 <tty_mutex+40>, ops = 0xffffff80094f0fc8 <tty_mutex+40>,
+  tty_drivers = {next = 0xffffffc0e824a2a8, prev = 0xffffffc0e9b600a8}}
+
+//  double dir  双向循环list_head
+(gdb) print &tty_drivers
+$38 = (struct list_head *) 0xffffff80094f0fd8 <tty_drivers>
+(gdb) print tty_drivers->prev
+$39 = (struct list_head *) 0xffffffc0e9b600a8
+(gdb) print *tty_drivers->prev
+$40 = {next = 0xffffff80094f0fd8 <tty_drivers>, prev = 0xffffffc0e8d5a5a8}
+(gdb) print *tty_drivers->prev->prev
+$41 = {next = 0xffffffc0e9b600a8, prev = 0xffffffc0e837aea8}
+(gdb) print *tty_drivers->prev->prev->prev
+$42 = {next = 0xffffffc0e8d5a5a8, prev = 0xffffffc0e837afa8}
+(gdb) print *tty_drivers->prev->prev->prev->prev
+$43 = {next = 0xffffffc0e837aea8, prev = 0xffffffc0e824a2a8}
+(gdb) print *tty_drivers->prev->prev->prev->prev->prev
+$44 = {next = 0xffffffc0e837afa8, prev = 0xffffff80094f0fd8 <tty_drivers>}
