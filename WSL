@@ -56,4 +56,8 @@ GUID                                  DEVICE
 
 ////target remote debug though Uart
 config to enable KDBG
+stty -F /dev/ttyACM0 -a
 sudo stty -F /dev/ttyUSB0 115200 cs8 -cstopb -parenb -crtscts
+stty -F /dev/ttyACM0 -a
+aarch64-linux-gnu-gdb vmlinux
+=> target remote /dev/ttyACM0
