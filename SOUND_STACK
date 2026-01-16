@@ -1,0 +1,40 @@
+aplay -l
+
+ snd_ctl_ioctl (file=0xffffffc0ce2beb40, cmd=2172146945, arg=549061360280) at sound/core/control.c:1549
+#1  0xffffff80082297d0 in vfs_ioctl (filp=0xffffffc0ce2beb40, cmd=2172146945, arg=549061360280) at fs/ioctl.c:46
+#2  0xffffff8008229f10 in do_vfs_ioctl (filp=0xffffffc0ce2beb40, fd=3, cmd=2172146945, arg=549061360280) at fs/ioctl.c:690
+#3  0xffffff800822a880 in ksys_ioctl (fd=3, cmd=2172146945, arg=549061360280) at fs/ioctl.c:705
+#4  0xffffff800822a8d8 in __do_sys_ioctl (arg=<optimized out>, cmd=<optimized out>, fd=<optimized out>) at fs/ioctl.c:712
+#5  __se_sys_ioctl (arg=<optimized out>, cmd=<optimized out>, fd=<optimized out>) at fs/ioctl.c:710
+#6  __arm64_sys_ioctl (regs=0xffffff80117d3ec0) at fs/ioctl.c:710
+#7  0xffffff8008095c80 in __invoke_syscall (syscall_fn=<optimized out>, regs=<optimized out>) at arch/arm64/kernel/syscall.c:36
+#8  invoke_syscall (syscall_table=<optimized out>, sc_nr=<optimized out>, scno=<optimized out>, regs=<optimized out>) at arch/arm64/kernel/syscall.c:48
+#9  el0_svc_common (regs=0xffffff80117d3ec0, scno=<optimized out>, syscall_table=0xffffff8008df0870 <sys_call_table>, sc_nr=<optimized out>)
+    at arch/arm64/kernel/syscall.c:117
+#10 0xffffff8008095d70 in el0_svc_handler (regs=0xffffff80117d3ec0) at arch/arm64/kernel/syscall.c:163
+#11 0xffffff8008083848 in el0_svc () at arch/arm64/kernel/entry.S:940
+
+static int snd_ctl_card_info(struct snd_card *card, struct snd_ctl_file * ctl,
+			     unsigned int cmd, void __user *arg)
+{
+	struct snd_ctl_card_info *info;
+
+	info = kzalloc(sizeof(*info), GFP_KERNEL);
+	if (! info)
+		return -ENOMEM;
+	down_read(&snd_ioctl_rwsem);
+	info->card = card->number;
+	strlcpy(info->id, card->id, sizeof(info->id));
+	strlcpy(info->driver, card->driver, sizeof(info->driver));
+	strlcpy(info->name, card->shortname, sizeof(info->name));
+	strlcpy(info->longname, card->longname, sizeof(info->longname));
+	strlcpy(info->mixername, card->mixername, sizeof(info->mixername));
+	strlcpy(info->components, card->components, sizeof(info->components));
+	up_read(&snd_ioctl_rwsem);
+	if (copy_to_user(arg, info, sizeof(struct snd_ctl_card_info))) {
+		kfree(info);
+		return -EFAULT;
+	}
+	kfree(info);
+	return 0;
+}
