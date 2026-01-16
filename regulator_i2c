@@ -1,0 +1,32 @@
+#0  __i2c_transfer (adap=0xffffffc0e7edd880, msgs=0xffffff80099f38d8, num=2) at drivers/i2c/i2c-core-base.c:1909
+#1  0xffffff800895ede4 in i2c_transfer (adap=0xffffffc0e7edd880, msgs=0xffffff80099f38d8, num=2) at drivers/i2c/i2c-core-base.c:2008
+#2  0xffffff80087614f0 in regmap_i2c_read (context=0xffffffc0e7ede820, reg=0xffffffc0e7f8be80, reg_size=1, val=0xffffffc0e7f8be81, val_size=1)
+    at drivers/base/regmap/regmap-i2c.c:195
+#3  0xffffff800875ce58 in _regmap_raw_read (map=0xffffffc0e7fbd400, reg=4294967168, val=0xffffffc0e7f8be81, val_len=<optimized out>, noinc=<optimized out>)
+    at drivers/base/regmap/regmap.c:2393
+#4  0xffffff800875cf9c in _regmap_bus_read (context=0xffffffc0e7fbd400, reg=17, val=0xffffff80099f3a24) at drivers/base/regmap/regmap.c:2421
+#5  0xffffff800875bccc in _regmap_read (map=0xffffffc0e7fbd400, reg=17, val=0xffffff80099f3a24) at drivers/base/regmap/regmap.c:2446
+#6  0xffffff800875bdbc in regmap_read (map=0xffffffc0e7fbd400, reg=17, val=0xffffff80099f3a24) at drivers/base/regmap/regmap.c:2481
+#7  0xffffff80085ac26c in regulator_get_voltage_sel_regmap (rdev=0xffffffc0e7edf000) at drivers/regulator/helpers.c:120
+#8  0xffffff80085aea20 in fan53555_get_voltage (rdev=0xffffffc0e7edf000) at drivers/regulator/fan53555.c:160
+#9  0xffffff80085a6600 in _regulator_get_voltage (rdev=0xffffffc0e7edf000) at drivers/regulator/core.c:3502
+#10 0xffffff80085a8350 in _regulator_do_set_voltage (rdev=0xffffffc0e7edf000, min_uV=1100000, max_uV=1150000) at drivers/regulator/core.c:2988
+#11 0xffffff80085a89dc in regulator_set_voltage_unlocked (regulator=<optimized out>, min_uV=-64, max_uV=-269856632, state=0)
+    at drivers/regulator/core.c:3208
+#12 0xffffff80085a8b04 in regulator_set_voltage (regulator=0xffffffc0e7861000, min_uV=1100000, max_uV=1150000) at drivers/regulator/core.c:3258
+#13 0xffffff8008a2422c in regulator_set_voltage_triplet (max_uV=<optimized out>, target_uV=<optimized out>, min_uV=<optimized out>,
+    regulator=<optimized out>) at ./include/linux/regulator/consumer.h:598
+#14 _set_opp_voltage (dev=0xffffffc0efea5088, reg=0xffffffc0e7861000, supply=0xffffffc0e78622d0) at drivers/opp/core.c:521
+#15 0xffffff8008a24360 in _generic_set_opp_regulator (opp_table=0xffffffc0e7fbfc00, dev=0xffffffc0efea5088, old_freq=1104000000, freq=1992000000,
+    old_supply=0xffffffc0e78620d0, new_supply=0xffffffc0e78622d0) at drivers/opp/core.c:602
+#16 0xffffff8008a253dc in dev_pm_opp_set_rate (dev=0xffffffc0efea5088, target_freq=<optimized out>) at drivers/opp/core.c:713
+#17 0xffffff80085a1930 in rockchip_monitor_opp_set_rate (info=0xffffffc0e7861200, target_freq=1992000000)
+    at drivers/soc/rockchip/rockchip_system_monitor.c:689
+#18 0xffffff8008a327a8 in set_target (policy=0xffffffc0e7fbf800, index=<optimized out>) at drivers/cpufreq/cpufreq-dt.c:60
+#19 0xffffff8008a2a214 in __target_index (index=<optimized out>, policy=<optimized out>) at drivers/cpufreq/cpufreq.c:1961
+#20 __cpufreq_driver_target (policy=0xffffffc0e7fbf800, target_freq=<optimized out>, relation=<optimized out>) at drivers/cpufreq/cpufreq.c:2025
+#21 0xffffff8008a306b8 in cpufreq_interactive_adjust_cpu (policy=<optimized out>, cpu=<optimized out>) at drivers/cpufreq/cpufreq_interactive.c:571
+#22 cpufreq_interactive_speedchange_task (data=<optimized out>) at drivers/cpufreq/cpufreq_interactive.c:618
+#23 0xffffff80080d4130 in kthread (_create=0xffffffc0e8dd1100) at kernel/kthread.c:260
+#24 0xffffff800808542c in ret_from_fork () at arch/arm64/kernel/entry.S:1103
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
