@@ -61,7 +61,7 @@ ttyFIQ0,1500000
 ////target remote debug though Uart
 config to enable KDBG
 stty -F /dev/ttyACM0 -a
-sudo stty -F /dev/ttyACM0 115200 cs8 -cstopb -parenb -crtscts
+sudo stty -F /dev/ttyACM0 1500000 cs8 -cstopb -parenb -crtscts
 stty -F /dev/ttyACM0 -a
 aarch64-linux-gnu-gdb vmlinux
 => target remote /dev/ttyACM0
