@@ -1,0 +1,8 @@
+
+ rk817_reset (component=<optimized out>) at sound/soc/codecs/rk817_codec.c:257
+
+(gdb)  print ((struct regmap*)context)->bus
+$12 = (const struct regmap_bus *) 0xffffff8009502ab8 <regmap_i2c>
+(gdb)  print ((struct regmap*)context)->bus->write
+$13 = (regmap_hw_write) 0xffffff800875a2c4 <regmap_i2c_write>
+(gdb)
