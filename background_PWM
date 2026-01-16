@@ -1,0 +1,26 @@
+#0  pwm_apply_state (pwm=0xffffffc0e8e13100, state=0xffffff800a66bbd0) at drivers/pwm/core.c:469
+#1  0xffffff80085544f4 in pwm_config (period_ns=<optimized out>, duty_ns=<optimized out>, pwm=<optimized out>) at ./include/linux/pwm.h:461
+#2  pwm_backlight_update_status (bl=0xffffffc0e825a000) at drivers/video/backlight/pwm_bl.c:121
+#3  0xffffff8008553554 in backlight_update_status (bd=<optimized out>) at ./include/linux/backlight.h:129
+#4  backlight_device_set_brightness (bd=0xffffffc0e825a000, brightness=40) at drivers/video/backlight/backlight.c:185
+#5  0xffffff8008553e94 in brightness_store (dev=0xffffffc0e825a0b8, attr=<optimized out>, buf=0xffffffc0cdc4d300 "40\n", count=3)
+    at drivers/video/backlight/backlight.c:207
+#6  0xffffff800873615c in dev_attr_store (kobj=0xffffffc0e825a0c8, attr=0xffffff80094f21c0 <dev_attr_brightness>, buf=0xffffffc0cdc4d300 "40\n", count=3)
+    at drivers/base/core.c:1409
+#7  0xffffff8008292f10 in sysfs_kf_write (of=0xffffffc0e99e2b00, buf=0xffffffc0cdc4d300 "40\n", count=3, pos=<optimized out>) at fs/sysfs/file.c:142
+#8  0xffffff8008291ad0 in kernfs_fop_write (file=<optimized out>, user_buf=<optimized out>, count=<optimized out>, ppos=0xffffff800a66be40)
+    at fs/kernfs/file.c:316
+#9  0xffffff80082150e4 in __vfs_write (file=0xffffffc0e59f3180, p=0x35132660 <error: Cannot access memory at address 0x35132660>, count=3,
+    pos=0xffffff800a66be40) at fs/read_write.c:486
+#10 0xffffff80082153f4 in vfs_write (file=0xffffffc0e59f3180, buf=0x35132660 <error: Cannot access memory at address 0x35132660>, count=3,
+    pos=0xffffff800a66be40) at fs/read_write.c:550
+#11 0xffffff80082156e8 in ksys_write (fd=<optimized out>, buf=0x35132660 <error: Cannot access memory at address 0x35132660>, count=3)
+    at fs/read_write.c:601
+#12 0xffffff800821577c in __do_sys_write (count=<optimized out>, buf=<optimized out>, fd=<optimized out>) at fs/read_write.c:613
+
+pwm-rockchip.c
+    	{ .compatible = "rockchip,rk3328-pwm", .data = &pwm_data_v3},   //reg
+drivers/video/backlight/pwm_bl.c:121
+      pwm_backlight_update_status
+backlight.c
+      static DEVICE_ATTR_RW(brightness);
