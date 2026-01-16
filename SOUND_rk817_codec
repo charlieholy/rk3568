@@ -6,3 +6,11 @@ $12 = (const struct regmap_bus *) 0xffffff8009502ab8 <regmap_i2c>
 (gdb)  print ((struct regmap*)context)->bus->write
 $13 = (regmap_hw_write) 0xffffff800875a2c4 <regmap_i2c_write>
 (gdb)
+
+#0  regmap_i2c_write (context=0xffffffc0e7ece820, data=0xffffffc0e7955000, count=2) at drivers/base/regmap/regmap-i2c.c:128
+#1  0xffffff8008755648 in _regmap_raw_write_impl (map=0xffffffc0e7979000, reg=0, val=0xffffffc0e7955001, val_len=1) at drivers/base/regmap/regmap.c:1605
+#2  0xffffff800875584c in _regmap_bus_raw_write (context=0xffffffc0e7979000, reg=20, val=64) at drivers/base/regmap/regmap.c:1722
+#3  0xffffff8008754ea0 in _regmap_write (map=0xffffffc0e7979000, reg=20, val=64) at drivers/base/regmap/regmap.c:1760
+#4  0xffffff8008756368 in regmap_write (map=0xffffffc0e7979000, reg=20, val=64) at drivers/base/regmap/regmap.c:1782
+#5  0xffffff8008b2751c in snd_soc_component_write (component=0xffffffc0e797d280, reg=20, val=64) at sound/soc/soc-io.c:67
+#6  0xffffff8008b316f0 in rk817_reset (component=<optimized out>) at sound/soc/codecs/rk817_codec.c:257
