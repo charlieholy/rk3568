@@ -53,6 +53,8 @@ GUID                                  DEVICE
               [detached from 12469.pts-0.NYX]
 
 
+bootargs append ==> kgdboc=ttyFIQ0,1500000 kgdbwait
+
 root@ATK-DLRK3568:/# cat  /sys/module/kgdboc/parameters/kgdboc
 ttyFIQ0,1500000
 
