@@ -1,0 +1,22 @@
+root@ATK-DLRK3568:/# fdisk -l
+Found valid GPT with protective MBR; using GPT
+
+Disk /dev/mmcblk0: 122224640 sectors, 2336M
+Logical sector size: 512
+Disk identifier (GUID): 0f700000-0000-4704-8000-44dd00006794
+Partition table holds up to 128 entries
+First usable sector is 34, last usable sector is 122224606
+
+Number  Start (sector)    End (sector)  Size Name
+     1           16384           24575 4096K uboot
+     2           24576           32767 4096K misc
+     3           32768          163839 64.0M boot
+     4          163840          294911 64.0M recovery
+     5          294912          360447 32.0M backup
+     6          360448        12943359 6144M rootfs
+     7        12943360        13205503  128M oem
+     8        13205504       122224575 51.9G userdata
+
+adb push boot.img /data/boot.img
+dd if=/data/boot.img of=/dev/mmcblk0 bs=512 seek=32768 conv=fsync
+reboot
