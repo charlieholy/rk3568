@@ -1,3 +1,32 @@
  v4l2-ctl -d /dev/video1 --stream-mmap --stream-count=10 --stream-to=test.yuv
     ==> vb2_mmap
+
+#0  __fill_vb2_buffer (vb=0xffffffc0e592c400, pb=0xffffff80100b3c58, planes=0xffffffc0e592c428)
+    at drivers/media/common/videobuf2/videobuf2-v4l2.c:351
+#1  0xffffff80089b1648 in __prepare_mmap (pb=<optimized out>, vb=<optimized out>)
+    at drivers/media/common/videobuf2/videobuf2-core.c:991
+#2  __buf_prepare (vb=0xffffffc0e592c400, pb=<optimized out>) at drivers/media/common/videobuf2/videobuf2-core.c:1275
+#3  0xffffff80089b1890 in vb2_core_qbuf (q=0xffffffc0e78c19a0, index=<optimized out>, pb=0xffffff80100b3c58)
+    at drivers/media/common/videobuf2/videobuf2-core.c:1408
+#4  0xffffff80089b4ed4 in vb2_qbuf (q=0xffffffc0e78c19a0, b=0xffffff80100b3c58)
+    at drivers/media/common/videobuf2/videobuf2-v4l2.c:624
+#5  0xffffff80089b4f30 in vb2_ioctl_qbuf (file=0xffffffc0e5980500, priv=<optimized out>, p=0xffffff80100b3c58)
+    at drivers/media/common/videobuf2/videobuf2-v4l2.c:833
+#6  0xffffff800898fe20 in v4l_qbuf (ops=0xffffff8008f655b0 <rkisp_v4l2_ioctl_ops>, file=0xffffffc0e5980500,
+    fh=0xffffffc0e6244400, arg=0xffffff80100b3c58) at drivers/media/v4l2-core/v4l2-ioctl.c:1947
+#7  0xffffff8008992a3c in __video_do_ioctl (file=0xffffffc0e5980500, cmd=3227014671, arg=0xffffff80100b3c58)
+    at drivers/media/v4l2-core/v4l2-ioctl.c:2880
+#8  0xffffff800898f360 in video_usercopy (file=<optimized out>, cmd=3227014671, arg=549284432472, func=<optimized out>)
+    at drivers/media/v4l2-core/v4l2-ioctl.c:3054
+#9  0xffffff800898f608 in video_ioctl2 (file=0xffffffc0e5980500, cmd=3227014671, arg=549284432472)
+    at drivers/media/v4l2-core/v4l2-ioctl.c:3100
+#10 0xffffff800898ac58 in v4l2_ioctl (filp=0xffffffc0e5980500, cmd=3227014671, arg=549284432472)
+    at drivers/media/v4l2-core/v4l2-dev.c:364
+#11 0xffffff80082297d0 in vfs_ioctl (filp=0xffffffc0e5980500, cmd=3227014671, arg=549284432472) at fs/ioctl.c:46
+#12 0xffffff8008229f10 in do_vfs_ioctl (filp=0xffffffc0e5980500, fd=3, cmd=3227014671, arg=549284432472)
+    at fs/ioctl.c:690
+#13 0xffffff800822a880 in ksys_ioctl (fd=3, cmd=3227014671, arg=549284432472) at fs/ioctl.c:705
+#14 0xffffff800822a8d8 in __do_sys_ioctl (arg=<optimized out>, cmd=<optimized out>, fd=<optimized out>)
+    at fs/ioctl.c:712
+    
 ffmpeg -f rawvideo -pixel_format yuv420p -video_size 1920x1080 -i test.yuv -vf "format=bgra" -f fbdev /dev/fb0
