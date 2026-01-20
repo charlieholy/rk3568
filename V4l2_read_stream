@@ -31,3 +31,4 @@
     
 ffmpeg -f rawvideo -pixel_format yuv420p -video_size 1920x1080 -i test.yuv -vf "format=bgra" -f fbdev /dev/fb0
 ffmpeg -y -i 'train video of 3GPP part1.wmv' -vf scale=1920:1080 -pix_fmt bgra -f fbdev /dev/fb0
+ffmpeg -y -i 'train video of 3GPP part1.wmv' -vn -f alsa hw:0,0
