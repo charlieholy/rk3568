@@ -1,0 +1,28 @@
+(gdb) bt
+#0  snd_malloc_dev_pages (dma=<optimized out>, size=<optimized out>, dev=<optimized out>) at sound/core/memalloc.c:97
+#1  snd_dma_alloc_pages (type=4, device=0xffffffc0e9356000, size=524288, dmab=0xffffffc0e72c5d60)
+    at sound/core/memalloc.c:203
+#2  0xffffff8008af1c24 in preallocate_pcm_pages (size=524288, substream=<optimized out>) at sound/core/pcm_memory.c:58
+#3  snd_pcm_lib_preallocate_pages1 (substream=0xffffffc0e72c5c00, size=524288, max=18446744073709551615)
+    at sound/core/pcm_memory.c:235
+#4  0xffffff8008af1d90 in snd_pcm_lib_preallocate_pages (substream=0xffffffc0e72c5c00, type=4,
+    data=0xffffffc0e9356000, size=524288, max=18446744073709551615) at sound/core/pcm_memory.c:263
+#5  0xffffff8008b30bb0 in dmaengine_pcm_new (rtd=0xffffffc0e72bd000) at sound/soc/soc-generic-dmaengine-pcm.c:310
+#6  0xffffff8008b2e610 in soc_new_pcm (rtd=0xffffffc0e72bd000, num=<optimized out>) at sound/soc/soc-pcm.c:3288
+#7  0xffffff8008b20d10 in soc_probe_link_dais (order=<optimized out>, rtd=<optimized out>, card=<optimized out>)
+    at sound/soc/soc-core.c:1593
+#8  snd_soc_instantiate_card (card=<optimized out>) at sound/soc/soc-core.c:2115
+#9  snd_soc_register_card (card=0xffffffc0e72bc880) at sound/soc/soc-core.c:2791
+#10 0xffffff8008b2ec90 in devm_snd_soc_register_card (dev=0xffffffc0e93a5810, card=0xffffffc0e72bc880)
+    at sound/soc/soc-devres.c:72
+#11 0xffffff8008b446b8 in asoc_simple_card_probe (pdev=<optimized out>) at sound/soc/generic/simple-card.c:439
+#12 0xffffff8008740310 in platform_drv_probe (_dev=0xffffffc0e93a5810) at drivers/base/platform.c:602
+#13 0xffffff800873db58 in really_probe (dev=0xffffffc0e93a5810, drv=0xffffff80095902a8 <asoc_simple_card+40>)
+    at drivers/base/dd.c:510
+#14 0xffffff800873df80 in driver_probe_device (drv=0xffffff80095902a8 <asoc_simple_card+40>, dev=0xffffffc0e93a5810)
+    at drivers/base/dd.c:671
+#15 0xffffff800873e178 in __device_attach_driver (drv=0xffffff80095902a8 <asoc_simple_card+40>,
+    _data=0xffffff80098fbd18) at drivers/base/dd.c:778
+#16 0xffffff800873b9c8 in bus_for_each_drv (bus=0xffffff8009510b90 <platform_bus_type>, start=<optimized out>,
+    data=0xffffff80098fbd18, fn=0xffffff800873e0b0 <__device_attach_driver>) at drivers/base/bus.c:454
+#17 0xffffff800873dd30 in __device_attach (dev=0xffffffc0e93a5810, allow_async=true) at drivers/base/dd.c:846
