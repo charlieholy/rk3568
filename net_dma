@@ -1,0 +1,28 @@
+(gdb) bt
+#0  stmmac_open (dev=0xffffffc0e7ee4000) at drivers/net/ethernet/stmicro/stmmac/stmmac_main.c:2632
+#1  0xffffff8008b74198 in __dev_open (dev=0xffffffc0e7ee4000) at net/core/dev.c:1402
+#2  0xffffff8008b744b0 in __dev_change_flags (dev=0xffffffc0e7ee4000, flags=4294938627) at net/core/dev.c:7705
+#3  0xffffff8008b7458c in dev_change_flags (dev=0xffffffc0e7ee4000, flags=4294938627) at net/core/dev.c:7774
+#4  0xffffff8008bf5d58 in devinet_ioctl (net=<optimized out>, cmd=35092, ifr=0xffffff800d783bc0)
+    at net/ipv4/devinet.c:1106
+#5  0xffffff8008bf8244 in inet_ioctl (sock=<optimized out>, cmd=35092, arg=549477666264) at net/ipv4/af_inet.c:954
+#6  0xffffff8008b4b580 in sock_do_ioctl (net=0xffffff8009592440 <init_net>, sock=0xffffffc0e55bc340, cmd=35092,
+    arg=549477666264) at net/socket.c:1015
+#7  0xffffff8008b4cc14 in sock_ioctl (file=<optimized out>, cmd=35092, arg=549477666264) at net/socket.c:1135
+#8  0xffffff80082297d0 in vfs_ioctl (filp=0xffffffc0e5b70500, cmd=35092, arg=549477666264) at fs/ioctl.c:46
+#9  0xffffff8008229f10 in do_vfs_ioctl (filp=0xffffffc0e5b70500, fd=16, cmd=35092, arg=549477666264) at fs/ioctl.c:690
+#10 0xffffff800822a880 in ksys_ioctl (fd=16, cmd=35092, arg=549477666264) at fs/ioctl.c:705
+#11 0xffffff800822a8d8 in __do_sys_ioctl (arg=<optimized out>, cmd=<optimized out>, fd=<optimized out>)
+    at fs/ioctl.c:712
+#12 __se_sys_ioctl (arg=<optimized out>, cmd=<optimized out>, fd=<optimized out>) at fs/ioctl.c:710
+#13 __arm64_sys_ioctl (regs=0xffffff800d783ec0) at fs/ioctl.c:710
+#14 0xffffff8008095c80 in __invoke_syscall (syscall_fn=<optimized out>, regs=<optimized out>)
+    at arch/arm64/kernel/syscall.c:36
+#15 invoke_syscall (syscall_table=<optimized out>, sc_nr=<optimized out>, scno=<optimized out>, regs=<optimized out>)
+    at arch/arm64/kernel/syscall.c:48
+#16 el0_svc_common (regs=0xffffff800d783ec0, scno=<optimized out>, syscall_table=0xffffff8008de0870 <sys_call_table>,
+    sc_nr=<optimized out>) at arch/arm64/kernel/syscall.c:117
+#17 0xffffff8008095d70 in el0_svc_handler (regs=0xffffff800d783ec0) at arch/arm64/kernel/syscall.c:163
+#18 0xffffff8008083848 in el0_svc () at arch/arm64/kernel/entry.S:940
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
+(gdb)
