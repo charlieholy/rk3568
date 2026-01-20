@@ -1,0 +1,17 @@
+(gdb) bt
+#0  ehci_irq (hcd=0xffffffc0e7eca800) at drivers/usb/host/ehci-hcd.c:713
+#1  0xffffff8008851bdc in usb_hcd_irq (irq=<optimized out>, __hcd=0xffffffc0e7eca800) at drivers/usb/core/hcd.c:2538
+#2  0xffffff80081130a4 in __handle_irq_event_percpu (desc=0xffffffc0e9b82a00, flags=0xffffff8008003ee4)
+    at kernel/irq/handle.c:149
+#3  0xffffff8008113238 in handle_irq_event_percpu (desc=0xffffffc0e9b82a00) at kernel/irq/handle.c:189
+#4  0xffffff80081132dc in handle_irq_event (desc=0xffffffc0e9b82a00) at kernel/irq/handle.c:206
+#5  0xffffff8008117d6c in handle_fasteoi_irq (desc=0xffffffc0e9b82a00) at kernel/irq/chip.c:743
+#6  0xffffff80081120e4 in generic_handle_irq_desc (desc=<optimized out>) at ./include/linux/irqdesc.h:155
+#7  generic_handle_irq (irq=14) at kernel/irq/irqdesc.c:639
+#8  0xffffff800811287c in __handle_domain_irq (domain=0xffffffc00020a200, hwirq=<optimized out>, lookup=true,
+    regs=0xffffff8009453cf0) at kernel/irq/irqdesc.c:676
+#9  0xffffff8008081174 in handle_domain_irq (regs=<optimized out>, hwirq=<optimized out>, domain=<optimized out>)
+    at ./include/linux/irqdesc.h:173
+#10 gic_handle_irq (regs=0xffffff8009453cf0) at drivers/irqchip/irq-gic-v3.c:373
+#11 0xffffff8008082bf0 in el1_irq () at arch/arm64/kernel/entry.S:645
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
