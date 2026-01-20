@@ -15,3 +15,29 @@
 #10 gic_handle_irq (regs=0xffffff8009453cf0) at drivers/irqchip/irq-gic-v3.c:373
 #11 0xffffff8008082bf0 in el1_irq () at arch/arm64/kernel/entry.S:645
 Backtrace stopped: previous frame identical to this frame (corrupt stack?)
+
+
+[ 2134.278291] sysrq: DEBUG
+[ 2965.407983] usb 2-1: new high-speed USB device number 2 using ehci-platform
+[ 2972.748874] rk3x-i2c fdd40000.i2c: timeout, ipd: 0x23, state: 3
+[ 2972.904329] usb 2-1: New USB device found, idVendor=3535, idProduct=6300, bcdDevice= 1.10
+[ 2972.904436] usb 2-1: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[ 2972.904469] usb 2-1: Product: U330
+[ 2972.904497] usb 2-1: Manufacturer: aigo
+[ 2972.904626] usb 2-1: SerialNumber: 9000586511335F31
+[ 2972.907442] usb-storage 2-1:1.0: USB Mass Storage device detected
+[ 2972.909167] ======== CAMERA DMA ALLOC SUCCESS ========
+[ 2972.909193]   devName: fd880000.usb
+[ 2972.909198]   bufferSize: 0 MB
+[ 2972.909204]   DMA physical address: 0xeec7d000
+[ 2972.909210]   kernel virtual address: 00000000d356dd73
+[ 2972.909215] ==========================================
+[ 2972.909392] scsi host1: usb-storage 2-1:1.0
+[ 2973.919815] scsi 1:0:0:0: Direct-Access     aigo     U330             PMAP PQ: 0 ANSI: 6
+[ 2973.923516] sd 1:0:0:0: [sda] 122880000 512-byte logical blocks: (62.9 GB/58.6 GiB)
+[ 2973.924656] sd 1:0:0:0: [sda] Write Protect is off
+[ 2973.924692] sd 1:0:0:0: [sda] Mode Sense: 45 00 00 00
+[ 2973.925901] sd 1:0:0:0: [sda] Write cache: disabled, read cache: enabled, doesn't support DPO or FUA
+[ 2974.439435]  sda: sda1
+[ 2974.445803] sd 1:0:0:0: [sda] Attached SCSI removable disk
+[ 2974.667800] FAT-fs (sda1): utf8 is not a recommended IO charset for FAT filesystems, filesystem will be case sensitive!
