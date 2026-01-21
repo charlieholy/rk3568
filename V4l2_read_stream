@@ -53,3 +53,7 @@ isp ready
 #11 0xffffff80080834fc in el0_irq () at arch/arm64/kernel/entry.S:878
 Backtrace stopped: Cannot access memory at address 0xffffff800fa540d8
 (gdb)
+
+mipi_irq_hdl
+mi_irq_hdl
+isp_irq_hdl
