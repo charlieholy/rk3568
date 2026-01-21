@@ -32,3 +32,24 @@
 ffmpeg -f rawvideo -pixel_format yuv420p -video_size 1920x1080 -i test.yuv -vf "format=bgra" -f fbdev /dev/fb0
 ffmpeg -y -i 'train video of 3GPP part1.wmv' -vf scale=1920:1080 -pix_fmt bgra -f fbdev /dev/fb0
 ffmpeg -y -i 'train video of 3GPP part1.wmv' -vn -f alsa hw:0,0
+
+isp ready
+(gdb) bt
+#0  rkisp_isp_isr (isp_mis=64, isp3a_mis=0, dev=0xffffffc0e7890080) at drivers/media/platform/rockchip/isp/rkisp.c:2929
+#1  0xffffff80089cf00c in isp_irq_hdl (irq=<optimized out>, ctx=0xffffffc0e92a2010)
+    at drivers/media/platform/rockchip/isp/hw.c:174
+#2  0xffffff80081130a4 in __handle_irq_event_percpu (desc=0xffffffc0e9b86000, flags=0xffffff8008003ee4)
+    at kernel/irq/handle.c:149
+#3  0xffffff8008113238 in handle_irq_event_percpu (desc=0xffffffc0e9b86000) at kernel/irq/handle.c:189
+#4  0xffffff80081132dc in handle_irq_event (desc=0xffffffc0e9b86000) at kernel/irq/handle.c:206
+#5  0xffffff8008117d6c in handle_fasteoi_irq (desc=0xffffffc0e9b86000) at kernel/irq/chip.c:743
+#6  0xffffff80081120e4 in generic_handle_irq_desc (desc=<optimized out>) at ./include/linux/irqdesc.h:155
+#7  generic_handle_irq (irq=36) at kernel/irq/irqdesc.c:639
+#8  0xffffff800811287c in __handle_domain_irq (domain=0xffffffc00020a200, hwirq=<optimized out>, lookup=true,
+    regs=0xffffff800fa53ec0) at kernel/irq/irqdesc.c:676
+#9  0xffffff8008081174 in handle_domain_irq (regs=<optimized out>, hwirq=<optimized out>, domain=<optimized out>)
+    at ./include/linux/irqdesc.h:173
+#10 gic_handle_irq (regs=0xffffff800fa53ec0) at drivers/irqchip/irq-gic-v3.c:373
+#11 0xffffff80080834fc in el0_irq () at arch/arm64/kernel/entry.S:878
+Backtrace stopped: Cannot access memory at address 0xffffff800fa540d8
+(gdb)
