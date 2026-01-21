@@ -1,0 +1,52 @@
+(gdb) bt
+#0  pcf8563_probe (client=0xffffffc0e7408000, id=0xffffff8008f5f9c0 <pcf8563_id>) at drivers/rtc/rtc-pcf8563.c:562
+#1  0xffffff8008960c3c in i2c_device_probe (dev=<optimized out>) at drivers/i2c/i2c-core-base.c:407
+#2  0xffffff8008741014 in really_probe (dev=0xffffffc0e7408020, drv=0xffffff8009567480 <pcf8563_driver+56>)
+    at drivers/base/dd.c:510
+#3  0xffffff800874143c in driver_probe_device (drv=0xffffff8009567480 <pcf8563_driver+56>, dev=0xffffffc0e7408020)
+    at drivers/base/dd.c:671
+#4  0xffffff8008741634 in __device_attach_driver (drv=0xffffff8009567480 <pcf8563_driver+56>, _data=0xffffff800803b878)
+    at drivers/base/dd.c:778
+#5  0xffffff800873ee84 in bus_for_each_drv (bus=0xffffff8009567648 <i2c_bus_type>, start=<optimized out>,
+    data=0xffffff800803b878, fn=0xffffff800874156c <__device_attach_driver>) at drivers/base/bus.c:454
+#6  0xffffff80087411ec in __device_attach (dev=0xffffffc0e7408020, allow_async=true) at drivers/base/dd.c:846
+#7  0xffffff8008741690 in device_initial_probe (dev=0xffffffc0e7408020) at drivers/base/dd.c:893
+#8  0xffffff800873fdf8 in bus_probe_device (dev=0xffffffc0e7408020) at drivers/base/bus.c:514
+#9  0xffffff800873d7c0 in device_add (dev=0xffffffc0e7408020) at drivers/base/core.c:2632
+#10 0xffffff800873d8cc in device_register (dev=0xffffffc0e7408020) at drivers/base/core.c:2703
+#11 0xffffff8008962850 in i2c_new_device (adap=0xffffffc0e7407080, info=0xffffff800803ba38)
+    at drivers/i2c/i2c-core-base.c:805
+#12 0xffffff8008965a64 in of_i2c_register_device (node=<optimized out>, adap=<optimized out>)
+    at drivers/i2c/i2c-core-of.c:81
+#13 of_i2c_register_devices (adap=0xffffffc0e7407080) at drivers/i2c/i2c-core-of.c:108
+#14 0xffffff8008962f68 in i2c_register_adapter (adap=0xffffffc0e7407080) at drivers/i2c/i2c-core-base.c:1302
+#15 0xffffff8008963178 in __i2c_add_numbered_adapter (adap=0xffffffc0e7407080) at drivers/i2c/i2c-core-base.c:1344
+#16 0xffffff80089631c0 in i2c_add_adapter (adapter=0xffffffc0e7407080) at drivers/i2c/i2c-core-base.c:1370
+#17 0xffffff80089698cc in rk3x_i2c_probe (pdev=<optimized out>) at drivers/i2c/busses/i2c-rk3x.c:1436
+#18 0xffffff80087437cc in platform_drv_probe (_dev=0xffffffc0e9368810) at drivers/base/platform.c:602
+#19 0xffffff8008741014 in really_probe (dev=0xffffffc0e9368810, drv=0xffffff80095686b8 <rk3x_i2c_driver+40>)
+    at drivers/base/dd.c:510
+#20 0xffffff800874143c in driver_probe_device (drv=0xffffff80095686b8 <rk3x_i2c_driver+40>, dev=0xffffffc0e9368810)
+    at drivers/base/dd.c:671
+---Type <return> to continue, or q <return> to quit---
+#21 0xffffff80087416ec in device_driver_attach (drv=0xffffff80095686b8 <rk3x_i2c_driver+40>, dev=0xffffffc0e9368810)
+    at drivers/base/dd.c:947
+#22 0xffffff8008741854 in __driver_attach (dev=0xffffffc0e9368810, data=0xffffff80095686b8 <rk3x_i2c_driver+40>)
+    at drivers/base/dd.c:1024
+#23 0xffffff800873ed50 in bus_for_each_dev (bus=0xffffff8009520b90 <platform_bus_type>, start=0x0,
+    data=0xffffff80095686b8 <rk3x_i2c_driver+40>, fn=0xffffff8008741718 <__driver_attach>) at drivers/base/bus.c:304
+#24 0xffffff80087407fc in driver_attach (drv=<optimized out>) at drivers/base/dd.c:1040
+#25 0xffffff8008740134 in bus_add_driver (drv=0xffffff80095686b8 <rk3x_i2c_driver+40>) at drivers/base/bus.c:646
+#26 0xffffff80087423c0 in driver_register (drv=0xffffff80095686b8 <rk3x_i2c_driver+40>) at drivers/base/driver.c:170
+#27 0xffffff8008743714 in __platform_driver_register (drv=0xffffff8009568690 <rk3x_i2c_driver>, owner=0x0)
+    at drivers/base/platform.c:657
+#28 0xffffff8009309dbc in rk3x_i2c_driver_init () at drivers/i2c/busses/i2c-rk3x.c:1493
+#29 0xffffff8008084124 in do_one_initcall (fn=0xffffff8009309d9c <rk3x_i2c_driver_init>) at init/main.c:934
+#30 0xffffff80092c13a4 in do_initcall_level (level=<optimized out>) at init/main.c:1186
+#31 do_initcalls () at init/main.c:1198
+#32 do_basic_setup () at init/main.c:1220
+#33 kernel_init_freeable () at init/main.c:1391
+#34 0xffffff8008dd5d20 in kernel_init (unused=<optimized out>) at init/main.c:1304
+#35 0xffffff800808542c in ret_from_fork () at arch/arm64/kernel/entry.S:1103
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
+(gdb)
