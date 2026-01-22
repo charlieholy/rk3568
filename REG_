@@ -1,2 +1,4 @@
 vop => drivers/gpu/drm/rockchip/rockchip_vop_reg.h
+GRF_VO_CON1
+#define RK3568_GRF_VO_CON1			0x0364
 #define RK3568_VERSION_INFO			0x004
