@@ -57,3 +57,191 @@ Backtrace stopped: Cannot access memory at address 0xffffff800fa540d8
 mipi_irq_hdl
 mi_irq_hdl
 isp_irq_hdl
+
+c code ready one frame yuv then show it via ffmpeg
+//////////////
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <errno.h>
+#include <stdint.h>
+#include <sys/mman.h>
+#include <sys/ioctl.h>
+#include <linux/videodev2.h>
+
+// 手动定义必要宏（适配老版本头文件）
+#ifndef V4L2_PIX_FMT_NV12_MPLANE
+#define V4L2_PIX_FMT_NV12_MPLANE v4l2_fourcc('N', 'V', '1', '2')
+#endif
+#ifndef v4l2_fourcc
+#define v4l2_fourcc(a,b,c,d) ((__u32)(a) | ((__u32)(b) << 8) | ((__u32)(c) << 16) | ((__u32)(d) << 24))
+#endif
+
+// RK3568摄像头设备节点
+#define CAMERA_DEV "/dev/video-camera0"
+#define SAVE_PATH "/data/camera_frame.nv12"
+#define WIDTH  1280
+#define HEIGHT 720
+#define PIX_FMT V4L2_PIX_FMT_NV12_MPLANE
+
+// 缓冲区结构体
+struct Buffer {
+    void *start;
+    int length;
+};
+
+struct Buffer *buffers;
+int buffer_count = 0;
+
+// 错误处理函数
+static void err_exit(const char *msg) {
+    fprintf(stderr, "[ERROR] %s: %s (errno=%d)\n", msg, strerror(errno), errno);
+    exit(EXIT_FAILURE);
+}
+
+static int camera_init(int fd) {
+    struct v4l2_capability cap;
+    struct v4l2_format fmt;
+    struct v4l2_requestbuffers req;
+    struct v4l2_plane planes[1];
+
+    // 1. 检查多平面捕获能力
+    if (ioctl(fd, VIDIOC_QUERYCAP, &cap) == -1)
+        err_exit("VIDIOC_QUERYCAP");
+    if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE_MPLANE)) {
+        err_exit("摄像头仅支持多平面捕获，请确认设备节点为/video-camera0");
+    }
+    if (!(cap.capabilities & V4L2_CAP_STREAMING))
+        err_exit("摄像头不支持流模式");
+
+    // 2. 配置多平面视频格式
+    memset(&fmt, 0, sizeof(fmt));
+    fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+    fmt.fmt.pix_mp.width = WIDTH;
+    fmt.fmt.pix_mp.height = HEIGHT;
+    fmt.fmt.pix_mp.pixelformat = PIX_FMT;
+    fmt.fmt.pix_mp.field = V4L2_FIELD_NONE;
+    fmt.fmt.pix_mp.num_planes = 1;
+
+    if (ioctl(fd, VIDIOC_S_FMT, &fmt) == -1)
+        err_exit("VIDIOC_S_FMT（多平面）");
+    if (ioctl(fd, VIDIOC_G_FMT, &fmt) == -1)
+        err_exit("VIDIOC_G_FMT（多平面）");
+    printf("实际配置：%dx%d, 多平面NV12格式\n", 
+           fmt.fmt.pix_mp.width, fmt.fmt.pix_mp.height);
+
+    // 3. 申请多平面缓冲区
+    memset(&req, 0, sizeof(req));
+    req.count = 4;
+    req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+    req.memory = V4L2_MEMORY_MMAP;
+    if (ioctl(fd, VIDIOC_REQBUFS, &req) == -1)
+        err_exit("VIDIOC_REQBUFS（多平面）");
+    buffer_count = req.count;
+
+    // 4. 分配缓冲区结构体
+    buffers = calloc(buffer_count, sizeof(struct Buffer));
+    if (!buffers) err_exit("calloc buffers");
+
+    // 5. 映射缓冲区（终极适配：用data_offset替代offset）
+    struct v4l2_buffer buf;
+    for (int i = 0; i < buffer_count; i++) {
+        memset(&buf, 0, sizeof(buf));
+        buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+        buf.memory = V4L2_MEMORY_MMAP;
+        buf.index = i;
+        buf.length = fmt.fmt.pix_mp.num_planes;
+        buf.m.planes = planes;
+
+        if (ioctl(fd, VIDIOC_QUERYBUF, &buf) == -1)
+            err_exit("VIDIOC_QUERYBUF（多平面）");
+        
+        // 核心修复：用data_offset（你环境中唯一存在的偏移量成员）
+        buffers[i].length = planes[0].length;
+        buffers[i].start = mmap(NULL, planes[0].length, 
+                               PROT_READ | PROT_WRITE, MAP_SHARED, 
+                               fd, (off_t)planes[0].data_offset);  // 改为data_offset
+
+        if (buffers[i].start == MAP_FAILED)
+            err_exit("mmap（多平面）");
+
+        if (ioctl(fd, VIDIOC_QBUF, &buf) == -1)
+            err_exit("VIDIOC_QBUF（多平面）");
+    }
+
+    return 0;
+}
+
+static int capture_and_save(int fd) {
+    struct v4l2_buffer buf;
+    struct v4l2_plane planes[1];
+    FILE *fp = NULL;
+
+    // 启动流捕获
+    enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+    if (ioctl(fd, VIDIOC_STREAMON, &type) == -1)
+        err_exit("VIDIOC_STREAMON（多平面）");
+
+    // 取出缓冲区（增加重试，适配摄像头启动延迟）
+    memset(&buf, 0, sizeof(buf));
+    buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+    buf.memory = V4L2_MEMORY_MMAP;
+    buf.length = 1;
+    buf.m.planes = planes;
+
+    int retries = 20;
+    while (retries-- > 0) {
+        if (ioctl(fd, VIDIOC_DQBUF, &buf) == 0) break;
+        if (errno != EAGAIN) err_exit("VIDIOC_DQBUF（多平面）");
+        usleep(100000);  // 等待100ms
+    }
+    if (retries < 0) err_exit("缓冲区无数据（超时），请检查摄像头硬件");
+
+    // 保存NV12数据到文件
+    fp = fopen(SAVE_PATH, "wb");
+    if (!fp) err_exit("fopen " SAVE_PATH);
+    fwrite(buffers[buf.index].start, 1, planes[0].bytesused, fp);
+    fclose(fp);
+    printf("✅ 帧数据已保存到：%s（大小：%d 字节）\n", SAVE_PATH, planes[0].bytesused);
+
+    // 缓冲区重新入队
+    if (ioctl(fd, VIDIOC_QBUF, &buf) == -1)
+        err_exit("VIDIOC_QBUF（多平面）");
+
+    // 停止流捕获
+    if (ioctl(fd, VIDIOC_STREAMOFF, &type) == -1)
+        err_exit("VIDIOC_STREAMOFF（多平面）");
+
+    return 0;
+}
+
+static void cleanup(int fd) {
+    for (int i = 0; i < buffer_count; i++)
+        munmap(buffers[i].start, buffers[i].length);
+    free(buffers);
+    close(fd);
+}
+
+int main() {
+    // 修复语法错误：正确拼接字符串（先定义错误信息）
+    char open_err_msg[128];
+    snprintf(open_err_msg, sizeof(open_err_msg), "open %s", CAMERA_DEV);
+
+    // 打开摄像头设备（非阻塞模式）
+    int fd = open(CAMERA_DEV, O_RDWR | O_NONBLOCK, 0);
+    if (fd == -1) err_exit(open_err_msg);
+
+    // 初始化→采集→清理
+    camera_init(fd);
+    capture_and_save(fd);
+    cleanup(fd);
+
+    printf("✅ 摄像头数据采集完成！\n");
+    return EXIT_SUCCESS;
+}
+/////////////////
+aarch64-linux-gnu-gcc v4l2.c -static -o v4l2
+ffmpeg -f rawvideo -pixel_format yuv420p -video_size 1920x1080 -i test.yuv -vf "format=bgra" -f fbdev /dev/fb0
+
