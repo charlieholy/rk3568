@@ -2,3 +2,21 @@ vop => drivers/gpu/drm/rockchip/rockchip_vop_reg.h
 GRF_VO_CON1
 #define RK3568_GRF_VO_CON1			0x0364
 #define RK3568_VERSION_INFO			0x004
+
+i2c5_pclk ==> drivers/clk/rockchip/clk-rk3568.c
+
+CRU_GATE_CON30
+Address: Operation Base + Offset(0x0378)
+8 
+RW 
+0x0 
+pclk_i2c5_en 
+pclk_i2c5 clock gating control. 
+When high, disable clock
+
+#define RK3568_CLKGATE_CON(x)		((x) * 0x4 + 0x300)  30 * 4 + 0x300 = 0x0378
+GATE(PCLK_I2C5, "pclk_i2c5", "pclk_bus", 0,
+			RK3568_CLKGATE_CON(30), 8, GFLAGS),
+
+
+
