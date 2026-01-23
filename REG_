@@ -29,5 +29,7 @@ i2c5 interrupt ==>
 		interrupts = <GIC_SPI 51 IRQ_TYPE_LEVEL_HIGH>;
 so: 51 = 83 -32 
 
+i2c reg ==> drivers/i2c/busses/i2c-rk3x.c
+
 
 
