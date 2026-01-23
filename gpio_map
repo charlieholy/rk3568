@@ -1,0 +1,33 @@
+root@ATK-DLRK3568:/sys/class/gpio# cat /sys/kernel/debug/gpio
+gpiochip0: GPIOs 0-31, parent: platform/fdd60000.gpio, gpio0:
+ gpio-5   (                    |vcc5v0_otg          ) out lo
+ gpio-6   (                    |vcc5v0_host         ) out hi
+ gpio-13  (                    |GTP_INT_IRQ         ) in  hi
+ gpio-14  (                    |GTP_RST_PORT        ) in  hi
+ gpio-15  (                    |bt_default_wake_host) in  hi
+ gpio-16  (                    |work                ) out lo
+ gpio-28  (                    |vcc3v3_pcie         ) out lo
+ gpio-29  (                    |vcc3v3_vga          ) out hi
+ gpio-30  (                    |power               ) out hi
+
+gpiochip1: GPIOs 32-63, parent: platform/fe740000.gpio, gpio1:
+ gpio-36  (                    |hp-det              ) in  hi
+ gpio-41  (                    |reset               ) out lo
+
+gpiochip2: GPIOs 64-95, parent: platform/fe750000.gpio, gpio2:
+ gpio-73  (                    |bt_default_rts      ) in  hi
+ gpio-89  (                    |mdio-reset          ) out hi
+ gpio-91  (                    |mdio-reset          ) out hi
+ gpio-94  (                    |reset               ) out hi
+
+gpiochip3: GPIOs 96-127, parent: platform/fe760000.gpio, gpio3:
+ gpio-96  (                    |bt_default_reset    ) out lo
+ gpio-98  (                    |bt_default_wake     ) in  lo
+ gpio-104 (                    |disable             ) out lo
+ gpio-110 (                    |reset               ) out hi
+ gpio-117 (                    |KEY0                ) in  lo
+ gpio-125 (                    |reset               ) out hi
+
+gpiochip4: GPIOs 128-159, parent: platform/fe770000.gpio, gpio4:
+ gpio-140 (                    |pwdn                ) out hi
+ gpio-141 (                    |reset               ) out hi
