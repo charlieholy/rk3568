@@ -18,5 +18,8 @@ When high, disable clock
 GATE(PCLK_I2C5, "pclk_i2c5", "pclk_bus", 0,
 			RK3568_CLKGATE_CON(30), 8, GFLAGS),
 
+cat /sys/kernel/debug/clk/pclk_i2c5/clk_rate  
+24000000
+
 
 
