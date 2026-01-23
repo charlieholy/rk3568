@@ -31,3 +31,16 @@ gpiochip3: GPIOs 96-127, parent: platform/fe760000.gpio, gpio3:
 gpiochip4: GPIOs 128-159, parent: platform/fe770000.gpio, gpio4:
  gpio-140 (                    |pwdn                ) out hi
  gpio-141 (                    |reset               ) out hi
+
+
+内核GPIO编号 = 控制器编号 × 32 + 该控制器内的引脚偏移号
+分步拆解你的gpio3 RK_PC5 → 算出 117
+我们一步步套公式，就能精准得到 117，和你驱动打印的结果完全一致：
+控制器编号：设备树的&gpio3 → 控制器编号为3；
+控制器内引脚偏移号：RK_PC5是 gpio3 控制器下的引脚，Rockchip 的 GPIO 引脚命名规则是PAx/PBx/PCx/PDx，每组字母对应 32 个引脚的分段：
+PA0~PA31 → 偏移号 0 ~ 31
+PB0~PB31 → 偏移号 32 ~ 63
+PC0~PC31 → 偏移号 64 ~ 95
+PD0~PD31 → 偏移号 96 ~ 127
+所以RK_PC5 → 偏移号为 64 + 5 = 69；
+套公式计算：3 × 32 + 69 = 96 + 69 = 117 → 完美匹配驱动打印的key-gpio num = 117。
