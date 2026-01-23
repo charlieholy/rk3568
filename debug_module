@@ -1,0 +1,18 @@
+step1
+  add EXTRA_CFLAGS="-g -O0"
+  kernel_modules:
+	  $(MAKE) -C $(KERNELDIR) M=$(CURRENT_PATH)  ARCH=arm64  EXTRA_CFLAGS="-g -O0" modules
+step2
+      insmod
+      cat /proc/modules | grep ap
+          ap3216c 16384 0 - Live 0xffffff80011ad000
+step3
+      
+(gdb) add-symbol-file Linux_driver/20_iic/ap3216c.ko 0xffffff80011ad000
+add symbol table from file "Linux_driver/20_iic/ap3216c.ko" at
+        .text_addr = 0xffffff80011ad000
+(y or n) y
+Reading symbols from Linux_driver/20_iic/ap3216c.ko...done.
+(gdb) b ap3216c_read_regs
+Breakpoint 2 at 0xffffff80011ad358: file /home/ubuntu20/opt/linux_sdk/kernel/Linux_driver/20_iic/ap3216c.c, line 50.
+(gdb)
