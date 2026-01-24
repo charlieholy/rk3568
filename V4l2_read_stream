@@ -33,6 +33,8 @@ ffmpeg -f rawvideo -pixel_format yuv420p -video_size 1920x1080 -i test.yuv -vf "
 ffmpeg -y -i 'train video of 3GPP part1.wmv' -vf scale=1920:1080 -pix_fmt bgra -f fbdev /dev/fb0
 ffmpeg -y -i 'train video of 3GPP part1.wmv' -vn -f alsa hw:0,0
 
+gst-launch-1.0 v4l2src device=/dev/video0 ! video/x-raw,format=NV12,width=1920,height=1080,framerate=30/1 ! kmssink sync=0
+
 isp ready
 (gdb) bt
 #0  rkisp_isp_isr (isp_mis=64, isp3a_mis=0, dev=0xffffffc0e7890080) at drivers/media/platform/rockchip/isp/rkisp.c:2929
