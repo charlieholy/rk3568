@@ -1,9 +1,29 @@
-#0  gtp_touch_down (w=<optimized out>, y=948, x=<optimized out>, id=<optimized out>, ts=<optimized out>)
-    at drivers/input/touchscreen/gt9xx/gt9xx.c:438
-#1  goodix_ts_work_func (work=0xffffffc0e7803e80) at drivers/input/touchscreen/gt9xx/gt9xx.c:937
-#2  0xffffff80080cdff8 in process_one_work (worker=0xffffffc0ceeb1b00, work=0xffffffc0e7803e80)
+(gdb) bt
+#0  evdev_pass_values (client=0xffffffc0defa0000, vals=0xffffffc0e8f73000, count=6, ev_time=0xffffffc0e780fe98)
+    at drivers/input/evdev.c:250
+#1  0xffffff8008910674 in evdev_events (handle=<optimized out>, vals=0xffffffc0e8f73000, count=6)
+    at drivers/input/evdev.c:309
+#2  0xffffff80089093c4 in input_to_handler (handle=0xffffffc0e7811008, vals=0xffffffc0e8f73000, count=6)
+    at drivers/input/input.c:118
+#3  0xffffff800890b224 in input_pass_values (dev=0xffffffc0e780f800, vals=0xffffffc0e8f73000, count=6)
+    at drivers/input/input.c:148
+#4  0xffffff800890cab0 in input_pass_values (count=<optimized out>, vals=<optimized out>, dev=<optimized out>)
+    at drivers/input/input.c:401
+#5  input_handle_event (dev=0xffffffc0e780f800, type=0, code=0, value=0) at drivers/input/input.c:402
+#6  0xffffff800890cebc in input_event (dev=0xffffffc0e780f800, type=0, code=0, value=0) at drivers/input/input.c:444
+#7  0xffffff800892e888 in input_sync (dev=<optimized out>) at ./include/linux/input.h:432
+#8  goodix_ts_work_func (work=0xffffffc0e7803e80) at drivers/input/touchscreen/gt9xx/gt9xx.c:1015
+#9  0xffffff80080cdff8 in process_one_work (worker=0xffffffc0ceeb1b00, work=0xffffffc0e7803e80)
     at kernel/workqueue.c:2175
-#3  0xffffff80080cefa4 in worker_thread (__worker=0xffffffc0ceeb1b00) at kernel/workqueue.c:2321
-#4  0xffffff80080d4130 in kthread (_create=0xffffffc0e4fa9880) at kernel/kthread.c:260
-#5  0xffffff800808542c in ret_from_fork () at arch/arm64/kernel/entry.S:1103
+#10 0xffffff80080cefa4 in worker_thread (__worker=0xffffffc0ceeb1b00) at kernel/workqueue.c:2321
+#11 0xffffff80080d4130 in kthread (_create=0xffffffc0e4fa9880) at kernel/kthread.c:260
+#12 0xffffff800808542c in ret_from_fork () at arch/arm64/kernel/entry.S:1103
 Backtrace stopped: previous frame identical to this frame (corrupt stack?)
+
+(gdb) p *client->evdev->dev->kobj->sd
+$24 = {count = {counter = 10}, active = {counter = 0}, parent = 0xffffffc0e7fec770,
+  name = 0xffffffc0e7feb880 "event2", rb = {__rb_parent_color = 18446743802723879472, rb_right = 0x0, rb_left = 0x0},
+  ns = 0x0, hash = 1938958841, {dir = {subdirs = 1, children = {rb_node = 0xffffffc0e7feebc8},
+      root = 0xffffffc0e99c3300}, symlink = {target_kn = 0x1}, attr = {ops = 0x1, open = 0xffffffc0e7feebc8,
+      size = -270958578944, notify_next = 0x0}}, priv = 0xffffffc0e78110f0, id = {{ino = 25195, generation = 1},
+    id = 4294992491}, flags = 17, mode = 16877, iattr = 0x0}
