@@ -1,0 +1,183 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <linux/input.h>
+#include <sys/ioctl.h>
+#include <sys/epoll.h>
+#include <signal.h>
+#include <errno.h>
+#include <string.h>
+
+// 配置项：触摸设备节点+epoll最大监听数+独占开关
+#define TOUCH_DEV        "/dev/input/event2"
+#define EPOLL_MAX_EVENTS 1   // 仅监听1个设备，可扩展为多个（如2）
+#define GRAB_DEVICE      1   // 1=开启独占(EVIOCGRAB)，0=关闭普通模式
+
+// 全局变量：用于信号捕获优雅退出
+static int g_running = 1;
+static int g_efd = -1;  // epoll实例fd
+static int g_tfd = -1;  // 触摸设备fd
+
+// 信号处理函数：捕获Ctrl+C(SIGINT)，设置退出标记
+static void sigint_handler(int sig) {
+    if (sig == SIGINT) {
+        printf("\n收到退出信号，正在释放资源...\n");
+        g_running = 0;
+        // 唤醒阻塞的epoll_wait（避免退出时卡死）
+        if (g_efd >= 0) {
+            epoll_ctl(g_efd, EPOLL_CTL_DEL, g_tfd, NULL);
+        }
+    }
+}
+
+// 释放资源：取消独占+关闭fd+关闭epoll
+static void release_resources(void) {
+    if (g_tfd >= 0) {
+        // 取消EVIOCGRAB独占（若开启）
+        if (GRAB_DEVICE) {
+            ioctl(g_tfd, EVIOCGRAB, (void *)0);
+        }
+        close(g_tfd);
+        g_tfd = -1;
+        printf("已关闭触摸设备：%s\n", TOUCH_DEV);
+    }
+    if (g_efd >= 0) {
+        close(g_efd);
+        g_efd = -1;
+        printf("已关闭epoll实例\n");
+    }
+    printf("资源释放完成，程序退出\n");
+}
+
+// 初始化信号捕获：注册SIGINT(Ctrl+C)处理函数
+static int init_signal(void) {
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = sigint_handler;
+    sa.sa_flags = SA_RESTART;  // 重启被中断的系统调用（如read）
+    if (sigaction(SIGINT, &sa, NULL) < 0) {
+        perror("sigaction failed");
+        return -1;
+    }
+    return 0;
+}
+
+int main(int argc, char *argv[]) {
+    struct epoll_event ev, events[EPOLL_MAX_EVENTS];
+    struct input_event input_ev;
+    ssize_t nread;
+    int nfds, i;
+    static int x = 0, y = 0;  // 暂存ABS_MT X/Y坐标
+
+    // 1. 初始化信号捕获（处理Ctrl+C）
+    if (init_signal() < 0) {
+        exit(EXIT_FAILURE);
+    }
+
+    // 2. 打开触摸设备：阻塞模式（O_RDONLY），epoll推荐阻塞fd
+    g_tfd = open(TOUCH_DEV, O_RDONLY);
+    if (g_tfd < 0) {
+        perror("open " TOUCH_DEV " failed");
+        fprintf(stderr, "提示：需要root权限，或加入input用户组！\n");
+        exit(EXIT_FAILURE);
+    }
+    printf("成功打开触摸设备：%s (fd=%d)\n", TOUCH_DEV, g_tfd);
+
+    // 3. 开启EVIOCGRAB独占（可选）
+    if (GRAB_DEVICE) {
+        if (ioctl(g_tfd, EVIOCGRAB, (void *)1) < 0) {
+            perror("ioctl EVIOCGRAB failed");
+            release_resources();
+            exit(EXIT_FAILURE);
+        }
+        printf("已开启设备独占模式（--grab）\n");
+    }
+
+    // 4. 创建epoll实例：EPOLL_CLOEXEC=子进程关闭该fd，避免继承
+    g_efd = epoll_create1(EPOLL_CLOEXEC);
+    if (g_efd < 0) {
+        perror("epoll_create1 failed");
+        release_resources();
+        exit(EXIT_FAILURE);
+    }
+    printf("成功创建epoll实例（fd=%d）\n", g_efd);
+
+    // 5. 注册触摸设备fd到epoll：关注POLLIN（可读）事件，水平触发（LT）
+    ev.events = EPOLLIN;  // 仅监听可读事件，epoll默认LT模式
+    ev.data.fd = g_tfd;   // 绑定fd到epoll_event，回调时识别
+    if (epoll_ctl(g_efd, EPOLL_CTL_ADD, g_tfd, &ev) < 0) {
+        perror("epoll_ctl EPOLL_CTL_ADD failed");
+        release_resources();
+        exit(EXIT_FAILURE);
+    }
+    printf("已将%s注册到epoll，开始监听触摸事件（按Ctrl+C退出）\n", TOUCH_DEV);
+    printf("时间戳(秒.微秒) | ABS_MT X | ABS_MT Y\n");
+    printf("----------------------------------------\n");
+
+    // 6. epoll主循环：阻塞等待事件，有事件则处理
+    while (g_running) {
+        // 阻塞等待事件：超时-1=永久阻塞，有事件才返回
+        nfds = epoll_wait(g_efd, events, EPOLL_MAX_EVENTS, -1);
+        if (nfds < 0) {
+            // 被信号中断（如Ctrl+C），非错误，继续循环
+            if (errno == EINTR) {
+                continue;
+            }
+            perror("epoll_wait failed");
+            break;
+        }
+
+        // 遍历所有触发的事件（此处仅1个，可扩展多设备）
+        for (i = 0; i < nfds; i++) {
+            // 仅处理可读事件+绑定的触摸fd
+            if (events[i].data.fd == g_tfd && (events[i].events & EPOLLIN)) {
+                // 循环读取所有待处理事件：避免单次read漏读
+                while ((nread = read(g_tfd, &input_ev, sizeof(input_ev))) == sizeof(input_ev)) {
+                    // 解析ABS_MT坐标+SYN_REPORT同步事件
+                    switch (input_ev.type) {
+                        case EV_ABS:  // 绝对坐标事件
+                            switch (input_ev.code) {
+                                case ABS_MT_POSITION_X:  // 多点触摸X
+                                    x = input_ev.value;
+                                    break;
+                                case ABS_MT_POSITION_Y:  // 多点触摸Y
+                                    y = input_ev.value;
+                                    break;
+                                // 可选：兼容单点触摸ABS_X/ABS_Y
+                                // case ABS_X: x = input_ev.value; break;
+                                // case ABS_Y: y = input_ev.value; break;
+                            }
+                            break;
+
+                        case EV_SYN:  // 同步事件：SYN_REPORT表示坐标包完成
+                            if (input_ev.code == SYN_REPORT) {
+                                // 打印完整坐标：时间戳+X+Y
+                                printf("%ld.%06ld | %-8d | %-8d\n",
+                                       input_ev.time.tv_sec, input_ev.time.tv_usec,
+                                       x, y);
+                                // 重置坐标，避免旧值干扰
+                                x = 0;
+                                y = 0;
+                            }
+                            break;
+
+                        default:  // 忽略其他无关事件（EV_KEY/EV_MSC等）
+                            break;
+                    }
+                }
+
+                // 处理read的异常情况：非EAGAIN（阻塞fd不会返回EAGAIN）
+                if (nread < 0 && errno != EAGAIN) {
+                    perror("read input event failed");
+                    g_running = 0;
+                    break;
+                }
+            }
+        }
+    }
+
+    // 7. 释放所有资源：取消独占+关闭fd+关闭epoll
+    release_resources();
+    return EXIT_SUCCESS;
+}
