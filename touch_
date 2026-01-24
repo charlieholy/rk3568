@@ -27,3 +27,11 @@ $24 = {count = {counter = 10}, active = {counter = 0}, parent = 0xffffffc0e7fec7
       root = 0xffffffc0e99c3300}, symlink = {target_kn = 0x1}, attr = {ops = 0x1, open = 0xffffffc0e7feebc8,
       size = -270958578944, notify_next = 0x0}}, priv = 0xffffffc0e78110f0, id = {{ino = 25195, generation = 1},
     id = 4294992491}, flags = 17, mode = 16877, iattr = 0x0}
+
+
+
+
+cat /proc/bus/input/devices
+
+    goodix_wq = create_singlethread_workqueue("goodix_wq");
+root        82     2  0 17:05 ?        00:00:00 [goodix_wq]
