@@ -33,5 +33,9 @@ $24 = {count = {counter = 10}, active = {counter = 0}, parent = 0xffffffc0e7fec7
 
 cat /proc/bus/input/devices
 
+ret = devm_request_threaded_irq(&(ts->client->dev), ts->irq, NULL, 
+goodix_ts_irq_handler, ts->irq_flags | IRQF_ONESHOT /*irq_table[ts->int_trigger_type]*/, 
+ts->client->name, ts);
+
     goodix_wq = create_singlethread_workqueue("goodix_wq");
 root        82     2  0 17:05 ?        00:00:00 [goodix_wq]
