@@ -1,0 +1,9 @@
+#0  gtp_touch_down (w=<optimized out>, y=948, x=<optimized out>, id=<optimized out>, ts=<optimized out>)
+    at drivers/input/touchscreen/gt9xx/gt9xx.c:438
+#1  goodix_ts_work_func (work=0xffffffc0e7803e80) at drivers/input/touchscreen/gt9xx/gt9xx.c:937
+#2  0xffffff80080cdff8 in process_one_work (worker=0xffffffc0ceeb1b00, work=0xffffffc0e7803e80)
+    at kernel/workqueue.c:2175
+#3  0xffffff80080cefa4 in worker_thread (__worker=0xffffffc0ceeb1b00) at kernel/workqueue.c:2321
+#4  0xffffff80080d4130 in kthread (_create=0xffffffc0e4fa9880) at kernel/kthread.c:260
+#5  0xffffff800808542c in ret_from_fork () at arch/arm64/kernel/entry.S:1103
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
