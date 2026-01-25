@@ -1,3 +1,11 @@
+i2s => sound/soc/rockchip/rockchip_i2s.h
+/* I2S REGS */
+#define I2S_TXCR	(0x0000)
+#define I2S_RXCR	(0x0004)
+#define I2S_CKR		(0x0008)
+#define I2S_FIFOLR	(0x000c)
+#define I2S_DMACR	(0x0010)
+
 vop => drivers/gpu/drm/rockchip/rockchip_vop_reg.h
 GRF_VO_CON1
 #define RK3568_GRF_VO_CON1			0x0364
