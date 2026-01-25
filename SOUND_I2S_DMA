@@ -1,3 +1,17 @@
+    2.133268] rk817_probe
+[    2.134218] rk817-codec rk817-codec: rk817_probe: chip_name:0x80, chip_ver:0x95
+[    2.138196] rk817_playback_path_config : set playback_path 7, pre_path 0
+[    2.138226] rk817_codec_power_up : power up playback
+[    2.147254] rk817_codec_power_up: 374 - Playback DIG CLK OPS
+[    2.149457] rk817_set_dai_sysclk : MCLK = 12288000Hz
+[    2.149478] rk817_set_dai_fmt : i2s slave mode
+[    2.150228]   devName: fe550000.dmac
+[    2.150238]   bufferSize: 0 MB
+[    2.150250]   DMA physical address: 0xeec80000
+[    2.150257]   kernel virtual address: 0000000001d61524
+
+4006084608 = 0xEEC80000
+
 1.set mem data addr to dma
 
 (gdb) p ((struct snd_pcm_file*)file->private_data)->substream->dma_buffer
