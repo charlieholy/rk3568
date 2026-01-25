@@ -14,3 +14,8 @@ $13 = (regmap_hw_write) 0xffffff800875a2c4 <regmap_i2c_write>
 #4  0xffffff8008756368 in regmap_write (map=0xffffffc0e7979000, reg=20, val=64) at drivers/base/regmap/regmap.c:1782
 #5  0xffffff8008b2751c in snd_soc_component_write (component=0xffffffc0e797d280, reg=20, val=64) at sound/soc/soc-io.c:67
 #6  0xffffff8008b316f0 in rk817_reset (component=<optimized out>) at sound/soc/codecs/rk817_codec.c:257
+
+# 查看所有已注册的DAI
+cat /sys/kernel/debug/asoc/dais
+# 查看所有已注册的Component
+cat /sys/kernel/debug/asoc/components
