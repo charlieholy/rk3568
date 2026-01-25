@@ -1,5 +1,9 @@
 1.set mem data addr to dma
 
+(gdb) p ((struct snd_pcm_file*)file->private_data)->substream->dma_buffer
+$17 = {dev = {type = 2, dev = 0xffffffc0e9366000}, area = 0xffffff800a665000 "", addr = 4006084608, bytes = 524288,
+  private_data = 0x0}
+
 static struct dma_async_tx_descriptor *pl330_prep_dma_cyclic(
 		struct dma_chan *chan, dma_addr_t dma_addr, size_t len,
 		size_t period_len, enum dma_transfer_direction direction,
