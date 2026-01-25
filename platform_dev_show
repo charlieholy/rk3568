@@ -1,0 +1,50 @@
+ffffff8009520b90 D platform_bus_type
+
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/platform_device.h>
+#include <linux/device.h>
+
+// 回调函数：处理每个platform_device
+static int platform_dev_scan(struct device *dev, void *data)
+{
+    // 将通用device转换为platform_device（核心转换）
+    struct platform_device *pdev = to_platform_device(dev);
+    
+    // 打印platform_device的关键信息
+    pr_info("platform_device: name=%s, id=%d, dev->name=%s\n",
+            pdev->name,          // 平台设备名（如rk3568-drm）
+            pdev->id,            // 设备ID（-1表示无ID，大部分平台设备为-1）
+            dev->kobj.name);     // 设备kobject名（和pdev->name一致）
+    
+    // 可进一步获取设备资源、设备树节点等
+    // struct resource *res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+    // struct device_node *np = pdev->dev.of_node;
+    
+    return 0; // 返回0继续遍历下一个设备
+}
+
+// 模块初始化：遍历所有platform_device
+static int __init platform_dev_traverse_init(void)
+{
+    pr_info("Start traversing all platform_device\n");
+    
+    // 核心：遍历platform_bus_type下的所有设备
+    bus_for_each_dev(&platform_bus_type, NULL, NULL, platform_dev_scan);
+    
+    pr_info("Traverse platform_device finish\n");
+    return 0;
+}
+
+// 模块退出
+static void __exit platform_dev_traverse_exit(void)
+{
+    pr_info("Module exit\n");
+}
+
+module_init(platform_dev_traverse_init);
+module_exit(platform_dev_traverse_exit);
+
+MODULE_LICENSE("GPL");
+MODULE_DESCRIPTION("Linux platform_device traverse demo");
+MODULE_AUTHOR("Test");
