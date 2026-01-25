@@ -1,0 +1,17 @@
+(gdb) bt
+#0  __switch_to (prev=0xffffffc0e9a65580, next=0xffffffc0e9b563c0) at arch/arm64/kernel/process.c:544
+#1  0xffffff8008ddd6f8 in context_switch (rf=<optimized out>, next=<optimized out>, prev=<optimized out>,
+    rq=<optimized out>) at kernel/sched/core.c:3443
+#2  __schedule (preempt=false) at kernel/sched/core.c:4133
+#3  0xffffff8008dddac8 in schedule_idle () at kernel/sched/core.c:4204
+#4  0xffffff80080e8310 in do_idle () at kernel/sched/idle.c:288
+#5  0xffffff80080e863c in cpu_startup_entry (state=CPUHP_AP_ONLINE_IDLE) at kernel/sched/idle.c:370
+#6  0xffffff8008094be0 in secondary_start_kernel () at arch/arm64/kernel/smp.c:254
+#7  0x0000000000000000 in ?? ()
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
+
+(gdb) p *next
+$15 = {thread_info = {flags = 40, addr_limit = 18446744073709551615, preempt_count = 0}, state = 0,
+  stack = 0xffffff8009ee0000
+(gdb) p next->pid
+$16 = 84
