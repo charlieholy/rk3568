@@ -1,4 +1,11 @@
 1.set mem data addr to dma
+
+static struct dma_async_tx_descriptor *pl330_prep_dma_cyclic(
+		struct dma_chan *chan, dma_addr_t dma_addr, size_t len,
+		size_t period_len, enum dma_transfer_direction direction,
+		unsigned long flags)
+{
+
 #0  snd_dmaengine_pcm_trigger (substream=0xffffffc0e6d4dc00, cmd=1) at sound/core/pcm_dmaengine.c:199
 #1  0xffffff8008b30fdc in soc_pcm_trigger (substream=0xffffffc0e6d4dc00, cmd=1) at sound/soc/soc-pcm.c:1183
 #2  0xffffff8008aef6c0 in snd_pcm_do_start (substream=0xffffffc0e6d4dc00, state=<optimized out>)
