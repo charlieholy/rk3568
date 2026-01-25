@@ -1,3 +1,17 @@
+1.set mem data addr to dma
+#0  snd_dmaengine_pcm_trigger (substream=0xffffffc0e6d4dc00, cmd=1) at sound/core/pcm_dmaengine.c:199
+#1  0xffffff8008b30fdc in soc_pcm_trigger (substream=0xffffffc0e6d4dc00, cmd=1) at sound/soc/soc-pcm.c:1183
+#2  0xffffff8008aef6c0 in snd_pcm_do_start (substream=0xffffffc0e6d4dc00, state=<optimized out>)
+    at sound/core/pcm_native.c:1220
+#3  0xffffff8008aef484 in snd_pcm_action_single (ops=0xffffff8008f9a458 <snd_pcm_action_start>,
+    substream=0xffffffc0e6d4dc00, state=3) at sound/core/pcm_native.c:1128
+#4  0xffffff8008aef588 in snd_pcm_action (ops=0xffffff8008f9a458 <snd_pcm_action_start>, substream=0xffffffc0e6d4dc00,
+    state=3) at sound/core/pcm_native.c:1146
+#5  0xffffff8008af31bc in snd_pcm_action_lock_irq (state=<optimized out>, substream=<optimized out>,
+    ops=<optimized out>) at sound/core/pcm_native.c:1178
+#6  snd_pcm_common_ioctl (file=0xffffffc0d6c8b040, substream=0xffffffc0e6d4dc00, cmd=16706, arg=0x1d5cd620)
+    at sound/core/pcm_native.c:2968
+
 void snd_dmaengine_pcm_set_config_from_dai_data(
 	const struct snd_pcm_substream *substream,
 	const struct snd_dmaengine_dai_dma_data *d,
@@ -24,6 +38,7 @@ void snd_dmaengine_pcm_set_config_from_dai_data(
 	slave_config->slave_id = dma_data->slave_id;
 }
 
+1.set i2s reg addr to dma
 (gdb) bt
 #0  snd_dmaengine_pcm_prepare_slave_config (substream=0xffffffc0e719b000, params=0xffffffc0e5964800,
     slave_config=0xffffff800d8db940) at sound/soc/soc-generic-dmaengine-pcm.c:64
