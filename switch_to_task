@@ -15,3 +15,8 @@ $15 = {thread_info = {flags = 40, addr_limit = 18446744073709551615, preempt_cou
   stack = 0xffffff8009ee0000
 (gdb) p next->pid
 $16 = 84
+
+(gdb) lx-list-check(next->tasks)
+Starting with: {next = 0xffffffc0e9b559e0, prev = 0xffffffc0e7fc0460}
+list is consistent: 148 node(s)
+(gdb)
