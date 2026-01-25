@@ -1,4 +1,40 @@
 (gdb) bt
+#0  snd_dmaengine_pcm_prepare_slave_config (substream=0xffffffc0e719b000, params=0xffffffc0e5964800,
+    slave_config=0xffffff800d8db940) at sound/soc/soc-generic-dmaengine-pcm.c:64
+#1  0xffffff8008b38670 in dmaengine_pcm_hw_params (substream=0xffffffc0e719b000, params=0xffffffc0e5964800)
+    at sound/soc/soc-generic-dmaengine-pcm.c:104
+#2  0xffffff8008b33ff0 in soc_pcm_hw_params (substream=0xffffffc0e719b000, params=0xffffffc0e5964800)
+    at sound/soc/soc-pcm.c:1032
+#3  0xffffff8008af0d1c in snd_pcm_hw_params (substream=0xffffffc0e719b000, params=0xffffffc0e5964800)
+    at sound/core/pcm_native.c:711
+#4  0xffffff8008af3030 in snd_pcm_hw_params_user (_params=<optimized out>, substream=<optimized out>)
+    at sound/core/pcm_native.c:793
+#5  snd_pcm_common_ioctl (file=0xffffffc0e5bcf900, substream=0xffffffc0e719b000, cmd=<optimized out>, arg=0x7fa9cfdf50)
+    at sound/core/pcm_native.c:2915
+#6  0xffffff8008af38fc in snd_pcm_ioctl (file=0xffffffc0e5bcf900, cmd=3261088017, arg=548309819216)
+    at sound/core/pcm_native.c:2996
+#7  0xffffff8008229974 in vfs_ioctl (filp=0xffffffc0e5bcf900, cmd=3261088017, arg=548309819216) at fs/ioctl.c:46
+#8  0xffffff800822a0b4 in do_vfs_ioctl (filp=0xffffffc0e5bcf900, fd=25, cmd=3261088017, arg=548309819216)
+    at fs/ioctl.c:690
+#9  0xffffff800822aa24 in ksys_ioctl (fd=25, cmd=3261088017, arg=548309819216) at fs/ioctl.c:705
+#10 0xffffff800822aa7c in __do_sys_ioctl (arg=<optimized out>, cmd=<optimized out>, fd=<optimized out>)
+    at fs/ioctl.c:712
+#11 __se_sys_ioctl (arg=<optimized out>, cmd=<optimized out>, fd=<optimized out>) at fs/ioctl.c:710
+#12 __arm64_sys_ioctl (regs=0xffffff800d8dbec0) at fs/ioctl.c:710
+#13 0xffffff8008095c80 in __invoke_syscall (syscall_fn=<optimized out>, regs=<optimized out>)
+    at arch/arm64/kernel/syscall.c:36
+#14 invoke_syscall (syscall_table=<optimized out>, sc_nr=<optimized out>, scno=<optimized out>, regs=<optimized out>)
+---Type <return> to continue, or q <return> to quit---
+    at arch/arm64/kernel/syscall.c:48
+#15 el0_svc_common (regs=0xffffff800d8dbec0, scno=<optimized out>, syscall_table=0xffffff8008df0870 <sys_call_table>,
+    sc_nr=<optimized out>) at arch/arm64/kernel/syscall.c:117
+#16 0xffffff8008095d70 in el0_svc_handler (regs=0xffffff800d8dbec0) at arch/arm64/kernel/syscall.c:163
+#17 0xffffff8008083848 in el0_svc () at arch/arm64/kernel/entry.S:940
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
+(gdb)
+
+
+(gdb) bt
 #0  snd_malloc_dev_pages (dma=<optimized out>, size=<optimized out>, dev=<optimized out>) at sound/core/memalloc.c:97
 #1  snd_dma_alloc_pages (type=4, device=0xffffffc0e9356000, size=524288, dmab=0xffffffc0e72c5d60)
     at sound/core/memalloc.c:203
