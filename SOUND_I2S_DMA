@@ -128,3 +128,22 @@ Backtrace stopped: previous frame identical to this frame (corrupt stack?)
 #16 0xffffff800873b9c8 in bus_for_each_drv (bus=0xffffff8009510b90 <platform_bus_type>, start=<optimized out>,
     data=0xffffff80098fbd18, fn=0xffffff800873e0b0 <__device_attach_driver>) at drivers/base/bus.c:454
 #17 0xffffff800873dd30 in __device_attach (dev=0xffffffc0e93a5810, allow_async=true) at drivers/base/dd.c:846
+
+snd_card_prob
+(gdb) bt
+#0  rk817_set_dai_fmt (codec_dai=0xffffffc0e793fe00, fmt=16385) at sound/soc/codecs/rk817_codec.c:841
+#1  0xffffff8008b22d24 in snd_soc_dai_set_fmt (dai=0xffffffc0e793fe00, fmt=16385) at sound/soc/soc-core.c:2592
+#2  0xffffff8008b25714 in snd_soc_runtime_set_dai_fmt (rtd=0xffffffc0e72d4000, dai_fmt=16385)
+    at sound/soc/soc-core.c:1725
+#3  0xffffff8008b28e94 in soc_probe_link_dais (order=<optimized out>, rtd=<optimized out>, card=<optimized out>)
+    at sound/soc/soc-core.c:1550
+#4  snd_soc_instantiate_card (card=<optimized out>) at sound/soc/soc-core.c:2115
+#5  snd_soc_register_card (card=0xffffffc0e72d3880) at sound/soc/soc-core.c:2791
+#6  0xffffff8008b36fc0 in devm_snd_soc_register_card (dev=0xffffffc0e93bd810, card=0xffffffc0e72d3880)
+    at sound/soc/soc-devres.c:72
+#7  0xffffff8008b4c9e8 in asoc_simple_card_probe (pdev=<optimized out>) at sound/soc/generic/simple-card.c:439
+#8  0xffffff80087437cc in platform_drv_probe (_dev=0xffffffc0e93bd810) at drivers/base/platform.c:602
+#9  0xffffff8008741014 in really_probe (dev=0xffffffc0e93bd810, drv=0xffffff80095a0750 <asoc_simple_card+40>)
+    at drivers/base/dd.c:510
+#10 0xffffff800874143c in driver_probe_device (drv=0xffffff80095a0750 <asoc_simple_card+40>, dev=0xffffffc0e93bd810)
+    at drivers/base/dd.c:671
