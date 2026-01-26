@@ -1,5 +1,23 @@
 aplay -l
 
+devm_snd_soc_register_card
+
+ls -l /sys/class/sound/
+total 0
+lrwxrwxrwx 1 root root 0 Jan 26 09:51 card0 -> ../../devices/platform/rk809-sound/sound/card0
+lrwxrwxrwx 1 root root 0 Jan 26 09:51 card1 -> ../../devices/platform/bt-sound/sound/card1
+lrwxrwxrwx 1 root root 0 Jan 26 09:51 card2 -> ../../devices/platform/hdmi-sound/sound/card2
+lrwxrwxrwx 1 root root 0 Jan 26 09:51 controlC0 -> ../../devices/platform/rk809-sound/sound/card0/controlC0
+lrwxrwxrwx 1 root root 0 Jan 26 09:51 controlC1 -> ../../devices/platform/bt-sound/sound/card1/controlC1
+lrwxrwxrwx 1 root root 0 Jan 26 09:51 controlC2 -> ../../devices/platform/hdmi-sound/sound/card2/controlC2
+lrwxrwxrwx 1 root root 0 Jan 26 09:51 pcmC0D0c -> ../../devices/platform/rk809-sound/sound/card0/pcmC0D0c
+lrwxrwxrwx 1 root root 0 Jan 26 09:51 pcmC0D0p -> ../../devices/platform/rk809-sound/sound/card0/pcmC0D0p
+lrwxrwxrwx 1 root root 0 Jan 26 09:51 pcmC1D0c -> ../../devices/platform/bt-sound/sound/card1/pcmC1D0c
+lrwxrwxrwx 1 root root 0 Jan 26 09:51 pcmC1D0p -> ../../devices/platform/bt-sound/sound/card1/pcmC1D0p
+lrwxrwxrwx 1 root root 0 Jan 26 09:51 pcmC2D0p -> ../../devices/platform/hdmi-sound/sound/card2/pcmC2D0p
+lrwxrwxrwx 1 root root 0 Jan 26 09:51 seq -> ../../devices/virtual/sound/seq
+lrwxrwxrwx 1 root root 0 Jan 26 09:51 timer -> ../../devices/virtual/sound/timer
+
  snd_ctl_ioctl (file=0xffffffc0ce2beb40, cmd=2172146945, arg=549061360280) at sound/core/control.c:1549
 #1  0xffffff80082297d0 in vfs_ioctl (filp=0xffffffc0ce2beb40, cmd=2172146945, arg=549061360280) at fs/ioctl.c:46
 #2  0xffffff8008229f10 in do_vfs_ioctl (filp=0xffffffc0ce2beb40, fd=3, cmd=2172146945, arg=549061360280) at fs/ioctl.c:690
