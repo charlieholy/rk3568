@@ -26,6 +26,46 @@ DMASEV thrd->ev         // 传输完成触发事件/中断
 DMAEND                 // 终止DMA线程
 
 
+Thread 149 hit Breakpoint 2, _trigger (thrd=<optimized out>) at drivers/dma/pl330.c:1055
+1055            _execute_DBGINSN(thrd, insn, true);
+(gdb) bt
+#0  _trigger (thrd=<optimized out>) at drivers/dma/pl330.c:1055
+#1  _start (thrd=0xffffffc0e7f0a850) at drivers/dma/pl330.c:1082
+#2  0xffffff800859c5e8 in pl330_tasklet (data=18446743802710893040) at drivers/dma/pl330.c:2249
+#3  0xffffff800859c768 in pl330_issue_pending (chan=<optimized out>) at drivers/dma/pl330.c:2618
+#4  0xffffff8008b00ba4 in dma_async_issue_pending (chan=<optimized out>) at ./include/linux/dmaengine.h:1253
+#5  snd_dmaengine_pcm_trigger (substream=0xffffffc0e62d9800, cmd=1) at sound/core/pcm_dmaengine.c:202
+#6  0xffffff8008b36610 in soc_pcm_trigger (substream=0xffffffc0e62d9800, cmd=1) at sound/soc/soc-pcm.c:1183
+#7  0xffffff8008af4cc8 in snd_pcm_do_start (substream=0xffffffc0e62d9800, state=<optimized out>)
+    at sound/core/pcm_native.c:1220
+#8  0xffffff8008af4a8c in snd_pcm_action_single (ops=0xffffff8008f9a5d8 <snd_pcm_action_start>,
+    substream=0xffffffc0e62d9800, state=3) at sound/core/pcm_native.c:1128
+#9  0xffffff8008af4b90 in snd_pcm_action (ops=0xffffff8008f9a5d8 <snd_pcm_action_start>, substream=0xffffffc0e62d9800,
+    state=3) at sound/core/pcm_native.c:1146
+#10 0xffffff8008af87c4 in snd_pcm_action_lock_irq (state=<optimized out>, substream=<optimized out>,
+    ops=<optimized out>) at sound/core/pcm_native.c:1178
+#11 snd_pcm_common_ioctl (file=0xffffffc0d6eef900, substream=0xffffffc0e62d9800, cmd=16706, arg=0x35bcae30)
+    at sound/core/pcm_native.c:2968
+#12 0xffffff8008af8f04 in snd_pcm_ioctl (file=0xffffffc0d6eef900, cmd=16706, arg=901557808)
+    at sound/core/pcm_native.c:2996
+#13 0xffffff800822cee0 in vfs_ioctl (filp=0xffffffc0d6eef900, cmd=16706, arg=901557808) at fs/ioctl.c:46
+#14 0xffffff800822d620 in do_vfs_ioctl (filp=0xffffffc0d6eef900, fd=23, cmd=16706, arg=901557808) at fs/ioctl.c:690
+#15 0xffffff800822df90 in ksys_ioctl (fd=23, cmd=16706, arg=901557808) at fs/ioctl.c:705
+#16 0xffffff800822dfe8 in __do_sys_ioctl (arg=<optimized out>, cmd=<optimized out>, fd=<optimized out>)
+    at fs/ioctl.c:712
+#17 __se_sys_ioctl (arg=<optimized out>, cmd=<optimized out>, fd=<optimized out>) at fs/ioctl.c:710
+---Type <return> to continue, or q <return> to quit---
+#18 __arm64_sys_ioctl (regs=0xffffff800d76bec0) at fs/ioctl.c:710
+#19 0xffffff8008095c80 in __invoke_syscall (syscall_fn=<optimized out>, regs=<optimized out>)
+    at arch/arm64/kernel/syscall.c:36
+#20 invoke_syscall (syscall_table=<optimized out>, sc_nr=<optimized out>, scno=<optimized out>, regs=<optimized out>)
+    at arch/arm64/kernel/syscall.c:48
+#21 el0_svc_common (regs=0xffffff800d76bec0, scno=<optimized out>, syscall_table=0xffffff8008df0870 <sys_call_table>,
+    sc_nr=<optimized out>) at arch/arm64/kernel/syscall.c:117
+#22 0xffffff8008095d70 in el0_svc_handler (regs=0xffffff800d76bec0) at arch/arm64/kernel/syscall.c:163
+#23 0xffffff8008083848 in el0_svc () at arch/arm64/kernel/entry.S:940
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
+
 ls /sys/bus/amba/devices/
 
 drivers/dma/pl330.c
@@ -40,3 +80,5 @@ drivers/dma/pl330.c
         arm,pl330-periph-burst;
         phandle = <0x00000046>;
     };
+
+
