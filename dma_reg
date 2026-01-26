@@ -1,1 +1,14 @@
+ls /sys/bus/amba/devices/
+
 drivers/dma/pl330.c
+
+  dmac@fe530000 {
+        compatible = "arm,pl330", "arm,primecell";
+        reg = <0x00000000 0xfe530000 0x00000000 0x00004000>;
+        interrupts = <0x00000000 0x0000000e 0x00000004 0x00000000 0x0000000d 0x00000004>;
+        clocks = <0x00000021 0x0000010d>;
+        clock-names = "apb_pclk";
+        #dma-cells = <0x00000001>;
+        arm,pl330-periph-burst;
+        phandle = <0x00000046>;
+    };
