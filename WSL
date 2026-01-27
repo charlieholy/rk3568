@@ -71,4 +71,5 @@ ubuntu20@NYX:~/opt/linux_sdk/kernel$ sudo stty -F /dev/ttyACM0 sane
 ubuntu20@NYX:~/opt/linux_sdk/kernel$ sudo fuser -k /dev/ttyACM0
 /dev/ttyACM0:        642605
 
+dd if=/data/uboot.img of=/dev/mmcblk0 bs=512 seek=16384
 dd if=/data/boot.img of=/dev/mmcblk0 bs=512 seek=32768
