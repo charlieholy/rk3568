@@ -1,0 +1,56 @@
+=> boot_fit
+## Booting FIT Image at 0xea214080 with size 0x015e3800
+do_bootm_states argc = 1
+argv[0] = 0xea214080
+do_bootm_states end
+## Loading kernel from FIT Image at ea214080 ...
+   Using 'conf' configuration
+## Verified-boot: 0
+   Trying 'kernel' kernel subimage
+     Description:  unavailable
+     Type:         Kernel Image
+     Compression:  uncompressed
+     Data Start:   0xea237680
+     Data Size:    22806536 Bytes = 21.8 MiB
+     Architecture: AArch64
+     OS:           Linux
+     Load Address: 0x00280000
+     Entry Point:  0x00280000
+     Hash algo:    sha256
+     Hash value:   b8f9ca2ddd65590cf759cd1a0964396948491c679488e19f3efa3944dd865636
+   Verifying Hash Integrity ... sha256+ OK
+## Loading fdt from FIT Image at ea214080 ...
+   Using 'conf' configuration
+   Trying 'fdt' fdt subimage
+     Description:  unavailable
+     Type:         Flat Device Tree
+     Compression:  uncompressed
+     Data Start:   0xea214880
+     Data Size:    142747 Bytes = 139.4 KiB
+     Architecture: AArch64
+     Load Address: 0x08300000
+     Hash algo:    sha256
+     Hash value:   3739f9c218da3555a0b1f71153f23023507191d8e7724bf60e208c78dbef58bc
+   Verifying Hash Integrity ... sha256+ OK
+   Loading fdt from 0x08300000 to 0x08300000
+   Booting using the fdt blob at 0x08300000
+   Loading Kernel Image from 0xea237680 to 0x00280000 ... OK
+   kernel loaded at 0x00280000, end = 0x01840008
+   Using Device Tree in place at 0000000008300000, end 0000000008326026
+vp1 adjust cursor plane from 0 to 1
+vp0, plane_mask:0x2a, primary-id:5, curser-id:1
+vp1 adjust cursor plane from 1 to 0
+vp1, plane_mask:0x15, primary-id:4, curser-id:0
+vp2, plane_mask:0x0, primary-id:0, curser-id:-1
+WARNING: could not set reg FDT_ERR_BADOFFSET.
+## reserved-memory:
+  drm-logo@00000000: addr=edf00000 size=106000
+  drm-cubic-lut@00000000: addr=eff00000 size=8000
+  ramoops@110000: addr=110000 size=f0000
+Adding bank: 0x00200000 - 0x08400000 (size: 0x08200000)
+Adding bank: 0x09400000 - 0xf0000000 (size: 0xe6c00000)
+Total: 1177521.422/1177586.314 ms
+
+Starting kernel ...
+
+[    0.000000] Booting Linux on physical CPU 0x0000000000 [0x412fd050]
