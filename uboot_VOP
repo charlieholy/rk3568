@@ -28,3 +28,7 @@ CLK: (sync kernel. arm: enter 816000 KHz, init 816000 KHz, kernel 0N/A)
   aclk_top_high 500000 KHz
   aclk_top_low 400000 KHz
   hclk_top 150000 KHz
+  pclk_top 100000 KHz
+  aclk_perimid 300000 KHz
+  hclk_perimid 150000 KHz
+  pclk_pmu 100000 KHz
