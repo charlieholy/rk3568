@@ -1,0 +1,148 @@
+ubuntu20@NYX:~/opt/test$ cat server.c
+// 标准IO函数（printf、perror）
+#include <stdio.h>
+// 内存操作函数（memset）
+#include <string.h>
+// Unix标准库（close、ssize_t、socklen_t）
+#include <unistd.h>
+// 基础数据类型、系统调用
+#include <sys/types.h>
+// Socket核心函数（socket、bind、setsockopt、recvfrom）
+#include <sys/socket.h>
+// 网络地址结构体（sockaddr_in、in_addr）、网络字节序转换（htonl、htons、ntohs）
+#include <netinet/in.h>
+// IP地址转换（inet_addr、inet_ntoa）、INADDR_ANY
+#include <arpa/inet.h>
+// 错误码定义（可选，增强兼容性）
+#include <errno.h>
+
+
+#define MCAST_ADDR "239.0.0.1"  // 私有组播地址（常用）
+#define MCAST_PORT 8888         // 组播UDP端口
+#define BUF_SIZE 1024
+
+int main() {
+    // 1. 创建UDP Socket
+    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd < 0) {
+        perror("socket error");
+        return -1;
+    }
+
+    // 2. 关键：设置地址复用，允许多进程绑定同一端口
+    int opt = 1;
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+        perror("setsockopt SO_REUSEADDR error");
+        close(sockfd);
+        return -1;
+    }
+
+    // 3. 绑定INADDR_ANY + 端口（推荐，可接收发往该端口的所有组播包）
+    struct sockaddr_in local_addr;
+    memset(&local_addr, 0, sizeof(local_addr));
+    local_addr.sin_family = AF_INET;
+    local_addr.sin_addr.s_addr = htonl(INADDR_ANY);  // 绑定所有本地IP
+    local_addr.sin_port = htons(MCAST_PORT);
+    if (bind(sockfd, (struct sockaddr*)&local_addr, sizeof(local_addr)) < 0) {
+        perror("bind error");
+        close(sockfd);
+        return -1;
+    }
+
+    // 4. 核心：加入组播组（IP_ADD_MEMBERSHIP）
+    struct ip_mreq mreq;  // 组播成员结构体：组播地址 + 本地接口IP
+    mreq.imr_multiaddr.s_addr = inet_addr(MCAST_ADDR);  // 要加入的组播地址
+    mreq.imr_interface.s_addr = htonl(INADDR_ANY);     // 绑定所有本地接口（eth0/lo等）
+    // 若指定具体接口，如eth0的IP为192.168.1.100，则改为：
+    // mreq.imr_interface.s_addr = inet_addr("192.168.1.100");
+    if (setsockopt(sockfd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) {
+        perror("setsockopt IP_ADD_MEMBERSHIP error");
+        close(sockfd);
+        return -1;
+    }
+
+    // 5. 循环接收组播包
+    char buf[BUF_SIZE];
+    struct sockaddr_in src_addr;
+    socklen_t src_len = sizeof(src_addr);
+    while (1) {
+        memset(buf, 0, BUF_SIZE);
+        ssize_t n = recvfrom(sockfd, buf, BUF_SIZE, 0, (struct sockaddr*)&src_addr, &src_len);
+        if (n < 0) {
+            perror("recvfrom error");
+            continue;
+        }
+        printf("Received multicast from %s:%d: %s\n",
+               inet_ntoa(src_addr.sin_addr), ntohs(src_addr.sin_port), buf);
+    }
+
+    close(sockfd);
+    return 0;
+}
+
+
+ubuntu20@NYX:~/opt/test$ cat client.c
+// 标准IO函数（printf、perror）
+#include <stdio.h>
+// 内存操作函数（memset）
+#include <string.h>
+// Unix标准库（close、ssize_t、socklen_t）
+#include <unistd.h>
+// 基础数据类型、系统调用
+#include <sys/types.h>
+// Socket核心函数（socket、bind、setsockopt、recvfrom）
+#include <sys/socket.h>
+// 网络地址结构体（sockaddr_in、in_addr）、网络字节序转换（htonl、htons、ntohs）
+#include <netinet/in.h>
+// IP地址转换（inet_addr、inet_ntoa）、INADDR_ANY
+#include <arpa/inet.h>
+// 错误码定义（可选，增强兼容性）
+#include <errno.h>
+
+
+#define MCAST_ADDR "239.0.0.1"
+#define MCAST_PORT 8888
+#define BUF_SIZE 1024
+#define MCAST_TTL 1  // 仅本地网段传播
+
+int main() {
+    // 1. 创建UDP Socket
+    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd < 0) {
+        perror("socket error");
+        return -1;
+    }
+
+    // 2. 可选：设置组播TTL值，控制传播范围
+    int ttl = MCAST_TTL;
+    if (setsockopt(sockfd, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl)) < 0) {
+        perror("setsockopt IP_MULTICAST_TTL error");
+        close(sockfd);
+        return -1;
+    }
+
+    // 3. 填充组播目标地址
+    struct sockaddr_in mcast_addr;
+    memset(&mcast_addr, 0, sizeof(mcast_addr));
+    mcast_addr.sin_family = AF_INET;
+    mcast_addr.sin_addr.s_addr = inet_addr(MCAST_ADDR);
+    mcast_addr.sin_port = htons(MCAST_PORT);
+
+    // 4. 循环发送组播包
+    char buf[BUF_SIZE] = "Hello UDP Multicast!";
+    int count = 0;
+    while (1) {
+        snprintf(buf, BUF_SIZE, "Multicast msg %d: Hello UDP Multicast!", ++count);
+        ssize_t n = sendto(sockfd, buf, strlen(buf), 0,
+                           (struct sockaddr*)&mcast_addr, sizeof(mcast_addr));
+        if (n < 0) {
+            perror("sendto error");
+            continue;
+        }
+        printf("Send multicast: %s\n", buf);
+        sleep(1);  // 每秒发一次
+    }
+
+    close(sockfd);
+    return 0;
+}
