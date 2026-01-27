@@ -1,3 +1,47 @@
+(gdb) bt
+#0  vm_insert_page (vma=0xffffffc0bfffcd80, addr=548208869376, page=0xffffffbf034a69c0) at mm/memory.c:1808
+#1  0xffffff800863ae74 in __vm_map_pages (offset=<optimized out>, num=<optimized out>, pages=<optimized out>,
+    vma=<optimized out>) at drivers/gpu/drm/rockchip/rockchip_drm_gem.c:553
+#2  rockchip_drm_gem_object_mmap_iommu (vma=<optimized out>, obj=<optimized out>)
+    at drivers/gpu/drm/rockchip/rockchip_drm_gem.c:572
+#3  rockchip_drm_gem_object_mmap (obj=0xffffffc0e48d1c00, vma=0xffffffc0bfffcd80)
+    at drivers/gpu/drm/rockchip/rockchip_drm_gem.c:605
+#4  0xffffff800863b7f8 in rockchip_gem_mmap_buf (obj=0xffffffc0e48d1c00, vma=0xffffffc0bfffcd80)
+    at drivers/gpu/drm/rockchip/rockchip_drm_gem.c:625
+#5  0xffffff80086631dc in rockchip_fbdev_mmap (info=0xffffffc0e6e81800, vma=0xffffffc0bfffcd80)
+    at drivers/gpu/drm/rockchip/rockchip_drm_fbdev.c:33
+#6  0xffffff800856ee94 in fb_mmap (file=<optimized out>, vma=0xffffffc0bfffcd80)
+    at drivers/video/fbdev/core/fbmem.c:1449
+#7  0xffffff80081ec214 in call_mmap (vma=<optimized out>, file=<optimized out>) at ./include/linux/fs.h:1905
+#8  mmap_region (file=0xffffffc0b62b32c0, addr=548208869376, len=<optimized out>, vm_flags=251, pgoff=<optimized out>,
+    uf=<optimized out>) at mm/mmap.c:1770
+#9  0xffffff80081ec7b0 in do_mmap (file=0xffffffc0b62b32c0, addr=<optimized out>, len=4096000, prot=3, flags=1,
+    vm_flags=251, pgoff=0, populate=<optimized out>, uf=0xffffff800fcbbdf8) at mm/mmap.c:1543
+#10 0xffffff80081d3fc0 in do_mmap_pgoff (uf=<optimized out>, populate=<optimized out>, pgoff=<optimized out>,
+    flags=<optimized out>, prot=<optimized out>, len=<optimized out>, addr=<optimized out>, file=<optimized out>)
+    at ./include/linux/mm.h:2384
+#11 vm_mmap_pgoff (file=0xffffffc0b62b32c0, addr=0, len=4096000, prot=3, flag=1, pgoff=0) at mm/util.c:357
+#12 0xffffff80081ea5a4 in ksys_mmap_pgoff (addr=0, len=4096000, prot=3, flags=1, fd=<optimized out>, pgoff=0)
+    at mm/mmap.c:1593
+#13 0xffffff800808d824 in __do_sys_mmap (off=<optimized out>, fd=<optimized out>, flags=<optimized out>,
+---Type <return> to continue, or q <return> to quit---
+    prot=<optimized out>, len=<optimized out>, addr=<optimized out>) at arch/arm64/kernel/sys.c:39
+#14 __se_sys_mmap (off=<optimized out>, fd=<optimized out>, flags=<optimized out>, prot=<optimized out>,
+    len=<optimized out>, addr=<optimized out>) at arch/arm64/kernel/sys.c:32
+#15 __arm64_sys_mmap (regs=0xffffff800fcbbec0) at arch/arm64/kernel/sys.c:32
+#16 0xffffff8008095c8c in __invoke_syscall (syscall_fn=<optimized out>, regs=<optimized out>)
+    at arch/arm64/kernel/syscall.c:36
+#17 invoke_syscall (syscall_table=<optimized out>, sc_nr=<optimized out>, scno=<optimized out>, regs=<optimized out>)
+    at arch/arm64/kernel/syscall.c:48
+#18 el0_svc_common (regs=0xffffff800fcbbec0, scno=<optimized out>, syscall_table=0xffffff8008df0870 <sys_call_table>,
+    sc_nr=<optimized out>) at arch/arm64/kernel/syscall.c:117
+#19 0xffffff8008095d7c in el0_svc_handler (regs=0xffffff800fcbbec0) at arch/arm64/kernel/syscall.c:163
+#20 0xffffff8008083848 in el0_svc () at arch/arm64/kernel/entry.S:940
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
+(gdb)
+
+
+
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
