@@ -1,0 +1,26 @@
+drivers/gpu/drm/bridge/synopsys/dw-mipi-dsi.c
+
+/*
+ * Bind/unbind API, used from platforms based on the component framework.
+ */
+struct dw_mipi_dsi *
+dw_mipi_dsi_bind(struct platform_device *pdev, struct drm_encoder *encoder,
+		 const struct dw_mipi_dsi_plat_data *plat_data)
+{
+	struct dw_mipi_dsi *dsi;
+	int ret;
+
+	dsi = __dw_mipi_dsi_probe(pdev, plat_data);
+	if (IS_ERR(dsi))
+		return dsi;
+
+	ret = drm_bridge_attach(encoder, &dsi->bridge, NULL);
+	if (ret) {
+		dw_mipi_dsi_remove(dsi);
+		DRM_ERROR("Failed to initialize bridge with drm\n");
+		return ERR_PTR(ret);
+	}
+
+	return dsi;
+}
+EXPORT_SYMBOL_GPL(dw_mipi_dsi_bind);
