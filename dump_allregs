@@ -48,8 +48,9 @@ static ssize_t reg_read(struct file *filp, char __user *buf, size_t count, loff_
         len = snprintf(info, sizeof(info),
             "Register Dump Info:\n"
             "Phys Address: 0x%08lx\n"
+            "Virt Address: 0x%px\n"  // 新增：读取时也打印虚拟地址（%px内核安全打印地址）
             "Raw Value    : 0x%08x\n",
-            phys_addr, reg_val);
+            phys_addr, vaddr, reg_val);
     }
 
     // 安全拷贝到用户层：4.19内核兼容版min_t
@@ -103,6 +104,11 @@ static ssize_t reg_write(struct file *filp, const char __user *buf, size_t count
         pr_err("[%s] ioremap 0x%08lx failed! (invalid phys address)\n", DEV_NAME, new_phys);
         goto free_buf;
     }
+    // ==============================================
+    // 新增：打印用户动态设置的物理地址 + 映射后的虚拟地址
+    // ==============================================
+    pr_info("[%s] dynamic ioremap success:\n  Phys Address: 0x%08lx\n  Virt Address: 0x%px\n", 
+            DEV_NAME, new_phys, new_vaddr);
 
     // 5. 加自旋锁：原子更新全局地址/虚拟地址，解除原有映射
     spin_lock(&reg_lock);
@@ -131,6 +137,7 @@ static const struct file_operations reg_fops = {
 static int __init reg_dump_init(void)
 {
     int ret;
+    struct device *dev; // 避免device_create的未使用变量警告
 
     // 1. 动态分配字符设备号
     ret = alloc_chrdev_region(&devno, 0, 1, DEV_NAME);
@@ -158,7 +165,11 @@ static int __init reg_dump_init(void)
         pr_err("[%s] ioremap default 0x%08lx failed\n", DEV_NAME, g_reg_phys);
         return -ENOMEM;
     }
-    pr_info("[%s] default reg address: 0x%08lx\n", DEV_NAME, g_reg_phys);
+    // ==============================================
+    // 新增：打印默认物理地址 + 映射后的虚拟地址
+    // ==============================================
+    pr_info("[%s] default ioremap success:\n  Phys Address: 0x%08lx\n  Virt Address: 0x%px\n", 
+            DEV_NAME, g_reg_phys, g_reg_vaddr);
 
     // 4. 创建设备类+自动生成/dev/reg_dump节点
     reg_class = class_create(THIS_MODULE, DEV_NAME);
@@ -170,16 +181,19 @@ static int __init reg_dump_init(void)
         pr_err("[%s] class create failed: %d\n", DEV_NAME, ret);
         return ret;
     }
-    if (IS_ERR(device_create(reg_class, NULL, devno, NULL, DEV_NAME))) {
+    // 优化：增加dev变量，取错误码，避免警告
+    dev = device_create(reg_class, NULL, devno, NULL, DEV_NAME);
+    if (IS_ERR(dev)) {
         class_destroy(reg_class);
         iounmap(g_reg_vaddr);
         cdev_del(&reg_cdev);
         unregister_chrdev_region(devno, 1);
-        pr_err("[%s] device create failed\n", DEV_NAME);
-        return -EFAULT;
+        ret = PTR_ERR(dev);
+        pr_err("[%s] device create failed: %d\n", DEV_NAME, ret);
+        return ret;
     }
 
-    pr_info("[%s] driver load success! Use:\n  echo 0xXXXXXXX > /dev/%s  (set address)\n  cat /dev/%s            (read value)\n", DEV_NAME, DEV_NAME, DEV_NAME);
+    pr_info("[%s] nyx driver load success! Use:\n  echo 0xXXXXXXX > /dev/%s  (set address)\n  cat /dev/%s            (read value)\n", DEV_NAME, DEV_NAME, DEV_NAME);
     return 0;
 }
 
@@ -189,8 +203,11 @@ static void __exit reg_dump_exit(void)
     // 反向释放所有资源
     device_destroy(reg_class, devno);
     class_destroy(reg_class);
-    if (g_reg_vaddr)
+    if (g_reg_vaddr) {
+        // 新增：卸载时打印释放的映射地址
+        pr_info("[%s] iounmap: Phys=0x%08lx, Virt=0x%px\n", DEV_NAME, g_reg_phys, g_reg_vaddr);
         iounmap(g_reg_vaddr);
+    }
     cdev_del(&reg_cdev);
     unregister_chrdev_region(devno, 1);
 
@@ -205,8 +222,5 @@ module_exit(reg_dump_exit);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Debug");
 MODULE_DESCRIPTION("Dynamic Register Dump Driver (echo set addr, cat read val)");
-MODULE_VERSION("2.0");
+MODULE_VERSION("2.1"); // 版本号更新为2.1
 MODULE_ALIAS("reg_dump_dyn");
-
-pr_info("[%s] driver load success! Use:\n  echo 0xXXXXXXX > /dev/%s  (set address)\n  cat /dev/%s            (read value)\n", DEV_NAME, DEV_NAME, DEV_NAME);
-    
