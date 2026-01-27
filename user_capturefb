@@ -1,3 +1,26 @@
+fb->drm_fb
+(gdb) bt
+#0  fb_read (file=0xffffffc0e487a640, buf=0x7faa6b7000 <error: Cannot access memory at address 0x7faa6b7000>,
+    count=131072, ppos=0xffffff8012bcbe40) at drivers/video/fbdev/core/fbmem.c:746
+#1  0xffffff800820fed4 in __vfs_read (file=0xffffffc0e487a640,
+
+(gdb) p *registered_fb[0]->fbops
+$6 = {owner = 0x0, fb_open = 0x0, fb_release = 0x0, fb_read = 0xffffff8008603d30 <drm_fb_helper_sys_read>,
+  fb_write = 0xffffff80086054ac <drm_fb_helper_sys_write>,
+  fb_check_var = 0xffffff8008603e28 <drm_fb_helper_check_var>,
+  fb_set_par = 0xffffff80086069c0 <drm_fb_helper_set_par>, fb_setcolreg = 0x0,
+  fb_setcmap = 0xffffff80086055ac <drm_fb_helper_setcmap>, fb_blank = 0xffffff8008604e84 <drm_fb_helper_blank>,
+  fb_pan_display = 0xffffff8008606d44 <drm_fb_helper_pan_display>,
+  fb_fillrect = 0xffffff80086045e0 <drm_fb_helper_cfb_fillrect>,
+  fb_copyarea = 0xffffff8008604624 <drm_fb_helper_cfb_copyarea>,
+  fb_imageblit = 0xffffff8008604668 <drm_fb_helper_cfb_imageblit>, fb_cursor = 0x0, fb_sync = 0x0,
+  fb_ioctl = 0xffffff8008603d7c <drm_fb_helper_ioctl>, fb_compat_ioctl = 0x0,
+  fb_mmap = 0xffffff80086631a8 <rockchip_fbdev_mmap>, fb_get_caps = 0x0, fb_destroy = 0x0,
+  fb_debug_enter = 0xffffff8008602f78 <drm_fb_helper_debug_enter>,
+  fb_debug_leave = 0xffffff80086034e8 <drm_fb_helper_debug_leave>,
+  fb_dmabuf_export = 0xffffff8008663148 <rockchip_fbdev_get_dma_buf>}
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
