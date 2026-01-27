@@ -1,0 +1,93 @@
+#include <stdio.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <sys/ioctl.h>
+#include <linux/fb.h>
+#include <string.h>
+
+int main(int argc, char *argv[])
+{
+    int fb_fd;
+    struct fb_fix_screeninfo fb_fix;
+    struct fb_var_screeninfo fb_var;
+    unsigned char *fb_addr;
+    unsigned int fb_size;
+    int x, y;
+
+    // 步骤1：打开帧缓冲设备节点
+    fb_fd = open("/dev/fb0", O_RDWR);
+    if (fb_fd < 0) {
+        perror("open /dev/fb0 failed");
+        return -1;
+    }
+
+    // 步骤2：获取帧缓冲实际信息（核心：自动识别）
+    if (ioctl(fb_fd, FBIOGET_FSCREENINFO, &fb_fix) < 0) {
+        perror("ioctl FBIOGET_FSCREENINFO failed");
+        close(fb_fd);
+        return -1;
+    }
+    if (ioctl(fb_fd, FBIOGET_VSCREENINFO, &fb_var) < 0) {
+        perror("ioctl FBIOGET_VSCREENINFO failed");
+        close(fb_fd);
+        return -1;
+    }
+
+    // 打印内核实际的显示配置（方便调试）
+    printf("识别到显示屏配置：%dx%d@%dbpp，行跨度：%d字节\n",
+           fb_var.xres, fb_var.yres, fb_var.bits_per_pixel,
+           fb_fix.line_length);
+
+    // 步骤3：计算实际帧缓冲大小并映射到用户态
+    // 用fb_fix.line_length（行跨度）* 高度，兼容非标准行对齐的情况
+    fb_size = fb_fix.line_length * fb_var.yres;
+    fb_addr = (unsigned char *)mmap(NULL, fb_size, PROT_READ | PROT_WRITE, MAP_SHARED, fb_fd, 0);
+    if (fb_addr == MAP_FAILED) {
+        perror("mmap fb0 failed");
+        close(fb_fd);
+        return -1;
+    }
+
+    // 步骤4：根据实际位深写入纯色测试帧（纯红）
+    switch (fb_var.bits_per_pixel) {
+        case 16: {  // RGB565（16bpp，2字节/像素）
+            unsigned short *frame_buf = (unsigned short *)fb_addr;
+            unsigned short red = 0xF800;
+            for (y = 0; y < fb_var.yres; y++) {
+                for (x = 0; x < fb_var.xres; x++) {
+                    frame_buf[y * fb_var.xres + x] = red;
+                }
+            }
+            break;
+        }
+        case 32: {  // RGBA8888（32bpp，4字节/像素）
+            unsigned int *frame_buf = (unsigned int *)fb_addr;
+            unsigned int red = 0xFFFFFF00;  // 0xRRGGBBAA
+            for (y = 0; y < fb_var.yres; y++) {
+                for (x = 0; x < fb_var.xres; x++) {
+                    frame_buf[y * fb_var.xres + x] = red;
+                }
+            }
+            break;
+        }
+        default: {
+            fprintf(stderr, "暂不支持%d位深，仅支持16/32bpp\n", fb_var.bits_per_pixel);
+            munmap(fb_addr, fb_size);
+            close(fb_fd);
+            return -1;
+        }
+    }
+
+    printf("帧数据写入成功，显示屏已显示纯红！\n");
+
+    // 步骤5：延时5秒后清屏（纯黑）
+    sleep(5);
+    memset(fb_addr, 0, fb_size);
+
+    // 步骤6：释放资源
+    munmap(fb_addr, fb_size);
+    close(fb_fd);
+
+    return 0;
+}
