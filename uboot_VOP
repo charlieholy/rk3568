@@ -1,0 +1,30 @@
+Rockchip UBOOT DRM driver version: v1.0.1
+VOP have 2 active VP
+vp0 have layer nr:3[1 3 5 ], primary plane: 5
+vp1 have layer nr:3[0 2 4 ], primary plane: 4
+vp2 have layer nr:0[], primary plane: 0
+Using display timing dts
+dsi@fe070000:  detailed mode clock 67000 kHz, flags[a]
+    H: 0800 0812 0836 0860
+    V: 1280 1287 1289 1298
+bus_format: 100e
+VOP update mode to: 800x1280p60, type: MIPI1 for VP1
+VP1 set crtc_clock to 67000KHz
+VOP VP1 enable Smart0[654x270->654x270@73x505] fmt[2] addr[0xedf2c000]
+final DSI-Link bandwidth: 444 Mbps x 4
+hdmi@fe0a0000 disconnected
+CLK: (sync kernel. arm: enter 816000 KHz, init 816000 KHz, kernel 0N/A)
+  apll 1416000 KHz
+  dpll 780000 KHz
+  gpll 1188000 KHz
+  cpll 1000000 KHz
+  npll 1200000 KHz
+  vpll 603000 KHz
+  hpll 24000 KHz
+  ppll 200000 KHz
+  armclk 1416000 KHz
+  aclk_bus 150000 KHz
+  pclk_bus 100000 KHz
+  aclk_top_high 500000 KHz
+  aclk_top_low 400000 KHz
+  hclk_top 150000 KHz
