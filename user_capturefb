@@ -1,0 +1,145 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <sys/ioctl.h>
+#include <linux/fb.h>
+#include <string.h>
+// 强制关闭结构体字节对齐（ARM64嵌入式GCC关键优化，避免头信息大小错误）
+#pragma pack(1)
+
+// BMP文件头（14字节，固定大小，强制1字节对齐）
+typedef struct {
+    unsigned char  bfType[2];        // 必须为'BM'，即0x42 0x4D
+    unsigned int   bfSize;           // BMP总文件大小
+    unsigned short bfReserved1;      // 保留，0
+    unsigned short bfReserved2;      // 保留，0
+    unsigned int   bfOffBits;        // 像素数据偏移量=14+40=54
+} BMP_FILE_HEADER;
+
+// BMP信息头（40字节，Windows标准，强制1字节对齐）
+typedef struct {
+    unsigned int   biSize;           // 信息头大小，固定40
+    int            biWidth;          // 宽度（像素）
+    int            biHeight;         // 高度（像素，负数=正序存储）
+    unsigned short biPlanes;         // 位面数，固定1
+    unsigned short biBitCount;       // 位深，固定24（BMP标准）
+    unsigned int   biCompression;    // 压缩，0=无压缩
+    unsigned int   biSizeImage;      // 像素数据大小
+    int            biXPelsPerMeter;  // 分辨率，0
+    int            biYPelsPerMeter;  // 分辨率，0
+    unsigned int   biClrUsed;        // 颜色表，0
+    unsigned int   biClrImportant;   // 重要颜色，0
+} BMP_INFO_HEADER;
+// 恢复默认结构体对齐
+#pragma pack()
+
+// 校验写入长度，确保BMP头完整写入（核心修复点）
+#define CHECK_WRITE(fd, buf, len) do { \
+    ssize_t w = write(fd, buf, len); \
+    if (w != len) { \
+        fprintf(stderr, "写入失败：预期%ld字节，实际%ld字节\n", len, w); \
+        close(fd); \
+        return -1; \
+    } \
+} while(0)
+
+// 保存为标准BMP（兼容32/24/16位帧缓冲，RK3568专用）
+int save_fb_to_bmp(const unsigned char *fb_data, int w, int h, int bpp, const char *path) {
+    int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd < 0) { perror("open bmp失败"); return -1; }
+
+    int pix_size = bpp / 8;          // 帧缓冲每个像素字节数（32=4，24=3，16=2）
+    int bmp_pix_size = w * h * 3;    // BMP像素数据大小（24位固定）
+    unsigned char *bmp_data = malloc(bmp_pix_size);
+    if (!bmp_data) { perror("malloc失败"); close(fd); return -1; }
+
+    // 1. 初始化BMP文件头（固定值，确保标准）
+    BMP_FILE_HEADER bmp_fh = {
+        .bfType = {'B', 'M'},        // 核心标识，必须是BM
+        .bfOffBits = 14 + 40,        // 头总大小54，像素数据从54字节开始
+    };
+    bmp_fh.bfSize = bmp_fh.bfOffBits + bmp_pix_size; // 总文件大小
+
+    // 2. 初始化BMP信息头（固定值+动态分辨率）
+    BMP_INFO_HEADER bmp_ih = {
+        .biSize = 40,
+        .biWidth = w,
+        .biHeight = -h,              // 负数避免图片颠倒
+        .biPlanes = 1,
+        .biBitCount = 24,
+        .biCompression = 0,
+        .biSizeImage = bmp_pix_size,
+    };
+
+    // 3. 帧缓冲数据转24位RGB888（32位专属处理，忽略第4字节）
+    if (bpp == 32) { // 32位XRGB8888：取前3字节，丢第4字节
+        for (int i = 0; i < w*h; i++) {
+            bmp_data[i*3+2] = fb_data[i*4+0]; // R
+            bmp_data[i*3+1] = fb_data[i*4+1]; // G
+            bmp_data[i*3+0] = fb_data[i*4+2]; // B
+        }
+    } else if (bpp == 24) { // 24位RGB888：直接拷贝
+        for (int i = 0; i < w*h; i++) {
+            bmp_data[i*3+2] = fb_data[i*3+0];
+            bmp_data[i*3+1] = fb_data[i*3+1];
+            bmp_data[i*3+0] = fb_data[i*3+2];
+        }
+    } else if (bpp == 16) { // 16位RGB565：扩展为8位
+        for (int i = 0; i < w*h; i++) {
+            unsigned short rgb565 = *(const unsigned short*)(fb_data + i*2);
+            bmp_data[i*3+2] = ((rgb565>>11)&0x1F)<<3; // R
+            bmp_data[i*3+1] = ((rgb565>>5)&0x3F)<<2;  // G
+            bmp_data[i*3+0] = ((rgb565>>0)&0x1F)<<3;  // B
+        }
+    } else {
+        fprintf(stderr, "不支持的位宽：%d\n", bpp);
+        free(bmp_data); close(fd);
+        return -1;
+    }
+
+    // 4. 写入BMP头+像素数据（校验写入长度，核心修复）
+    CHECK_WRITE(fd, &bmp_fh, sizeof(bmp_fh)); // 写入14字节文件头
+    CHECK_WRITE(fd, &bmp_ih, sizeof(bmp_ih)); // 写入40字节信息头
+    CHECK_WRITE(fd, bmp_data, bmp_pix_size);  // 写入像素数据
+
+    // 5. 释放资源
+    free(bmp_data);
+    close(fd);
+    printf("生成标准BMP：%s [分辨率：%dx%d | 帧缓冲位宽：%dbit]\n", path, w, h, bpp);
+    return 0;
+}
+
+int main(int argc, char *argv[]) {
+    const char *fb_path = "/dev/fb0";
+    const char *bmp_path = "fb_fix_32bit.bmp";
+    if (argc == 2) bmp_path = argv[1];
+
+    // 打开帧缓冲
+    int fb_fd = open(fb_path, O_RDONLY);
+    if (fb_fd < 0) { perror("open /dev/fb0失败"); return -1; }
+
+    // 获取帧缓冲参数
+    struct fb_var_screeninfo fb_var = {0};
+    struct fb_fix_screeninfo fb_fix = {0};
+    if (ioctl(fb_fd, FBIOGET_VSCREENINFO, &fb_var) < 0) { perror("ioctl var失败"); close(fb_fd); return -1; }
+    if (ioctl(fb_fd, FBIOGET_FSCREENINFO, &fb_fix) < 0) { perror("ioctl fix失败"); close(fb_fd); return -1; }
+
+    // 打印参数（调试）
+    printf("=== 帧缓冲信息 ===\n分辨率：%dx%d\n位宽：%dbit\n像素字节数：%d\n显存大小：%lu Byte\n==================\n",
+           fb_var.xres, fb_var.yres, fb_var.bits_per_pixel,
+           fb_var.bits_per_pixel/8, fb_fix.smem_len);
+
+    // mmap映射显存（无拷贝）
+    unsigned char *fb_mem = mmap(NULL, fb_fix.smem_len, PROT_READ, MAP_SHARED, fb_fd, 0);
+    if (fb_mem == MAP_FAILED) { perror("mmap失败"); close(fb_fd); return -1; }
+
+    // 保存为标准BMP
+    save_fb_to_bmp(fb_mem, fb_var.xres, fb_var.yres, fb_var.bits_per_pixel, bmp_path);
+
+    // 释放资源
+    munmap(fb_mem, fb_fix.smem_len);
+    close(fb_fd);
+    return 0;
+}
