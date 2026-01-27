@@ -3,6 +3,19 @@
 [ 8890.718609] GPIO0_SWPORT_DR_H = 0xfdd60004 GPIO0_SWPORT_DR_H_PI = ffffff800f350004
 [ 8890.718616] GPIO0_SWPORT_DDR_H = 0xfdd6000c GPIO0_SWPORT_DDR_H_PI = ffffff800f35200c
 
+DSI-1
+root@ATK-DLRK3568:/data# cat /dev/reg_dump
+Register Dump Info:
+Phys Address: 0xfe070000
+Virt Address: 0xffffff8013aea000
+Raw Value    : 0x3133302a
+VOP
+root@ATK-DLRK3568:/data# cat /dev/reg_dump
+Register Dump Info:
+Phys Address: 0xfe040004
+Virt Address: 0xffffff800f1c0004
+Raw Value    : 0x40158023
+
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/fs.h>
