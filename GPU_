@@ -1,0 +1,95 @@
+root@ATK-DLRK3568:/sys/kernel/debug/dma_buf# cat /sys/kernel/debug/dri/0/state
+plane[57]: Smart1-win0
+        crtc=(null)
+        fb=0
+        crtc-pos=0x0+0+0
+        src-pos=0.000000x0.000000+0.000000+0.000000
+        rotation=1
+        normalized-zpos=0
+        color-encoding=ITU-R BT.601 YCbCr
+        color-range=YCbCr limited range
+plane[71]: Cluster1-win0
+        crtc=(null)
+        fb=0
+        crtc-pos=0x0+0+0
+        src-pos=0.000000x0.000000+0.000000+0.000000
+        rotation=1
+        normalized-zpos=0
+        color-encoding=ITU-R BT.601 YCbCr
+        color-range=YCbCr limited range
+plane[87]: Smart0-win0
+        crtc=video_port1
+        fb=171
+                allocated by = weston
+                refcount=2
+                format=XR24 little-endian (0x34325258)
+                modifier=0x0
+                size=800x1280
+                layers:
+                        size[0]=800x1280
+                        pitch[0]=3200
+                        offset[0]=0
+                        obj[0]:(null)
+        crtc-pos=800x1280+0+0
+        src-pos=800.000000x1280.000000+0.000000+0.000000
+        rotation=1
+        normalized-zpos=0
+        color-encoding=ITU-R BT.601 YCbCr
+        color-range=YCbCr limited range
+plane[101]: Cluster0-win0
+        crtc=(null)
+        fb=0
+        crtc-pos=0x0+0+0
+        src-pos=0.000000x0.000000+0.000000+0.000000
+        rotation=1
+        normalized-zpos=0
+        color-encoding=ITU-R BT.601 YCbCr
+        color-range=YCbCr limited range
+plane[117]: Esmart1-win0
+        crtc=(null)
+        fb=0
+        crtc-pos=0x0+0+0
+        src-pos=0.000000x0.000000+0.000000+0.000000
+        rotation=1
+        normalized-zpos=0
+        color-encoding=ITU-R BT.601 YCbCr
+        color-range=YCbCr limited range
+plane[131]: Esmart0-win0
+        crtc=(null)
+        fb=0
+        crtc-pos=0x0+0+0
+        src-pos=0.000000x0.000000+0.000000+0.000000
+        rotation=1
+        normalized-zpos=0
+        color-encoding=ITU-R BT.601 YCbCr
+        color-range=YCbCr limited range
+crtc[85]: video_port0
+        enable=0
+        active=0
+        planes_changed=0
+        mode_changed=0
+        active_changed=0
+        connectors_changed=0
+        color_mgmt_changed=0
+        plane_mask=0
+        connector_mask=0
+        encoder_mask=0
+        mode: 0:"" 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+crtc[115]: video_port1
+        enable=1
+        active=1
+        planes_changed=1
+        mode_changed=0
+        active_changed=0
+        connectors_changed=0
+        color_mgmt_changed=0
+        plane_mask=4
+        connector_mask=4
+        encoder_mask=4
+        mode: 0:"800x1280" 60 67000 800 812 836 860 1280 1287 1289 1298 0x48 0xa
+connector[150]: Writeback-1
+        crtc=(null)
+connector[152]: HDMI-A-1
+        crtc=(null)
+connector[163]: DSI-1
+        crtc=video_port1
