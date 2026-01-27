@@ -1,0 +1,20 @@
+Thread 172 hit Breakpoint 6, led_set_brightness_nopm (led_cdev=0xffffffc0e6fb0888, value=LED_FULL) at drivers/leds/led-core.c:261
+261             if (!__led_set_brightness(led_cdev, value))
+(gdb) bt
+#0  led_set_brightness_nopm (led_cdev=0xffffffc0e6fb0888, value=LED_FULL) at drivers/leds/led-core.c:261
+#1  0xffffff8008a62fd0 in led_set_brightness_nosleep (led_cdev=0xffffffc0e6fb0888, value=LED_FULL) at drivers/leds/led-core.c:278
+#2  0xffffff8008a657e4 in led_heartbeat_function (t=0xffffffc0e6c75390) at drivers/leds/trigger/ledtrig-heartbeat.c:92
+#3  0xffffff8008135b34 in call_timer_fn (timer=0xffffffc0e6c75390, fn=0xffffff8008a656a8 <led_heartbeat_function>) at kernel/time/timer.c:1338
+#4  0xffffff8008135d14 in expire_timers (base=0xffffffc0efed7980, head=0xffffff8008013e60) at kernel/time/timer.c:1375
+#5  0xffffff8008136090 in __run_timers (base=<optimized out>) at kernel/time/timer.c:1696
+#6  run_timer_softirq (h=<optimized out>) at kernel/time/timer.c:1709
+#7  0xffffff8008081448 in __do_softirq () at kernel/softirq.c:292
+#8  0xffffff80080b6dac in do_softirq_own_stack () at ./include/linux/interrupt.h:504
+#9  invoke_softirq () at kernel/softirq.c:379
+#10 irq_exit () at kernel/softirq.c:412
+#11 0xffffff8008112988 in __handle_domain_irq (domain=0xffffffc00020a200, hwirq=<optimized out>, lookup=true, regs=0xffffff800d87b980)
+    at kernel/irq/irqdesc.c:679
+#12 0xffffff8008081174 in handle_domain_irq (regs=<optimized out>, hwirq=<optimized out>, domain=<optimized out>) at ./include/linux/irqdesc.h:173
+#13 gic_handle_irq (regs=0xffffff800d87b980) at drivers/irqchip/irq-gic-v3.c:373
+#14 0xffffff8008082bf0 in el1_irq () at arch/arm64/kernel/entry.S:645
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
