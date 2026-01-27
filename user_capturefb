@@ -1,3 +1,44 @@
+ssize_t fb_sys_read(struct fb_info *info, char __user *buf, size_t count,
+		    loff_t *ppos)
+{
+	unsigned long p = *ppos;
+	void *src;
+	int err = 0;
+	unsigned long total_size;
+
+	if (info->state != FBINFO_STATE_RUNNING)
+		return -EPERM;
+
+	total_size = info->screen_size;
+
+	if (total_size == 0)
+		total_size = info->fix.smem_len;
+
+	if (p >= total_size)
+		return 0;
+
+	if (count >= total_size)
+		count = total_size;
+
+	if (count + p > total_size)
+		count = total_size - p;
+
+	src = (void __force *)(info->screen_base + p);
+
+	if (info->fbops->fb_sync)
+		info->fbops->fb_sync(info);
+
+	if (copy_to_user(buf, src, count))
+		err = -EFAULT;
+
+	if  (!err)
+		*ppos += count;
+
+	return (err) ? err : count;
+}
+EXPORT_SYMBOL_GPL(fb_sys_read);
+
+
 fb->drm_fb
 (gdb) bt
 #0  fb_read (file=0xffffffc0e487a640, buf=0x7faa6b7000 <error: Cannot access memory at address 0x7faa6b7000>,
