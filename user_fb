@@ -1,3 +1,5 @@
+drivers/video/fbdev/core/fbmem.c
+
 (gdb) bt
 #0  vm_insert_page (vma=0xffffffc0bfffcd80, addr=548208869376, page=0xffffffbf034a69c0) at mm/memory.c:1808
 #1  0xffffff800863ae74 in __vm_map_pages (offset=<optimized out>, num=<optimized out>, pages=<optimized out>,
