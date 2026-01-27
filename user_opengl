@@ -1,0 +1,327 @@
+#!/bin/bash
+# 交叉编译脚本：适配RK3568 Buildroot环境，静态链接libm，动态链接GLES/Wayland
+#CC=aarch64-linux-gnu-gcc
+CC="../output/rockchip_rk3568/host/bin/aarch64-buildroot-linux-gnu-gcc"
+INCDIR="../output/rockchip_rk3568/host/aarch64-buildroot-linux-gnu/sysroot/usr/include"
+LIBDIR="../output/rockchip_rk3568/target/usr/lib/"
+TARGET=openglTest
+
+echo "$CC"
+
+# 编译命令（修正断行错误，优化库链接顺序，确保参数被正确识别）
+$CC openglTest.c -o $TARGET \
+-I$INCDIR \
+-L$LIBDIR \
+-lEGL -lGLESv2 -lmali -lmali_hook -ldrm \
+-lwayland-client -lwayland-server -lwayland-egl \
+-lffi -lpthread -ldl \
+../output/rockchip_rk3568/host/aarch64-buildroot-linux-gnu/sysroot/usr/lib/libm.a \
+-static-libgcc \
+-Wl,-rpath-link=$LIBDIR \
+-Wl,--no-undefined
+
+# 编译结果检查
+if [ $? -eq 0 ]; then
+    echo "编译成功！可执行文件：$TARGET"
+    echo "请拷贝到RK3568开发板执行：./$TARGET"
+else
+    echo "编译失败，请检查代码或依赖库"
+    exit 1
+fi
+
+//////////////////////////////////////////////////////////
+
+
+
+#include <stdio.h>
+#include<stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <EGL/egl.h>
+#include <GLES2/gl2.h>
+#include <wayland-client.h>
+#include <wayland-egl.h>
+#include <dlfcn.h>  // 新增，适配dlopen等函数，解决mali_hook依赖
+
+// 全局对象统一管理（EGL + Wayland），确保所有函数可访问，避免未声明错误
+struct wl_display *wl_display = NULL;
+struct wl_registry *wl_registry = NULL;
+struct wl_compositor *wl_compositor = NULL;
+struct wl_surface *wl_surface = NULL;
+struct wl_egl_window *egl_window = NULL;
+EGLDisplay eglDisplay = EGL_NO_DISPLAY;  // 修正：改为全局变量
+EGLSurface eglSurface = EGL_NO_SURFACE;  // 修正：改为全局变量
+EGLContext eglContext = EGL_NO_CONTEXT;  // 修正：改为全局变量
+GLuint programObject = 0;
+
+// 顶点着色器源码
+const char *vertexShaderSource =
+    "attribute vec4 aPosition;\n"
+    "void main() {\n"
+    "    gl_Position = aPosition;\n"
+    "}\n";
+
+// 片段着色器源码
+const char *fragmentShaderSource =
+    "precision mediump float;\n"
+    "void main() {\n"
+    "    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);\n"
+    "}\n";
+
+// 编译着色器（逻辑不变，保持上下文连贯）
+GLuint compileShader(GLenum type, const char *source) {
+    GLuint shader = glCreateShader(type);
+    if (shader == 0) {
+        fprintf(stderr, "glCreateShader failed\n");
+        return 0;
+    }
+    glShaderSource(shader, 1, &source, NULL);
+    glCompileShader(shader);
+    GLint compiled;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+    if (!compiled) {
+        GLint infoLen = 0;
+        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLen);
+        if (infoLen > 1) {
+            char *infoLog = malloc(sizeof(char) * infoLen);
+            glGetShaderInfoLog(shader, infoLen, NULL, infoLog);
+            fprintf(stderr, "Shader compile error: %s\n", infoLog);
+            free(infoLog);
+        }
+        glDeleteShader(shader);
+        return 0;
+    }
+    return shader;
+}
+
+// 创建并链接着色器程序（逻辑不变）
+int createProgram(const char *vertexSource, const char *fragmentSource) {
+    GLuint vertexShader = compileShader(GL_VERTEX_SHADER, vertexSource);
+    GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragmentSource);
+    if (vertexShader == 0 || fragmentShader == 0) {
+        return 0;
+    }
+    GLuint program = glCreateProgram();
+    if (program == 0) {
+        fprintf(stderr, "glCreateProgram failed\n");
+        return 0;
+    }
+    glAttachShader(program, vertexShader);
+    glAttachShader(program, fragmentShader);
+    glLinkProgram(program);
+    GLint linked;
+    glGetProgramiv(program, GL_LINK_STATUS, &linked);
+    if (!linked) {
+        GLint infoLen = 0;
+        glGetProgramiv(program, GL_INFO_LOG_LENGTH, &infoLen);
+        if (infoLen > 1) {
+            char *infoLog = malloc(sizeof(char) * infoLen);
+            glGetProgramInfoLog(program, infoLen, NULL, infoLog);
+            fprintf(stderr, "Program link error: %s\n", infoLog);
+            free(infoLog);
+        }
+        glDeleteProgram(program);
+        return 0;
+    }
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+    return program;
+}
+
+// Wayland注册表回调（逻辑不变，获取compositor对象）
+static void registry_global(void *data, struct wl_registry *registry,
+                            uint32_t name, const char *interface, uint32_t version) {
+    if (strcmp(interface, wl_compositor_interface.name) == 0) {
+        wl_compositor = wl_registry_bind(registry, name,
+                                         &wl_compositor_interface, version);
+    }
+}
+
+static void registry_global_remove(void *data, struct wl_registry *registry, uint32_t name) {}
+
+static const struct wl_registry_listener registry_listener = {
+    .global = registry_global,
+    .global_remove = registry_global_remove,
+};
+
+// 初始化EGL（含Wayland，变量可正常访问，无未声明错误）
+int initEGL() {
+    // 1. 初始化Wayland连接
+    wl_display = wl_display_connect(NULL);
+    if (!wl_display) {
+        fprintf(stderr, "Failed to connect to Wayland display\n");
+        return -1;
+    }
+    wl_registry = wl_display_get_registry(wl_display);
+    wl_registry_add_listener(wl_registry, &registry_listener, NULL);
+    wl_display_roundtrip(wl_display);
+    if (!wl_compositor) {
+        fprintf(stderr, "Failed to get Wayland compositor\n");
+        return -1;
+    }
+
+    // 2. 创建Wayland表面和EGL窗口
+    wl_surface = wl_compositor_create_surface(wl_compositor);
+    if (!wl_surface) {
+        fprintf(stderr, "Failed to create Wayland surface\n");
+        return -1;
+    }
+    egl_window = wl_egl_window_create(wl_surface, 800, 480);  // 适配RK3568 800x480屏
+    if (!egl_window) {
+        fprintf(stderr, "Failed to create EGL window\n");
+        return -1;
+    }
+
+    // 3. 初始化EGL（变量已全局声明，可正常赋值）
+    eglDisplay = eglGetDisplay((EGLNativeDisplayType)wl_display);
+    if (eglDisplay == EGL_NO_DISPLAY) {
+        fprintf(stderr, "eglGetDisplay failed, error: %x\n", eglGetError());
+        return -1;
+    }
+    EGLint majorVersion, minorVersion;
+    if (!eglInitialize(eglDisplay, &majorVersion, &minorVersion)) {
+        fprintf(stderr, "eglInitialize failed, error: %x\n", eglGetError());
+        return -1;
+    }
+    printf("EGL initialized, version: %d.%d\n", majorVersion, minorVersion);
+
+    // EGL配置（逻辑不变）
+    const EGLint configAttribs[] = {
+        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+        EGL_RED_SIZE, 8,
+        EGL_GREEN_SIZE, 8,
+        EGL_BLUE_SIZE, 8,
+        EGL_ALPHA_SIZE, 8,
+        EGL_DEPTH_SIZE, 0,
+        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+        EGL_NONE
+    };
+    EGLConfig eglConfig;
+    EGLint numConfigs;
+    if (!eglChooseConfig(eglDisplay, configAttribs, &eglConfig, 1, &numConfigs)) {
+        fprintf(stderr, "eglChooseConfig failed, error: %x\n", eglGetError());
+        return -1;
+    }
+
+    // 创建EGL上下文（逻辑不变）
+    const EGLint contextAttribs[] = {
+        EGL_CONTEXT_CLIENT_VERSION, 2,
+        EGL_NONE
+    };
+    eglContext = eglCreateContext(eglDisplay, eglConfig, EGL_NO_CONTEXT, contextAttribs);
+    if (eglContext == EGL_NO_CONTEXT) {
+        fprintf(stderr, "eglCreateContext failed, error: %x\n", eglGetError());
+        return -1;
+    }
+
+    // 创建EGL表面（逻辑不变，参数正确无警告）
+    eglSurface = eglCreateWindowSurface(eglDisplay, eglConfig,
+                                       (EGLNativeWindowType)egl_window, NULL);
+    if (eglSurface == EGL_NO_SURFACE) {
+        fprintf(stderr, "eglCreateWindowSurface failed, error: %x\n", eglGetError());
+        return -1;
+    }
+
+    // 绑定EGL上下文和表面（逻辑不变）
+    if (!eglMakeCurrent(eglDisplay, eglSurface, eglSurface, eglContext)) {
+        fprintf(stderr, "eglMakeCurrent failed, error: %x\n", eglGetError());
+        return -1;
+    }
+
+    return 0;
+}
+
+// 初始化GLES（逻辑不变，参数传递优化，保持上下文流畅）
+int initGLES() {
+    programObject = createProgram(vertexShaderSource, fragmentShaderSource);
+    if (programObject == 0) {
+        return -1;
+    }
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glViewport(0, 0, 800, 480);  // 与屏幕分辨率一致
+    return 0;
+}
+
+// 渲染一帧画面（逻辑不变，直接访问全局变量，简化参数）
+void renderFrame() {
+    glClear(GL_COLOR_BUFFER_BIT);
+    glUseProgram(programObject);
+
+    GLfloat vertices[] = {
+        -1.0f,  1.0f, 0.0f,
+        -1.0f, -1.0f, 0.0f,
+         1.0f,  1.0f, 0.0f,
+         1.0f, -1.0f, 0.0f
+    };
+    GLint aPositionLoc = glGetAttribLocation(programObject, "aPosition");
+    if (aPositionLoc == -1) {
+        fprintf(stderr, "glGetAttribLocation(aPosition) failed\n");
+        return;
+    }
+    glEnableVertexAttribArray(aPositionLoc);
+    glVertexAttribPointer(aPositionLoc, 3, GL_FLOAT, GL_FALSE, 0, vertices);
+
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    eglSwapBuffers(eglDisplay, eglSurface);  // 全局变量直接访问
+}
+
+// 释放资源（逻辑不变，全局变量直接访问，资源释放完整）
+void cleanup() {
+    if (programObject != 0) {
+        glDeleteProgram(programObject);
+    }
+    // 释放EGL资源
+    if (eglDisplay != EGL_NO_DISPLAY) {
+        eglMakeCurrent(eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+        if (eglSurface != EGL_NO_SURFACE) {
+            eglDestroySurface(eglDisplay, eglSurface);
+        }
+        if (eglContext != EGL_NO_CONTEXT) {
+            eglDestroyContext(eglDisplay, eglContext);
+        }
+        eglTerminate(eglDisplay);
+    }
+    // 释放Wayland资源
+    if (egl_window) {
+        wl_egl_window_destroy(egl_window);
+    }
+    if (wl_surface) {
+        wl_surface_destroy(wl_surface);
+    }
+    if (wl_compositor) {
+        wl_compositor_destroy(wl_compositor);
+    }
+    if (wl_registry) {
+        wl_registry_destroy(wl_registry);
+    }
+    if (wl_display) {
+        wl_display_disconnect(wl_display);
+    }
+}
+
+int main(int argc, char *argv[]) {
+    // 初始化EGL（含Wayland）和GLES，逻辑连贯无断点
+    if (initEGL() != 0) {
+        cleanup();
+        return -1;
+    }
+    if (initGLES() != 0) {
+        cleanup();
+        return -1;
+    }
+
+    printf("GPU render start, display red screen for 10 seconds...\n");
+    // 渲染循环，同步Wayland事件
+    for (int i = 0; i < 300; i++) {
+        renderFrame();
+        usleep(33333);  // 约30帧/秒
+        wl_display_roundtrip(wl_display);  // 确保Wayland画面刷新
+    }
+
+    cleanup();
+    printf("GPU render end\n");
+    return 0;
+}
+
+
+
