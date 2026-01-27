@@ -1,0 +1,113 @@
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/dmaengine.h>
+#include <linux/dma-mapping.h>
+#include <linux/kernel.h>
+#include <linux/slab.h>
+
+#define DMA_TRANSFER_LEN 4096  // 传输长度，按PL330硬件突发对齐（4K）
+static struct dma_chan *dma_chan;  // DMA通道句柄
+static dma_addr_t src_dma, dst_dma; // DMA可访问的物理地址
+static void *src_cpu, *dst_cpu;     // CPU可访问的虚拟地址
+
+/* DMA传输完成回调：由DMA引擎在传输结束后触发（中断上下文） */
+static void dma_mem2mem_complete(void *data)
+{
+    pr_info("[DMA] Mem2Mem transfer completed!\n");
+    // 校验源/目的缓冲区数据一致性
+    if (memcmp(src_cpu, dst_cpu, DMA_TRANSFER_LEN) == 0)
+        pr_info("[DMA] Data check: OK (src/dst buffer match)\n");
+    else
+        pr_err("[DMA] Data check: FAILED (src/dst buffer mismatch)\n");
+}
+
+static int __init dma_mem2mem_init(void)
+{
+    struct dma_async_tx_descriptor *tx; // DMA传输描述符
+    dma_cap_mask_t mask;                // DMA能力掩码
+
+    // 1. 初始化DMA能力掩码：仅启用【内存到内存】传输类型
+    dma_cap_zero(mask);
+    dma_cap_set(DMA_MEMCPY, mask); // 核心：指定MEM2MEM传输
+
+    // 2. 向内核申请可用的MEM2MEM DMA通道（由原生dma-pl330驱动分配）
+    dma_chan = dma_request_channel(mask, NULL, NULL);
+    if (!dma_chan) {
+        pr_err("[DMA] Failed to request MEM2MEM channel (dma-pl330 not loaded?)\n");
+        return -ENODEV;
+    }
+    pr_info("[DMA] Success to get MEM2MEM DMA channel\n");
+
+    // 3. 分配DMA非缓存缓冲区：4.19内核核心修复！用dma_chan->device->dev替代dma_chan->dev
+    //    匹配struct device *类型，解决指针不兼容报错，绑定PL330物理设备
+    src_cpu = dma_alloc_coherent(dma_chan->device->dev, DMA_TRANSFER_LEN, &src_dma, GFP_KERNEL);
+    if (!src_cpu) {
+        pr_err("[DMA] Failed to allocate DMA SOURCE buffer (size: %d)\n", DMA_TRANSFER_LEN);
+        goto err_release_chan;
+    }
+    dst_cpu = dma_alloc_coherent(dma_chan->device->dev, DMA_TRANSFER_LEN, &dst_dma, GFP_KERNEL);
+    if (!dst_cpu) {
+        pr_err("[DMA] Failed to allocate DMA DEST buffer (size: %d)\n", DMA_TRANSFER_LEN);
+        goto err_free_src;
+    }
+    pr_info("[DMA] Buffer alloc success: src_phys=0x%llx, dst_phys=0x%llx\n",
+            (unsigned long long)src_dma, (unsigned long long)dst_dma);
+
+    // 4. 填充测试数据：源缓冲区0x5A填充，目的缓冲区全0（便于校验）
+    memset(src_cpu, 0x5A, DMA_TRANSFER_LEN);
+    memset(dst_cpu, 0x00, DMA_TRANSFER_LEN);
+
+    // 5. 准备MEM2MEM传输：创建传输描述符，开启传输完成中断
+    tx = dmaengine_prep_dma_memcpy(
+        dma_chan,        // 申请到的DMA通道
+        dst_dma,         // 目的物理地址（DMA控制器可直接访问）
+        src_dma,         // 源物理地址（DMA控制器可直接访问）
+        DMA_TRANSFER_LEN,// 传输字节数
+        DMA_PREP_INTERRUPT // 传输完成后触发中断，调用回调函数
+    );
+    if (!tx) {
+        pr_err("[DMA] Failed to create memcpy descriptor (invalid param)\n");
+        goto err_free_all;
+    }
+
+    // 6. 设置传输完成回调函数
+    tx->callback = dma_mem2mem_complete;
+    tx->callback_param = NULL;
+
+    // 7. 提交传输描述符并触发DMA传输（纯API，底层由dma-pl330操作寄存器）
+    dmaengine_submit(tx);
+    dma_async_issue_pending(dma_chan);
+    pr_info("[DMA] Mem2Mem transfer started (length: %d bytes)\n", DMA_TRANSFER_LEN);
+
+    return 0;
+
+    // 异常处理：按「先释放缓冲区，后释放通道」的顺序释放资源
+err_free_all:
+    dma_free_coherent(dma_chan->device->dev, DMA_TRANSFER_LEN, dst_cpu, dst_dma);
+err_free_src:
+    dma_free_coherent(dma_chan->device->dev, DMA_TRANSFER_LEN, src_cpu, src_dma);
+err_release_chan:
+    dma_release_channel(dma_chan);
+    return -ENOMEM;
+}
+
+static void __exit dma_mem2mem_exit(void)
+{
+    // 终止所有未完成的DMA传输，按顺序释放资源
+    if (dma_chan) {
+        dmaengine_terminate_all(dma_chan);
+        dma_free_coherent(dma_chan->device->dev, DMA_TRANSFER_LEN, src_cpu, src_dma);
+        dma_free_coherent(dma_chan->device->dev, DMA_TRANSFER_LEN, dst_cpu, dst_dma);
+        dma_release_channel(dma_chan);
+    }
+    pr_info("[DMA] Mem2Mem module exit successfully\n");
+}
+
+// 内核模块入口/出口
+module_init(dma_mem2mem_init);
+module_exit(dma_mem2mem_exit);
+
+// 必选模块信息（GPL协议保证内核兼容性）
+MODULE_LICENSE("GPL");
+MODULE_DESCRIPTION("DMA Engine MEM2MEM (Pure API, No PL330 Register, RK3568 Linux 4.19)");
+MODULE_AUTHOR("Developer");
