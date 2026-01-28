@@ -73,3 +73,5 @@ ubuntu20@NYX:~/opt/linux_sdk/kernel$ sudo fuser -k /dev/ttyACM0
 
 dd if=/data/uboot.img of=/dev/mmcblk0 bs=512 seek=16384
 dd if=/data/boot.img of=/dev/mmcblk0 bs=512 seek=32768
+
+dtc -I dtb -O dts arch/arm64/boot/dts/rockchip/rk3568-atk-evb1-ddr4-v10-linux.dtb -o dump2.txt
