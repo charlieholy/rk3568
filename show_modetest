@@ -1,3 +1,15 @@
+root@ATK-DLRK3568:/# modetest -M rockchip -e
+Encoders:
+id      crtc    type    possible crtcs  possible clones
+149     0       Virtual 0x00000003      0x00000000
+151     0       TMDS    0x00000001      0x00000000
+162     115     DSI     0x00000002      0x00000000
+
+root@ATK-DLRK3568:/# modetest -M rockchip -s 163@115:800x1280
+setting mode 800x1280-60.02Hz on connectors 163, crtc 115
+
+
+
 root@ATK-DLRK3568:/proc/device-tree/video-phy@fe860000# modetest
 Encoders:
 id      crtc    type    possible crtcs  possible clones
