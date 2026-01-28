@@ -54,3 +54,74 @@ Total: 1177521.422/1177586.314 ms
 Starting kernel ...
 
 [    0.000000] Booting Linux on physical CPU 0x0000000000 [0x412fd050]
+
+found ./arch/arm64/boot/dts/rockchip/.rk3568-atk-evb1-ddr4-v10-linux.dtb.dts.tmp
+found ./arch/arm64/boot/dts/rockchip/.rk3568-atk-evb1-ddr4-v10-linux.dtb.dts.tmp
+  Image:  resource.img (with rk3568-atk-evb1-ddr4-v10-linux.dtb logo.bmp logo_kernel.bmp) is ready
+  Image:  boot.img (with Image  resource.img) is ready
+  Image:  zboot.img (with Image.lz4  resource.img) is ready
+#################################################
+  DTC     arch/arm64/boot/dts/rockchip/rk3568-atk-evb1-mipi-dsi-1080p.dtb
+  DTC     arch/arm64/boot/dts/rockchip/rk3568-atk-evb1-mipi-dsi-720p.dtb
+  DTC     arch/arm64/boot/dts/rockchip/rk3568-atk-evb1-mipi-dsi-10p1_800x1280.dtb
+rk-kernel.dtb  rk3568-atk-evb1-mipi-dsi-10p1_800x1280#_saradc_ch2=702.dtb
+Pack to resource.img successed!
+end #################################################
+after make.sh 0 /home/ubuntu20/opt/linux_sdk/device/rockchip/rk356x/boot.its
+after make.sh 0 /home/ubuntu20/opt/linux_sdk/device/rockchip/common/mk-fitimage.sh /home/ubuntu20/opt/linux_sdk/kernel/boot.img
+after make.sh 0 /home/ubuntu20/opt/linux_sdk/device/rockchip/rk356x/boot.its
+fdt {
+kernel {
+resource {
+NYX target_its_file: /home/ubuntu20/opt/linux_sdk/rockdev/.tmp_its Generate fit image: /home/ubuntu20/opt/linux_sdk/kernel/boot.img
+FIT description: U-Boot FIT source file for arm
+Created:         Wed Jan 28 19:30:42 2026
+ Image 0 (fdt)
+  Description:  unavailable
+  Created:      Wed Jan 28 19:30:42 2026
+  Type:         Flat Device Tree
+  Compression:  uncompressed
+  Data Size:    142747 Bytes = 139.40 KiB = 0.14 MiB
+  Architecture: AArch64
+  Load Address: 0xffffff00
+  Hash algo:    sha256
+  Hash value:   3739f9c218da3555a0b1f71153f23023507191d8e7724bf60e208c78dbef58bc
+ Image 1 (kernel)
+  Description:  unavailable
+  Created:      Wed Jan 28 19:30:42 2026
+  Type:         Kernel Image
+  Compression:  uncompressed
+  Data Size:    22806536 Bytes = 22272.01 KiB = 21.75 MiB
+  Architecture: AArch64
+  OS:           Linux
+  Load Address: 0xffffff01
+  Entry Point:  0xffffff01
+  Hash algo:    sha256
+  Hash value:   b8f9ca2ddd65590cf759cd1a0964396948491c679488e19f3efa3944dd865636
+ Image 2 (resource)
+  Description:  unavailable
+  Created:      Wed Jan 28 19:30:42 2026
+  Type:         Multi-File Image
+  Compression:  uncompressed
+  Data Size:    646656 Bytes = 631.50 KiB = 0.62 MiB
+  Hash algo:    sha256
+  Hash value:   c82842c3acaac4e53254759debc8e440f70e4ee138fde563111e17b51ea6f1dd
+ Default Configuration: 'conf'
+ Configuration 0 (conf)
+  Description:  unavailable
+  Kernel:       kernel
+  FDT:          fdt
+after make.sh 1
+after make.sh 2
+after make.sh 3
+
+sha256sum kernel/boot.img
+42d1eb0fe642d32b4b6d11b7225ccd476353b7639700f82e22c378917297150f  kernel/boot.img
+/////////////////////////////////////////
+sha256sum kernel/arch/arm64/boot/dts/rockchip/rk3568-atk-evb1-ddr4-v10-linux.dtb
+3739f9c218da3555a0b1f71153f23023507191d8e7724bf60e208c78dbef58bc  
+sha256sum kernel/arch/arm64/boot/Image
+b8f9ca2ddd65590cf759cd1a0964396948491c679488e19f3efa3944dd865636
+sha256sum kernel/resource.img
+c82842c3acaac4e53254759debc8e440f70e4ee138fde563111e17b51ea6f1dd
+
