@@ -1,3 +1,5 @@
+vpg means => video mode pattern generator
+
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/io.h>
