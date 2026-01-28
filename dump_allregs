@@ -5,6 +5,15 @@ mknod /dev/led c 200 0
 root@ATK-DLRK3568:/data# devmem 0xfe070000  32
 0x3133302A
 
+root@ATK-DLRK3568:/data# devmem 0xfdd60004
+0x00006001
+root@ATK-DLRK3568:/data# devmem 0xfdd60004 32 0x16000
+root@ATK-DLRK3568:/data# devmem 0xfdd60004
+0x00006000
+root@ATK-DLRK3568:/data# devmem 0xfdd60004 32 0x16001
+root@ATK-DLRK3568:/data# devmem 0xfdd60004
+0x00006001
+
 
 [ 8890.718593] PMU_GRF_GPIO0C_IOMUX_L = 0xfdc20010 PMU_GRF_GPIO0C_IOMUX_L_PI = ffffff800f34c010
 [ 8890.718602] PMU_GRF_GPIO0C_DS_0 = 0xfdc20090 PMU_GRF_GPIO0C_DS_0_PI = ffffff800f34e090
