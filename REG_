@@ -1,6 +1,9 @@
 mipi-dsi => drivers/gpu/drm/rockchip/dw-mipi-dsi.c
 #define DSI_VERSION			0x000
 #define DSI_DPI_COLOR_CODING		0x010
+#define DSI_PHY_IF_CFG			0xa4 //dsi,lanes = <0x00000004>;	
+dsi_write(dsi, DSI_PHY_IF_CFG, PHY_STOP_WAIT_TIME(0x20) | N_LANES(dsi->lanes));
+Raw Value    : 0x00002003
 
 vop => drivers/gpu/drm/rockchip/rockchip_vop_reg.h
 #define RK3568_WB_YRGB_MST			0x48
