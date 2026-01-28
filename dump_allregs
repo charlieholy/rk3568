@@ -1,3 +1,5 @@
+echo none > /sys/class/leds/work/trigger
+
 root@ATK-DLRK3568:/data# devmem 0xfe070000  32
 0x3133302A
 
