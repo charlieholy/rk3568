@@ -17,3 +17,738 @@ Video Port1: ACTIVE
         src: pos[0, 0] rect[800 x 1280]
         dst: pos[0, 0] rect[800 x 1280]
         buf[0]: addr: 0x00000000007d8000 pitch: 3200 offset: 0
+
+
+
+root@ATK-DLRK3568:/proc/device-tree/video-phy@fe860000# modetest
+Encoders:
+id      crtc    type    possible crtcs  possible clones
+149     0       Virtual 0x00000003      0x00000000
+151     0       TMDS    0x00000001      0x00000000
+162     115     DSI     0x00000002      0x00000000
+
+Connectors:
+id      encoder status          name            size (mm)       modes   encoders
+152     0       disconnected    HDMI-A-1        0x0             0       151
+  props:
+        1 EDID:
+                flags: immutable blob
+                blobs:
+
+                value:
+        2 DPMS:
+                flags: enum
+                enums: On=0 Standby=1 Suspend=2 Off=3
+                value: 0
+        5 link-status:
+                flags: enum
+                enums: Good=0 Bad=1
+                value: 0
+        6 non-desktop:
+                flags: immutable range
+                values: 0 1
+                value: 0
+        153 hdmi_output_depth:
+                flags: enum
+                enums: Automatic=0 24bit=8 30bit=10
+                value: 8
+        154 hdmi_output_format:
+                flags: enum
+                enums: output_rgb=0 output_ycbcr444=1 output_ycbcr422=2 output_ycbcr420=3 output_ycbcr_high_subsampling=4 output_ycbcr_low_subsampling=5 invalid_output=6
+                value: 0
+        155 hdmi_output_colorimetry:
+                flags: enum
+                enums: None=0 ITU_2020=9
+                value: 0
+        156 hdmi_color_depth_capacity:
+                flags: immutable range
+                values: 0 255
+                value: 0
+        157 hdmi_output_mode_capacity:
+                flags: immutable range
+                values: 0 15
+                value: 0
+        158 hdmi_quant_range:
+                flags: enum
+                enums: default=0 limit=1 full=2
+                value: 0
+        159 HDR_PANEL_METADATA:
+                flags: immutable blob
+                blobs:
+
+                value:
+        160 output_hdmi_dvi:
+                flags: enum
+                enums: auto=0 force_hdmi=1 force_dvi=2
+                value: 0
+        161 output_type_capacity:
+                flags: immutable enum
+                enums: DVI=0 HDMI=1
+                value: 0
+        7 HDR_OUTPUT_METADATA:
+                flags: blob
+                blobs:
+
+                value:
+        46 brightness:
+                flags: range
+                values: 0 100
+                value: 50
+        47 contrast:
+                flags: range
+                values: 0 100
+                value: 50
+        50 saturation:
+                flags: range
+                values: 0 100
+                value: 50
+        51 hue:
+                flags: range
+                values: 0 100
+                value: 50
+163     162     connected       DSI-1           0x0             1       162
+  modes:
+        index name refresh (Hz) hdisp hss hse htot vdisp vss vse vtot
+  #0 800x1280 60.02 800 812 836 860 1280 1287 1289 1298 67000 flags: nhsync, nvsync; type: preferred, driver
+  props:
+        1 EDID:
+                flags: immutable blob
+                blobs:
+
+                value:
+        2 DPMS:
+                flags: enum
+                enums: On=0 Standby=1 Suspend=2 Off=3
+                value: 0
+        5 link-status:
+                flags: enum
+                enums: Good=0 Bad=1
+                value: 0
+        6 non-desktop:
+                flags: immutable range
+                values: 0 1
+                value: 0
+        46 brightness:
+                flags: range
+                values: 0 100
+                value: 50
+        47 contrast:
+                flags: range
+                values: 0 100
+                value: 50
+        50 saturation:
+                flags: range
+                values: 0 100
+                value: 50
+        51 hue:
+                flags: range
+                values: 0 100
+                value: 50
+
+CRTCs:
+id      fb      pos     size
+85      0       (0,0)   (0x0)
+  #0  nan 0 0 0 0 0 0 0 0 0 flags: ; type:
+  props:
+        54 ACLK:
+                flags: range
+                values: 0 4294967295
+                value: 500000
+        55 BACKGROUND:
+                flags: range
+                values: 0 4294967295
+                value: 0
+        56 LINE_FLAG1:
+                flags: range
+                values: 0 4294967295
+                value: 0
+        41 left margin:
+                flags: range
+                values: 0 100
+                value: 100
+        42 right margin:
+                flags: range
+                values: 0 100
+                value: 100
+        43 top margin:
+                flags: range
+                values: 0 100
+                value: 100
+        44 bottom margin:
+                flags: range
+                values: 0 100
+                value: 100
+        86 PLANE_MASK:
+                flags: immutable bitmask
+                values: Cluster0=0x1 Cluster1=0x2 Esmart0=0x4 Esmart1=0x8 Smart0=0x10 Smart1=0x20 Cluster2=0x40 Cluster3=0x80 Esmart2=0x100 Esmart3=0x200
+                value: 42
+        26 GAMMA_LUT:
+                flags: blob
+                blobs:
+
+                value:
+        27 GAMMA_LUT_SIZE:
+                flags: immutable range
+                values: 0 4294967295
+                value: 1024
+        28 CUBIC_LUT:
+                flags: blob
+                blobs:
+
+                value:
+        29 CUBIC_LUT_SIZE:
+                flags: immutable range
+                values: 0 4294967295
+                value: 729
+115     171     (0,0)   (800x1280)
+  #0 800x1280 60.02 800 812 836 860 1280 1287 1289 1298 67000 flags: nhsync, nvsync; type: preferred, driver
+  props:
+        54 ACLK:
+                flags: range
+                values: 0 4294967295
+                value: 500000
+        55 BACKGROUND:
+                flags: range
+                values: 0 4294967295
+                value: 0
+        56 LINE_FLAG1:
+                flags: range
+                values: 0 4294967295
+                value: 0
+        41 left margin:
+                flags: range
+                values: 0 100
+                value: 100
+        42 right margin:
+                flags: range
+                values: 0 100
+                value: 100
+        43 top margin:
+                flags: range
+                values: 0 100
+                value: 100
+        44 bottom margin:
+                flags: range
+                values: 0 100
+                value: 100
+        116 PLANE_MASK:
+                flags: immutable bitmask
+                values: Cluster0=0x1 Cluster1=0x2 Esmart0=0x4 Esmart1=0x8 Smart0=0x10 Smart1=0x20 Cluster2=0x40 Cluster3=0x80 Esmart2=0x100 Esmart3=0x200
+                value: 21
+        26 GAMMA_LUT:
+                flags: blob
+                blobs:
+
+                value:
+        27 GAMMA_LUT_SIZE:
+                flags: immutable range
+                values: 0 4294967295
+                value: 1024
+
+Planes:
+id      crtc    fb      CRTC x,y        x,y     gamma size      possible crtcs
+57      0       0       0,0             0,0     0               0x00000001
+  formats: XR24 AR24 XB24 AB24 RG24 BG24 RG16 BG16
+  props:
+        8 type:
+                flags: immutable enum
+                enums: Overlay=0 Primary=1 Cursor=2
+                value: 1
+        30 IN_FORMATS:
+                flags: immutable blob
+                blobs:
+
+                value:
+                        01000000000000000800000018000000
+                        01000000380000005852323441523234
+                        58423234414232345247323442473234
+                        5247313642473136ff00000000000000
+                        00000000000000000000000000000000
+                in_formats blob decoded:
+                         XR24:  LINEAR
+                         AR24:  LINEAR
+                         XB24:  LINEAR
+                         AB24:  LINEAR
+                         RG24:  LINEAR
+                         BG24:  LINEAR
+                         RG16:  LINEAR
+                         BG16:  LINEAR
+        59 rotation:
+                flags: bitmask
+                values: rotate-0=0x1 reflect-y=0x20
+                value: 1
+        60 alpha:
+                flags: range
+                values: 0 65535
+                value: 65535
+        61 pixel blend mode:
+                flags: enum
+                enums: None=2 Pre-multiplied=0 Coverage=1
+                value: 0
+        62 zpos:
+                flags: range
+                values: 0 7
+                value: 1
+        63 NAME:
+                flags: immutable bitmask
+                values: Smart1-win0=0x2
+                value: 2
+        64 FEATURE:
+                flags: immutable bitmask
+                values: scale=0x1
+                value: 1
+        65 INPUT_WIDTH:
+                flags: immutable range
+                values: 0 4096
+                value: 0
+        66 INPUT_HEIGHT:
+                flags: immutable range
+                values: 0 2304
+                value: 0
+        67 OUTPUT_WIDTH:
+                flags: immutable range
+                values: 0 4096
+                value: 0
+        68 OUTPUT_HEIGHT:
+                flags: immutable range
+                values: 0 2304
+                value: 0
+        69 SCALE_RATE:
+                flags: immutable range
+                values: 8 8
+                value: 0
+        70 colorkey:
+                flags: range
+                values: 0 2164260863
+                value: 0
+71      0       0       0,0             0,0     0               0x00000001
+  formats: XR24 AR24 XB24 AB24 RG24 BG24 RG16 BG16 NV12 NV16 NV24 NA12 NA16 NA24 YUYV
+  props:
+        8 type:
+                flags: immutable enum
+                enums: Overlay=0 Primary=1 Cursor=2
+                value: 2
+        30 IN_FORMATS:
+                flags: immutable blob
+                blobs:
+
+                value:
+                        01000000000000000f00000018000000
+                        09000000580000005852323441523234
+                        58423234414232345247323442473234
+                        52473136424731364e5631324e563136
+                        4e5632344e4131324e4131364e413234
+                        5955595600000000ff5b000000000000
+                        00000000000000000100000000000008
+                        ff5b0000000000000000000000000000
+                        4100000000000008ff5b000000000000
+                        00000000000000001100000000000008
+                        ff5b0000000000000000000000000000
+                        8100000000000008ff5b000000000000
+                        00000000000000005100000000000008
+                        ff5b0000000000000000000000000000
+                        c100000000000008ff5b000000000000
+                        00000000000000009100000000000008
+                        ff5b0000000000000000000000000000
+                        d100000000000008ff5b000000000000
+                        00000000000000007100000000000008
+                in_formats blob decoded:
+                         XR24:  ARM_BLOCK_SIZE=16x16, ARM_BLOCK_SIZE=16x16,MODE=SPARSE ARM_BLOCK_SIZE=16x16,MODE=YTR ARM_BLOCK_SIZE=16x16,MODE=CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE ARM_BLOCK_SIZE=16x16,MODE=SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPLIT|SPARSE
+                         AR24:  ARM_BLOCK_SIZE=16x16, ARM_BLOCK_SIZE=16x16,MODE=SPARSE ARM_BLOCK_SIZE=16x16,MODE=YTR ARM_BLOCK_SIZE=16x16,MODE=CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE ARM_BLOCK_SIZE=16x16,MODE=SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPLIT|SPARSE
+                         XB24:  ARM_BLOCK_SIZE=16x16, ARM_BLOCK_SIZE=16x16,MODE=SPARSE ARM_BLOCK_SIZE=16x16,MODE=YTR ARM_BLOCK_SIZE=16x16,MODE=CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE ARM_BLOCK_SIZE=16x16,MODE=SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPLIT|SPARSE
+                         AB24:  ARM_BLOCK_SIZE=16x16, ARM_BLOCK_SIZE=16x16,MODE=SPARSE ARM_BLOCK_SIZE=16x16,MODE=YTR ARM_BLOCK_SIZE=16x16,MODE=CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE ARM_BLOCK_SIZE=16x16,MODE=SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPLIT|SPARSE
+                         RG24:  ARM_BLOCK_SIZE=16x16, ARM_BLOCK_SIZE=16x16,MODE=SPARSE ARM_BLOCK_SIZE=16x16,MODE=YTR ARM_BLOCK_SIZE=16x16,MODE=CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE ARM_BLOCK_SIZE=16x16,MODE=SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPLIT|SPARSE
+                         BG24:  ARM_BLOCK_SIZE=16x16, ARM_BLOCK_SIZE=16x16,MODE=SPARSE ARM_BLOCK_SIZE=16x16,MODE=YTR ARM_BLOCK_SIZE=16x16,MODE=CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE ARM_BLOCK_SIZE=16x16,MODE=SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPLIT|SPARSE
+                         RG16:  ARM_BLOCK_SIZE=16x16, ARM_BLOCK_SIZE=16x16,MODE=SPARSE ARM_BLOCK_SIZE=16x16,MODE=YTR ARM_BLOCK_SIZE=16x16,MODE=CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE ARM_BLOCK_SIZE=16x16,MODE=SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPLIT|SPARSE
+                         BG16:  ARM_BLOCK_SIZE=16x16, ARM_BLOCK_SIZE=16x16,MODE=SPARSE ARM_BLOCK_SIZE=16x16,MODE=YTR ARM_BLOCK_SIZE=16x16,MODE=CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE ARM_BLOCK_SIZE=16x16,MODE=SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPLIT|SPARSE
+                         NV12:  ARM_BLOCK_SIZE=16x16, ARM_BLOCK_SIZE=16x16,MODE=SPARSE ARM_BLOCK_SIZE=16x16,MODE=YTR ARM_BLOCK_SIZE=16x16,MODE=CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE ARM_BLOCK_SIZE=16x16,MODE=SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPLIT|SPARSE
+                         NV16:  ARM_BLOCK_SIZE=16x16, ARM_BLOCK_SIZE=16x16,MODE=SPARSE ARM_BLOCK_SIZE=16x16,MODE=YTR ARM_BLOCK_SIZE=16x16,MODE=CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE ARM_BLOCK_SIZE=16x16,MODE=SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPLIT|SPARSE
+                         NA12:  ARM_BLOCK_SIZE=16x16, ARM_BLOCK_SIZE=16x16,MODE=SPARSE ARM_BLOCK_SIZE=16x16,MODE=YTR ARM_BLOCK_SIZE=16x16,MODE=CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE ARM_BLOCK_SIZE=16x16,MODE=SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPLIT|SPARSE
+                         NA16:  ARM_BLOCK_SIZE=16x16, ARM_BLOCK_SIZE=16x16,MODE=SPARSE ARM_BLOCK_SIZE=16x16,MODE=YTR ARM_BLOCK_SIZE=16x16,MODE=CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE ARM_BLOCK_SIZE=16x16,MODE=SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPLIT|SPARSE
+                         YUYV:  ARM_BLOCK_SIZE=16x16, ARM_BLOCK_SIZE=16x16,MODE=SPARSE ARM_BLOCK_SIZE=16x16,MODE=YTR ARM_BLOCK_SIZE=16x16,MODE=CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE ARM_BLOCK_SIZE=16x16,MODE=SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPLIT|SPARSE
+        73 rotation:
+                flags: bitmask
+                values: rotate-0=0x1 rotate-90=0x2 rotate-270=0x8 reflect-x=0x10 reflect-y=0x20
+                value: 1
+        74 alpha:
+                flags: range
+                values: 0 65535
+                value: 65535
+        75 pixel blend mode:
+                flags: enum
+                enums: None=2 Pre-multiplied=0 Coverage=1
+                value: 0
+        76 zpos:
+                flags: range
+                values: 0 7
+                value: 7
+        77 NAME:
+                flags: immutable bitmask
+                values: Cluster1-win0=0x40
+                value: 64
+        78 FEATURE:
+                flags: immutable bitmask
+                values: scale=0x1 afbdc=0x10
+                value: 17
+        79 INPUT_WIDTH:
+                flags: immutable range
+                values: 0 4096
+                value: 0
+        80 INPUT_HEIGHT:
+                flags: immutable range
+                values: 0 2304
+                value: 0
+        81 OUTPUT_WIDTH:
+                flags: immutable range
+                values: 0 4096
+                value: 0
+        82 OUTPUT_HEIGHT:
+                flags: immutable range
+                values: 0 2304
+                value: 0
+        83 SCALE_RATE:
+                flags: immutable range
+                values: 4 4
+                value: 0
+        84 colorkey:
+                flags: range
+                values: 0 2164260863
+                value: 0
+87      115     171     0,0             0,0     0               0x00000002
+  formats: XR24 AR24 XB24 AB24 RG24 BG24 RG16 BG16
+  props:
+        8 type:
+                flags: immutable enum
+                enums: Overlay=0 Primary=1 Cursor=2
+                value: 1
+        30 IN_FORMATS:
+                flags: immutable blob
+                blobs:
+
+                value:
+                        01000000000000000800000018000000
+                        01000000380000005852323441523234
+                        58423234414232345247323442473234
+                        5247313642473136ff00000000000000
+                        00000000000000000000000000000000
+                in_formats blob decoded:
+                         XR24:  LINEAR
+                         AR24:  LINEAR
+                         XB24:  LINEAR
+                         AB24:  LINEAR
+                         RG24:  LINEAR
+                         BG24:  LINEAR
+                         RG16:  LINEAR
+                         BG16:  LINEAR
+        89 rotation:
+                flags: bitmask
+                values: rotate-0=0x1 reflect-y=0x20
+                value: 1
+        90 alpha:
+                flags: range
+                values: 0 65535
+                value: 65535
+        91 pixel blend mode:
+                flags: enum
+                enums: None=2 Pre-multiplied=0 Coverage=1
+                value: 0
+        92 zpos:
+                flags: range
+                values: 0 7
+                value: 0
+        93 NAME:
+                flags: immutable bitmask
+                values: Smart0-win0=0x1
+                value: 1
+        94 FEATURE:
+                flags: immutable bitmask
+                values: scale=0x1
+                value: 1
+        95 INPUT_WIDTH:
+                flags: immutable range
+                values: 0 4096
+                value: 0
+        96 INPUT_HEIGHT:
+                flags: immutable range
+                values: 0 2304
+                value: 0
+        97 OUTPUT_WIDTH:
+                flags: immutable range
+                values: 0 4096
+                value: 0
+        98 OUTPUT_HEIGHT:
+                flags: immutable range
+                values: 0 2304
+                value: 0
+        99 SCALE_RATE:
+                flags: immutable range
+                values: 8 8
+                value: 0
+        100 colorkey:
+                flags: range
+                values: 0 2164260863
+                value: 0
+101     0       0       0,0             0,0     0               0x00000002
+  formats: XR24 AR24 XB24 AB24 RG24 BG24 RG16 BG16 NV12 NV16 NV24 NA12 NA16 NA24 YUYV
+  props:
+        8 type:
+                flags: immutable enum
+                enums: Overlay=0 Primary=1 Cursor=2
+                value: 2
+        30 IN_FORMATS:
+                flags: immutable blob
+                blobs:
+
+                value:
+                        01000000000000000f00000018000000
+                        09000000580000005852323441523234
+                        58423234414232345247323442473234
+                        52473136424731364e5631324e563136
+                        4e5632344e4131324e4131364e413234
+                        5955595600000000ff5b000000000000
+                        00000000000000000100000000000008
+                        ff5b0000000000000000000000000000
+                        4100000000000008ff5b000000000000
+                        00000000000000001100000000000008
+                        ff5b0000000000000000000000000000
+                        8100000000000008ff5b000000000000
+                        00000000000000005100000000000008
+                        ff5b0000000000000000000000000000
+                        c100000000000008ff5b000000000000
+                        00000000000000009100000000000008
+                        ff5b0000000000000000000000000000
+                        d100000000000008ff5b000000000000
+                        00000000000000007100000000000008
+                in_formats blob decoded:
+                         XR24:  ARM_BLOCK_SIZE=16x16, ARM_BLOCK_SIZE=16x16,MODE=SPARSE ARM_BLOCK_SIZE=16x16,MODE=YTR ARM_BLOCK_SIZE=16x16,MODE=CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE ARM_BLOCK_SIZE=16x16,MODE=SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPLIT|SPARSE
+                         AR24:  ARM_BLOCK_SIZE=16x16, ARM_BLOCK_SIZE=16x16,MODE=SPARSE ARM_BLOCK_SIZE=16x16,MODE=YTR ARM_BLOCK_SIZE=16x16,MODE=CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE ARM_BLOCK_SIZE=16x16,MODE=SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPLIT|SPARSE
+                         XB24:  ARM_BLOCK_SIZE=16x16, ARM_BLOCK_SIZE=16x16,MODE=SPARSE ARM_BLOCK_SIZE=16x16,MODE=YTR ARM_BLOCK_SIZE=16x16,MODE=CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE ARM_BLOCK_SIZE=16x16,MODE=SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPLIT|SPARSE
+                         AB24:  ARM_BLOCK_SIZE=16x16, ARM_BLOCK_SIZE=16x16,MODE=SPARSE ARM_BLOCK_SIZE=16x16,MODE=YTR ARM_BLOCK_SIZE=16x16,MODE=CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE ARM_BLOCK_SIZE=16x16,MODE=SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPLIT|SPARSE
+                         RG24:  ARM_BLOCK_SIZE=16x16, ARM_BLOCK_SIZE=16x16,MODE=SPARSE ARM_BLOCK_SIZE=16x16,MODE=YTR ARM_BLOCK_SIZE=16x16,MODE=CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE ARM_BLOCK_SIZE=16x16,MODE=SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPLIT|SPARSE
+                         BG24:  ARM_BLOCK_SIZE=16x16, ARM_BLOCK_SIZE=16x16,MODE=SPARSE ARM_BLOCK_SIZE=16x16,MODE=YTR ARM_BLOCK_SIZE=16x16,MODE=CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE ARM_BLOCK_SIZE=16x16,MODE=SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPLIT|SPARSE
+                         RG16:  ARM_BLOCK_SIZE=16x16, ARM_BLOCK_SIZE=16x16,MODE=SPARSE ARM_BLOCK_SIZE=16x16,MODE=YTR ARM_BLOCK_SIZE=16x16,MODE=CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE ARM_BLOCK_SIZE=16x16,MODE=SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPLIT|SPARSE
+                         BG16:  ARM_BLOCK_SIZE=16x16, ARM_BLOCK_SIZE=16x16,MODE=SPARSE ARM_BLOCK_SIZE=16x16,MODE=YTR ARM_BLOCK_SIZE=16x16,MODE=CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE ARM_BLOCK_SIZE=16x16,MODE=SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPLIT|SPARSE
+                         NV12:  ARM_BLOCK_SIZE=16x16, ARM_BLOCK_SIZE=16x16,MODE=SPARSE ARM_BLOCK_SIZE=16x16,MODE=YTR ARM_BLOCK_SIZE=16x16,MODE=CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE ARM_BLOCK_SIZE=16x16,MODE=SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPLIT|SPARSE
+                         NV16:  ARM_BLOCK_SIZE=16x16, ARM_BLOCK_SIZE=16x16,MODE=SPARSE ARM_BLOCK_SIZE=16x16,MODE=YTR ARM_BLOCK_SIZE=16x16,MODE=CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE ARM_BLOCK_SIZE=16x16,MODE=SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPLIT|SPARSE
+                         NA12:  ARM_BLOCK_SIZE=16x16, ARM_BLOCK_SIZE=16x16,MODE=SPARSE ARM_BLOCK_SIZE=16x16,MODE=YTR ARM_BLOCK_SIZE=16x16,MODE=CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE ARM_BLOCK_SIZE=16x16,MODE=SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPLIT|SPARSE
+                         NA16:  ARM_BLOCK_SIZE=16x16, ARM_BLOCK_SIZE=16x16,MODE=SPARSE ARM_BLOCK_SIZE=16x16,MODE=YTR ARM_BLOCK_SIZE=16x16,MODE=CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE ARM_BLOCK_SIZE=16x16,MODE=SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPLIT|SPARSE
+                         YUYV:  ARM_BLOCK_SIZE=16x16, ARM_BLOCK_SIZE=16x16,MODE=SPARSE ARM_BLOCK_SIZE=16x16,MODE=YTR ARM_BLOCK_SIZE=16x16,MODE=CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE ARM_BLOCK_SIZE=16x16,MODE=SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPARSE|CBR ARM_BLOCK_SIZE=16x16,MODE=YTR|SPLIT|SPARSE
+        103 rotation:
+                flags: bitmask
+                values: rotate-0=0x1 rotate-90=0x2 rotate-270=0x8 reflect-x=0x10 reflect-y=0x20
+                value: 1
+        104 alpha:
+                flags: range
+                values: 0 65535
+                value: 65535
+        105 pixel blend mode:
+                flags: enum
+                enums: None=2 Pre-multiplied=0 Coverage=1
+                value: 0
+        106 zpos:
+                flags: range
+                values: 0 7
+                value: 7
+        107 NAME:
+                flags: immutable bitmask
+                values: Cluster0-win0=0x10
+                value: 16
+        108 FEATURE:
+                flags: immutable bitmask
+                values: scale=0x1 afbdc=0x10
+                value: 17
+        109 INPUT_WIDTH:
+                flags: immutable range
+                values: 0 4096
+                value: 0
+        110 INPUT_HEIGHT:
+                flags: immutable range
+                values: 0 2304
+                value: 0
+        111 OUTPUT_WIDTH:
+                flags: immutable range
+                values: 0 4096
+                value: 0
+        112 OUTPUT_HEIGHT:
+                flags: immutable range
+                values: 0 2304
+                value: 0
+        113 SCALE_RATE:
+                flags: immutable range
+                values: 4 4
+                value: 0
+        114 colorkey:
+                flags: range
+                values: 0 2164260863
+                value: 0
+117     0       0       0,0             0,0     0               0x00000001
+  formats: XR24 AR24 XB24 AB24 RG24 BG24 RG16 BG16 NV12 NV16 NV24 NA12 NA16 NA24 YVYU VYUY
+  props:
+        8 type:
+                flags: immutable enum
+                enums: Overlay=0 Primary=1 Cursor=2
+                value: 0
+        30 IN_FORMATS:
+                flags: immutable blob
+                blobs:
+
+                value:
+                        01000000000000001000000018000000
+                        01000000580000005852323441523234
+                        58423234414232345247323442473234
+                        52473136424731364e5631324e563136
+                        4e5632344e4131324e4131364e413234
+                        5956595556595559ffff000000000000
+                        00000000000000000000000000000000
+                in_formats blob decoded:
+                         XR24:  LINEAR
+                         AR24:  LINEAR
+                         XB24:  LINEAR
+                         AB24:  LINEAR
+                         RG24:  LINEAR
+                         BG24:  LINEAR
+                         RG16:  LINEAR
+                         BG16:  LINEAR
+                         NV12:  LINEAR
+                         NV16:  LINEAR
+                         NV24:  LINEAR
+                         NA12:  LINEAR
+                         NA16:  LINEAR
+                         NA24:  LINEAR
+                         YVYU:  LINEAR
+                         VYUY:  LINEAR
+        119 rotation:
+                flags: bitmask
+                values: rotate-0=0x1 reflect-y=0x20
+                value: 1
+        120 alpha:
+                flags: range
+                values: 0 65535
+                value: 65535
+        121 pixel blend mode:
+                flags: enum
+                enums: None=2 Pre-multiplied=0 Coverage=1
+                value: 0
+        122 zpos:
+                flags: range
+                values: 0 7
+                value: 2
+        123 NAME:
+                flags: immutable bitmask
+                values: Esmart1-win0=0x4
+                value: 4
+        124 FEATURE:
+                flags: immutable bitmask
+                values: scale=0x1
+                value: 1
+        125 INPUT_WIDTH:
+                flags: immutable range
+                values: 0 4096
+                value: 0
+        126 INPUT_HEIGHT:
+                flags: immutable range
+                values: 0 2304
+                value: 0
+        127 OUTPUT_WIDTH:
+                flags: immutable range
+                values: 0 4096
+                value: 0
+        128 OUTPUT_HEIGHT:
+                flags: immutable range
+                values: 0 2304
+                value: 0
+        129 SCALE_RATE:
+                flags: immutable range
+                values: 8 8
+                value: 0
+        130 colorkey:
+                flags: range
+                values: 0 2164260863
+                value: 0
+131     0       0       0,0             0,0     0               0x00000002
+  formats: XR24 AR24 XB24 AB24 RG24 BG24 RG16 BG16 NV12 NV16 NV24 NA12 NA16 NA24 YVYU VYUY
+  props:
+        8 type:
+                flags: immutable enum
+                enums: Overlay=0 Primary=1 Cursor=2
+                value: 0
+        30 IN_FORMATS:
+                flags: immutable blob
+                blobs:
+
+                value:
+                        01000000000000001000000018000000
+                        01000000580000005852323441523234
+                        58423234414232345247323442473234
+                        52473136424731364e5631324e563136
+                        4e5632344e4131324e4131364e413234
+                        5956595556595559ffff000000000000
+                        00000000000000000000000000000000
+                in_formats blob decoded:
+                         XR24:  LINEAR
+                         AR24:  LINEAR
+                         XB24:  LINEAR
+                         AB24:  LINEAR
+                         RG24:  LINEAR
+                         BG24:  LINEAR
+                         RG16:  LINEAR
+                         BG16:  LINEAR
+                         NV12:  LINEAR
+                         NV16:  LINEAR
+                         NV24:  LINEAR
+                         NA12:  LINEAR
+                         NA16:  LINEAR
+                         NA24:  LINEAR
+                         YVYU:  LINEAR
+                         VYUY:  LINEAR
+        133 rotation:
+                flags: bitmask
+                values: rotate-0=0x1 reflect-y=0x20
+                value: 1
+        134 alpha:
+                flags: range
+                values: 0 65535
+                value: 65535
+        135 pixel blend mode:
+                flags: enum
+                enums: None=2 Pre-multiplied=0 Coverage=1
+                value: 0
+        136 zpos:
+                flags: range
+                values: 0 7
+                value: 3
+        137 NAME:
+                flags: immutable bitmask
+                values: Esmart0-win0=0x8
+                value: 8
+        138 FEATURE:
+                flags: immutable bitmask
+                values: scale=0x1
+                value: 1
+        139 INPUT_WIDTH:
+                flags: immutable range
+                values: 0 4096
+                value: 0
+        140 INPUT_HEIGHT:
+                flags: immutable range
+                values: 0 2304
+                value: 0
+        141 OUTPUT_WIDTH:
+                flags: immutable range
+                values: 0 4096
+                value: 0
+        142 OUTPUT_HEIGHT:
+                flags: immutable range
+                values: 0 2304
+                value: 0
+        143 SCALE_RATE:
+                flags: immutable range
+                values: 8 8
+                value: 0
+        144 colorkey:
+                flags: range
+                values: 0 2164260863
+                value: 0
+
+Frame buffers:
+id      size    pitch
