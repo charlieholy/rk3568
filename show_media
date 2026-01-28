@@ -1,6 +1,6 @@
 CIF   VIP video input process
 
-ia0 @ATK-DLRK3568:/proc/device-tree/video-phy@fe860000# media-ctl -p -d /dev/med
+ia0 @ATK-DLRK3568:/proc/device-tree/video-phy@fe860000# media-ctl -p -d /dev/media0
 Media controller API version 4.19.255
 
 Media device information
