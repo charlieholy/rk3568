@@ -1,0 +1,126 @@
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/io.h>
+#include <linux/delay.h>
+
+// 你的DSI1物理基地址（固定为0xFE070000）
+#define RK3568_DSI1_BASE_PHYS    0xFE070000
+// VPG配置寄存器偏移（0x0038）
+#define DSI1_VID_MODE_CFG_OFFSET 0x0038
+// 寄存器位掩码定义（仅VPG相关）
+#define VPG_EN_BIT               BIT(16)  // VPG总开关位
+#define VPG_MODE_BIT             BIT(20)  // VPG图案模式位：0=彩条，1=BER
+#define VPG_ORIENT_BIT           BIT(24)  // VPG彩条方向：0=垂直，1=水平
+// 保存原始寄存器值（全局变量，用于恢复）
+static u32 g_dsi1_vid_mode_cfg_original;
+// DSI1寄存器虚拟地址映射指针
+static void __iomem *g_dsi1_base;
+
+/**
+ * @brief 开启DSI1 VPG测试图案（垂直彩条，工厂默认）
+ * @return 0=成功，-1=映射失败，-2=保存原配置失败
+ */
+int dsi1_vpg_enable(void)
+{
+    u32 reg_val;
+
+    // 1. 映射物理地址到虚拟地址（仅第一次调用执行）
+    if (!g_dsi1_base) {
+        g_dsi1_base = ioremap(RK3568_DSI1_BASE_PHYS, 0x100); // 映射0x100字节足够覆盖所有寄存器
+        if (!g_dsi1_base) {
+            pr_err("DSI1 ioremap physical address failed!\n");
+            return -1;
+        }
+    }
+
+    // 2. 读取并保存原始寄存器值（仅第一次开启保存，避免多次覆盖）
+    if (g_dsi1_vid_mode_cfg_original == 0) {
+        g_dsi1_vid_mode_cfg_original = ioread32(g_dsi1_base + DSI1_VID_MODE_CFG_OFFSET);
+        pr_info("DSI1 save original VID_MODE_CFG: 0x%08x\n", g_dsi1_vid_mode_cfg_original);
+        if (g_dsi1_vid_mode_cfg_original == 0) {
+            pr_err("DSI1 read original VID_MODE_CFG failed!\n");
+            return -2;
+        }
+    }
+
+    // 3. 读取当前寄存器值，仅修改VPG相关位
+    reg_val = ioread32(g_dsi1_base + DSI1_VID_MODE_CFG_OFFSET);
+    // 配置：0=彩条模式 + 0=垂直方向 + 1=开启VPG（不修改其他位）
+    reg_val &= ~(VPG_MODE_BIT | VPG_ORIENT_BIT); // 清VPG模式和方向位，设为彩条+垂直
+    reg_val |= VPG_EN_BIT;                       // 置1开启VPG
+
+    // 4. 写入配置，开启VPG
+    iowrite32(reg_val, g_dsi1_base + DSI1_VID_MODE_CFG_OFFSET);
+    pr_info("DSI1 VPG enable success! (vertical color bar), new reg val: 0x%08x\n", reg_val);
+    return 0;
+}
+
+/**
+ * @brief 关闭VPG，恢复原始寄存器配置（回到正常显示）
+ * @return 0=成功，-1=未开启过VPG/无原始配置
+ */
+int dsi1_vpg_restore(void)
+{
+    // 校验：是否开启过VPG且有原始配置
+    if (!g_dsi1_base || g_dsi1_vid_mode_cfg_original == 0) {
+        pr_err("DSI1 VPG not enabled, no original config to restore!\n");
+        return -1;
+    }
+
+    // 恢复原始寄存器值，一键还原所有配置
+    iowrite32(g_dsi1_vid_mode_cfg_original, g_dsi1_base + DSI1_VID_MODE_CFG_OFFSET);
+    pr_info("DSI1 VPG disable success! Restore original reg val: 0x%08x\n", g_dsi1_vid_mode_cfg_original);
+
+    // 可选：解除地址映射（若后续不再使用VPG）
+    // iounmap(g_dsi1_base);
+    // g_dsi1_base = NULL;
+    // g_dsi1_vid_mode_cfg_original = 0;
+
+    return 0;
+}
+
+// 测试用例：开启VPG显示5秒，然后关闭恢复（可直接在驱动init中调用）
+static int __init dsi1_vpg_test_init(void)
+{
+    int ret;
+
+    pr_info("DSI1 VPG test start...\n");
+    // 1. 开启VPG彩条
+    ret = dsi1_vpg_enable();
+    if (ret < 0) {
+        pr_err("DSI1 VPG enable failed: %d\n", ret);
+        return ret;
+    }
+
+    // 2. 保持彩条显示5秒（足够观察屏幕状态）
+    mdelay(5000);
+
+    // 3. 关闭VPG，恢复正常显示
+    ret = dsi1_vpg_restore();
+    if (ret < 0) {
+        pr_err("DSI1 VPG restore failed: %d\n", ret);
+        return ret;
+    }
+
+    pr_info("DSI1 VPG test end! Back to normal display.\n");
+    return 0;
+}
+
+static void __exit dsi1_vpg_test_exit(void)
+{
+    // 退出时确保恢复原始配置
+    dsi1_vpg_restore();
+    if (g_dsi1_base) {
+        iounmap(g_dsi1_base);
+        g_dsi1_base = NULL;
+    }
+    pr_info("DSI1 VPG module exit!\n");
+}
+
+module_init(dsi1_vpg_test_init);
+module_exit(dsi1_vpg_test_exit);
+
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Custom");
+MODULE_DESCRIPTION("RK3568 DSI1 VPG Test Pattern Driver");
+MODULE_VERSION("1.0");
