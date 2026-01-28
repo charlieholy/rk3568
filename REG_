@@ -55,5 +55,107 @@ so: 51 = 83 -32
 
 i2c reg ==> drivers/i2c/busses/i2c-rk3x.c
 
+////////////////////////
+root@ATK-DLRK3568:/# cat /proc/iomem
+00110000-0013ffff : persistent_ram
+00140000-001bffff : persistent_ram
+001c0000-001fffff : persistent_ram
+00200000-083fffff : System RAM
+  00280000-014bffff : Kernel code
+  014c0000-0164ffff : reserved
+  01650000-018dffff : Kernel data
+  08300000-08323fff : reserved
+09400000-efffffff : System RAM
+  e9f00000-eddfffff : reserved
+  edf00000-ee005fff : reserved
+  ee600000-efdfffff : reserved
+  efea4000-eff07fff : reserved
+  eff42000-eff42fff : reserved
+  eff45000-eff45fff : reserved
+  eff46000-eff46fff : reserved
+  eff47000-eff49fff : reserved
+  eff4a000-efffffff : reserved
+f0200000-f1ffffff : MEM
+fc800000-fc800fff : sata@fc800000
+fcc0c100-fcffffff : dwc3@fcc00000
+fd000000-fd007fff : dwc3@fd000000
+  fd000000-fd007fff : dwc3@fd000000
+fd00c100-fd3fffff : dwc3@fd000000
+fd800000-fd83ffff : usb@fd800000
+fd840000-fd87ffff : usb@fd840000
+fd880000-fd8bffff : usb@fd880000
+fd8c0000-fd8fffff : usb@fd8c0000
+fdcc0000-fdccafff : fdcc0000.sram
+fdd40000-fdd40fff : i2c@fdd40000
+fdd60000-fdd600ff : gpio@fdd60000
+fde00000-fde000ff : pvtm@fde00000
+fde4b000-fde4b03f : iommu@fde4b000
+fde60000-fde63fff : fde60000.gpu
+fde80000-fde800ff : pvtm@fde80000
+fde90000-fde900ff : pvtm@fde90000
+fdea0800-fdea083f : iommu@fdea0800
+fdeb0000-fdeb0fff : rk_rga@fdeb0000
+fded0480-fded04bf : iommu@fded0480
+fdee0800-fdee083f : iommu@fdee0800
+fdef0800-fdef08ff : iommu@fdef0800
+fdf40f00-fdf40f3f : iommu@fdf40f00
+fdf40f40-fdf40f7f : iommu@fdf40f00
+fdf80800-fdf8083f : iommu@fdf80800
+fdf80840-fdf8087f : iommu@fdf80800
+fdff1a00-fdff1aff : iommu@fdff1a00
+fe000000-fe003fff : dwmmc@fe000000
+fe010000-fe01ffff : ethernet@fe010000
+fe040000-fe042fff : regs
+fe043e00-fe043eff : iommu@fe043e00
+fe043f00-fe043fff : iommu@fe043e00
+fe044000-fe044fff : gamma_lut
+fe070000-fe07ffff : dsi@fe070000
+fe0a0000-fe0bffff : hdmi@fe0a0000
+fe102000-fe1023ff : nocp-cpu@fe102000
+fe102400-fe1027ff : nocp-gpu-vpu-rga-venc@fe102400
+fe102800-fe102bff : nocp-vdec@fe102800
+fe102c00-fe102fff : nocp-vi-usb-peri-pipe@fe102c00
+fe103000-fe1033ff : nocp-vo@fe103000
+fe230000-fe2303ff : dfi@fe230000
+fe280000-fe28ffff : pcie-apb
+fe2a0000-fe2affff : ethernet@fe2a0000
+fe2b0000-fe2b3fff : dwmmc@fe2b0000
+fe310000-fe31ffff : sdhci@fe310000
+fe388000-fe389fff : rng@fe388000
+fe38c000-fe38ffff : otp@fe38c000
+fe400000-fe400fff : i2s@fe400000
+fe410000-fe410fff : i2s@fe410000
+fe430000-fe430fff : i2s@fe430000
+fe530000-fe533fff : dmac@fe530000
+  fe530000-fe533fff : dmac@fe530000
+fe550000-fe553fff : dmac@fe550000
+  fe550000-fe553fff : dmac@fe550000
+fe580000-fe580fff : can@fe580000
+fe5a0000-fe5a0fff : i2c@fe5a0000
+fe5c0000-fe5c0fff : i2c@fe5c0000
+fe5d0000-fe5d0fff : i2c@fe5d0000
+fe5e0000-fe5e0fff : i2c@fe5e0000
+fe600000-fe6000ff : watchdog@fe600000
+fe670000-fe67001f : serial
+fe680000-fe68001f : serial
+fe6c0000-fe6c001f : serial
+fe6e0030-fe6e003f : pwm@fe6e0030
+fe710000-fe7100ff : tsadc@fe710000
+fe720000-fe7200ff : saradc@fe720000
+fe740000-fe7400ff : gpio@fe740000
+fe750000-fe7500ff : gpio@fe750000
+fe760000-fe7600ff : gpio@fe760000
+fe770000-fe7700ff : gpio@fe770000
+fe820000-fe8200ff : phy@fe820000
+fe830000-fe8300ff : phy@fe830000
+fe840000-fe8400ff : phy@fe840000
+fe860000-fe86ffff : video-phy@fe860000
+fe870000-fe870fff : csi2-dphy-hw@fe870000
+fe8a0000-fe8affff : usb2-phy@fe8a0000
+fe8b0000-fe8bffff : usb2-phy@fe8b0000
+fe8c0000-fe8dffff : phy@fe8c0000
+380000000-3bfffffff : MEM
+3c0800000-3c0bfffff : pcie-dbi
+
 
 
