@@ -5,8 +5,13 @@ id      crtc    type    possible crtcs  possible clones
 151     0       TMDS    0x00000001      0x00000000
 162     115     DSI     0x00000002      0x00000000
 
+DSI-1
 root@ATK-DLRK3568:/# modetest -M rockchip -s 163@115:800x1280
 setting mode 800x1280-60.02Hz on connectors 163, crtc 115
+
+HDMI
+modetest -M rockchip -s 152@85:1440x900
+setting mode 1440x900-59.90Hz on connectors 152, crtc 85
 
 
 
