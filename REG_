@@ -1,3 +1,9 @@
+dsi-tx-phy or mipi-tx-phy => drivers/phy/rockchip/phy-rockchip-inno-video-combo-phy.c
+video-phy@fe860000 {
+        compatible = "rockchip,rk3568-video-phy";
+        reg = <0x00000000 0xfe860000
+DSI_TX_PHY1 0xFE860000
+
 mipi-dsi => drivers/gpu/drm/rockchip/dw-mipi-dsi.c
 #define DSI_VERSION			0x000
 #define DSI_DPI_COLOR_CODING		0x010
