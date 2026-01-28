@@ -1,3 +1,9 @@
     dsi@fe060000 {
         compatible = "rockchip,rk3568-mipi-dsi";
         reg = <0x00000000 0xfe060000 0x00000000 0x00010000>;
+
+ls -l /sys/class/drm/ | grep DSI
+root@ATK-DLRK3568:/data# cat /sys/class/drm/card0-DSI-1/modes
+800x1280
+root@ATK-DLRK3568:/data# cat /sys/class/drm/card0-DSI-1/status
+connected
