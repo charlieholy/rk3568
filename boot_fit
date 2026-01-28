@@ -125,3 +125,5 @@ b8f9ca2ddd65590cf759cd1a0964396948491c679488e19f3efa3944dd865636
 sha256sum kernel/resource.img
 c82842c3acaac4e53254759debc8e440f70e4ee138fde563111e17b51ea6f1dd
 
+dtc -I dtb -O dts arch/arm64/boot/dts/rockchip/rk3568-atk-evb1-ddr4-v10-linux.dtb -o dump2.txt
+
