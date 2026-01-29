@@ -1,3 +1,6 @@
+uart3: serial@fe670000 => 
+
+
 PMUCRU fdd00000
 PMUSCRU fdd30000
 CRU fdd20000
