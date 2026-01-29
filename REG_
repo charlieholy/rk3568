@@ -3,6 +3,12 @@ wdt: watchdog@fe600000 => drivers/watchdog/dw_wdt.c
 root@ATK-DLRK3568:/sys/bus/platform/drivers/dw_wdt# devmem 0xfe600000
 0x00000008
 devmem 0xfe600000 32 0x9  // watch enable -> reset immadiately
+# 写WDT_TORR(0xfe600004)为0xF，对应阈值0x7FFFFFFF，超时≈89.48秒
+devmem 0xfe600004 32 0xF
+# 单次喂狗（测试用）
+devmem 0xfe60000c 32 0x76
+# 验证喂狗成功：读取WDT_CCVR，值跳回0x7FFFFFFF
+devmem 0xfe600008
 
 
 uart3: serial@fe670000 => drivers/net/wireless/rockchip_wlan/rtl8852bs/phl/hal_g6/mac/mac_reg.h
