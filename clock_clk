@@ -1,3 +1,10 @@
+root@ATK-DLRK3568:/proc# cat /sys/kernel/debug/clk/clk_summary | grep clk_rtc
+    clk_rtc32k_frac                   1        1        0       32768          0     0  50000
+       clk_rtc_32k                    1        1        0       32768          0     0  50000
+root@ATK-DLRK3568:/proc# devmem  0xfdd00100
+0x00000080
+7:6 RW 0x2 2'b10: clk_osc0_div32k
+
 ppll =>
 root@ATK-DLRK3568:/proc# cat /sys/kernel/debug/clk/clk_summary | grep ppll
     pll_ppll                          1        1        0   200000000          0     0  50000
