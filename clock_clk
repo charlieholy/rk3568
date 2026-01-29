@@ -1,3 +1,8 @@
+PMUCRU 0xFDD00000
+PMUSCRU 0xFDD30000
+CRU 0xFDD20000
+SCRU 0xFDD10000
+
 root@ATK-DLRK3568:/sys/kernel/debug# cat /sys/kernel/debug/clk/clk_summary | grep uart0
     sclk_uart0_mux                    0        0        0    24000000          0     0  50000
        sclk_uart0                     0        0        0    24000000          0     0  50000
