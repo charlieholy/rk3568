@@ -1,4 +1,12 @@
+GPIO0_C0
 echo none > /sys/class/leds/work/trigger
+PMU_GRF 0xFDC20000 
+PMU_GRF_GPIO0C_IOMUX_L offset (0x0010) 2:0 RW 0x0  3'h0: GPIO0_C0 
+PMU_GRF_GPIO0C_DS_0 offset (0x0090) 31:16 RW 0x0000 1'b1: Write access enable |5:0 RW 0x01 6'b111111: Level 5 
+0xFDD60000 GPIO_SWPORT_DR_H 0x0004 
+0xFDD60000 GPIO_SWPORT_DDR_H 0x000C
+devmem 0xfdd60004 32 0x16001 //open
+
 
 mknod /dev/led c 200 0
 
