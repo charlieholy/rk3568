@@ -1,3 +1,12 @@
+root@ATK-DLRK3568:/sys/kernel/debug# cat /sys/kernel/debug/clk/clk_summary | grep uart0
+    sclk_uart0_mux                    0        0        0    24000000          0     0  50000
+       sclk_uart0                     0        0        0    24000000          0     0  50000
+          sclk_uart0_div              0        0        0   200000000          0     0  50000
+             sclk_uart0_frac          0        0        0   200000000          0     0  50000
+                pclk_uart0            0        0        0   100000000          0     0  50000
+root@ATK-DLRK3568:/sys/kernel/debug# devmem  0xfdd00110
+0x00000800 11:10bit 2'b10: xin_osc0_func 
+
 root@ATK-DLRK3568:/proc# cat /sys/kernel/debug/clk/clk_summary | grep pdpmu
           clk_pdpmu                   1        2        0   200000000          0     0  50000
              pclk_pdpmu               3        5        0   100000000          0     0  50000
