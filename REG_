@@ -1,3 +1,8 @@
+PMUCRU fdd00000
+PMUSCRU fdd30000
+CRU fdd20000
+SCRU fdd10000
+
 dsi-tx-phy or mipi-tx-phy => drivers/phy/rockchip/phy-rockchip-inno-video-combo-phy.c
 video-phy@fe860000 {
         compatible = "rockchip,rk3568-video-phy";
