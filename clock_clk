@@ -1,3 +1,19 @@
+hpll =>
+root@ATK-DLRK3568:/proc# cat /sys/kernel/debug/clk/clk_summary | grep hpll
+    pll_hpll                          0        0        0   594000000          0     0  50000
+    hpll                              1        3        0    24000000          0     0  50000
+       hpll_ph0                       0        0        0    12000000          0     0  50000
+root@ATK-DLRK3568:/proc# devmem  0xfdd00040
+0x00002063  postdiv1=2   fbdiv=x063
+root@ATK-DLRK3568:/proc# devmem  0xfdd00044
+0x00001481  => 0001 0100 1000 0001   bit8:6 = 0x010 = postdiv2=2
+root@ATK-DLRK3568:/proc# devmem  0xfdd00048
+0x00000000
+root@ATK-DLRK3568:/proc# devmem  0xfdd0004c
+0x00000007
+pll_hpll = 24M X 0x63(99) / ( 2 X 2) = 594Mhz
+
+
 root@ATK-DLRK3568:/data# cat /sys/kernel/debug/clk/clk_summary
                                  enable  prepare  protect                                duty
    clock                          count    count    count        rate   accuracy phase  cycle
