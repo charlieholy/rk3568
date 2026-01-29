@@ -25,6 +25,13 @@ root@ATK-DLRK3568:/proc# devmem  0xfdd0004c
 0x00000007
 pll_hpll = 24M X 0x63(99) / ( 2 X 2) = 594Mhz
 
+PMUCRU_MODE_CON00 0x00000001
+2'b00: xin_osc0_func 
+2'b01: clk_ppll
+ppll b01 => 200000000 which is pll_ppll
+hpll b00 => 24000000
+
+
 
 root@ATK-DLRK3568:/data# cat /sys/kernel/debug/clk/clk_summary
                                  enable  prepare  protect                                duty
