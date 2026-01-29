@@ -1,5 +1,8 @@
 wdt: watchdog@fe600000 => drivers/watchdog/dw_wdt.c
 #define WDOG_CONTROL_REG_OFFSET		    0x00
+root@ATK-DLRK3568:/sys/bus/platform/drivers/dw_wdt# devmem 0xfe600000
+0x00000008
+devmem 0xfe600000 32 0x9  // watch enable -> reset immadiately
 
 
 uart3: serial@fe670000 => drivers/net/wireless/rockchip_wlan/rtl8852bs/phl/hal_g6/mac/mac_reg.h
