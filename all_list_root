@@ -1,0 +1,3 @@
+kernel/resource.c  /proc/iomem /proc/ioport
+struct resource ioport_resource = {
+struct resource iomem_resource = {
