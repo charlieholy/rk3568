@@ -1,3 +1,7 @@
+wdt: watchdog@fe600000 => drivers/watchdog/dw_wdt.c
+#define WDOG_CONTROL_REG_OFFSET		    0x00
+
+
 uart3: serial@fe670000 => drivers/net/wireless/rockchip_wlan/rtl8852bs/phl/hal_g6/mac/mac_reg.h
 #define R_AX_UART_CPR 0x00F4
 
