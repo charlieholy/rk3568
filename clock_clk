@@ -1,3 +1,15 @@
+ppll =>
+root@ATK-DLRK3568:/proc# cat /sys/kernel/debug/clk/clk_summary | grep ppll
+    pll_ppll                          1        1        0   200000000          0     0  50000
+       ppll                           3        3        0   200000000          0     0  50000
+          ppll_ph180                  1        1        0   100000000          0     0  50000
+          ppll_ph0                    4        4        0   100000000          0     0  50000
+root@ATK-DLRK3568:/proc# devmem  0xfdd00000
+0x00006064  postdiv1=6   fbdiv=x064
+root@ATK-DLRK3568:/proc# devmem  0xfdd00004
+0x00001481  0001 0100 1000 0001   bit8:6 = 0x010 = postdiv2=2
+pll_ppll = 24M X 0x64(100) / ( 6 X 2) = 200Mhz
+
 hpll =>
 root@ATK-DLRK3568:/proc# cat /sys/kernel/debug/clk/clk_summary | grep hpll
     pll_hpll                          0        0        0   594000000          0     0  50000
