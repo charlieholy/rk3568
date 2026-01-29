@@ -1,4 +1,5 @@
-uart3: serial@fe670000 => 
+uart3: serial@fe670000 => drivers/net/wireless/rockchip_wlan/rtl8852bs/phl/hal_g6/mac/mac_reg.h
+#define R_AX_UART_CPR 0x00F4
 
 
 PMUCRU fdd00000
