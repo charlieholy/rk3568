@@ -1,8 +1,8 @@
-rkcif@fdfe0000 { => drivers/media/platform/rockchip/cif/hw.c
+rkcif@fdfe0000 { => drivers/media/platform/rockchip/cif/hw.c  //disable
 		compatible = "rockchip,rk3568-cif";
 		reg = <0x00 0xfdfe0000 0x00 0x8000>;
 
-mipi-csi2: mipi-csi2@fdfb0000 { => drivers/media/platform/rockchip/cif/mipi-csi2.c
+mipi-csi2: mipi-csi2@fdfb0000 { => drivers/media/platform/rockchip/cif/mipi-csi2.c   // disable.
 		compatible = "rockchip,rk3568-mipi-csi2";
 #define CSIHOST_N_LANES		0x04
 
