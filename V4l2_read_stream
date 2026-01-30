@@ -1,3 +1,54 @@
+(gdb) p ((struct v4l2_ctrl*)hdl->ctrls->next)->ops
+$16 = (const struct v4l2_ctrl_ops *) 0x0
+(gdb) p ((struct v4l2_ctrl*)hdl->ctrls->next->next)
+$17 = (struct v4l2_ctrl *) 0xffffffc0e64f7d00
+(gdb) p ((struct v4l2_ctrl*)hdl->ctrls->next->next)->name
+$18 = 0xffffff8009203d89 "Link Frequency"
+(gdb) p ((struct v4l2_ctrl*)hdl->ctrls->next->next->next)->name
+$19 = 0xffffff8009203d98 "Pixel Rate"
+(gdb) p ((struct v4l2_ctrl*)hdl->ctrls->next->next->next->next)->name
+$20 = 0xffffff8009203cd3 "Image Source Controls"
+(gdb) p ((struct v4l2_ctrl*)hdl->ctrls->next->next->next->next->next)->name
+$21 = 0xffffff8009203cfb "Horizontal Blanking"
+(gdb) p ((struct v4l2_ctrl*)hdl->ctrls->next->next->next->next->next->next)->name
+$22 = 0xffffff8009203ce9 "Vertical Blanking"
+(gdb) p ((struct v4l2_ctrl*)hdl->ctrls->next->next->next->next->next->next)->ops
+$23 = (const struct v4l2_ctrl_ops *) 0xffffff8008f639b8 <ov13850_ctrl_ops>
+(gdb) p ((struct v4l2_ctrl*)hdl->ctrls->next->next->next->next->next->next)->name
+$24 = 0xffffff8009203ce9 "Vertical Blanking"
+(gdb) p ((struct v4l2_ctrl*)hdl->ctrls->next->next->next->next->next->next->next)->name
+$25 = 0xffffff80092026d7 "User Controls"
+(gdb) p ((struct v4l2_ctrl*)hdl->ctrls->next->next->next->next->next->next->next->next)->name
+$26 = 0xffffff8009203732 "Exposure"
+(gdb) p ((struct v4l2_ctrl*)hdl->ctrls->next->next->next->next->next->next->next->next)->ops
+$27 = (const struct v4l2_ctrl_ops *) 0xffffff8008f639b8 <ov13850_ctrl_ops>
+(gdb) p ((struct v4l2_ctrl*)hdl->ctrls->next->next->next->next->next->next->next->next)->name
+$28 = 0xffffff8009203732 "Exposure"
+(gdb) p ((struct v4l2_ctrl*)hdl->ctrls->next->next->next->next->next->next->next->next->next)->name
+$29 = 0xffffff8009203d0f "Analogue Gain"
+(gdb) p ((struct v4l2_ctrl*)hdl->ctrls->next->next->next->next->next->next->next->next->next->next)->name
+$30 = 0xffffff8009203da3 "Test Pattern"
+(gdb) p ((struct v4l2_ctrl*)hdl->ctrls->next->next->next->next->next->next->next->next->next->next)->ops
+$31 = (const struct v4l2_ctrl_ops *) 0xffffff8008f639b8 <ov13850_ctrl_ops>
+(gdb) p ((struct v4l2_ctrl*)hdl->ctrls->next->next->next->next->next->next->next->next->next->next)
+$32 = (struct v4l2_ctrl *) 0xffffffc0e64e1600
+(gdb) p *((struct v4l2_ctrl*)hdl->ctrls->next->next->next->next->next->next->next->next->next->next)
+$33 = {node = {next = 0xffffffc0e66302c0, prev = 0xffffffc0e64e1500}, ev_subs = {next = 0xffffffc0e64e1610,
+    prev = 0xffffffc0e64e1610}, handler = 0xffffffc0e6630280, cluster = 0xffffffc0e64e0898, ncontrols = 1, done = 0,
+  is_new = 1, has_changed = 0, is_private = 0, is_auto = 0, is_int = 1, is_string = 0, is_ptr = 0, is_array = 0,
+  has_volatiles = 0, call_notify = 0, manual_mode_value = 0, ops = 0xffffff8008f639b8 <ov13850_ctrl_ops>,
+  type_ops = 0xffffff8008f6a938 <std_type_ops>, id = 10422531, name = 0xffffff8009203da3 "Test Pattern",
+  type = V4L2_CTRL_TYPE_MENU, minimum = 0, maximum = 4, default_value = 0, elems = 1, elem_size = 4, dims = {0, 0, 0,
+    0}, nr_of_dims = 0, {step = 0, menu_skip_mask = 0}, {qmenu = 0xffffff8008f639d0 <ov13850_test_pattern_menu>,
+    qmenu_int = 0xffffff8008f639d0 <ov13850_test_pattern_menu>}, flags = 0, priv = 0x0, val = 0, cur = {val = 0},
+  p_new = {p_s32 = 0xffffffc0e64e16b8, p_s64 = 0xffffffc0e64e16b8, p_u8 = 0xffffffc0e64e16b8 "",
+    p_u16 = 0xffffffc0e64e16b8, p_u32 = 0xffffffc0e64e16b8, p_char = 0xffffffc0e64e16b8 "", p = 0xffffffc0e64e16b8},
+  p_cur = {p_s32 = 0xffffffc0e64e16bc, p_s64 = 0xffffffc0e64e16bc, p_u8 = 0xffffffc0e64e16bc "",
+    p_u16 = 0xffffffc0e64e16bc, p_u32 = 0xffffffc0e64e16bc, p_char = 0xffffffc0e64e16bc "", p = 0xffffffc0e64e16bc}}
+(gdb)
+
+
+
 media-ctl -p // dump v4l2_subdev
 
 root@ATK-DLRK3568:/# media-ctl -p
