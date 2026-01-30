@@ -1,3 +1,16 @@
+(gdb) p (p->subdevs[0])->name
+$9 = "rkisp-csi-subdev", '\000' <repeats 15 times>
+(gdb) p (p->subdevs[1])->name
+$10 = "rockchip-csi2-dphy0", '\000' <repeats 12 times>
+(gdb) p (p->subdevs[2])->name
+$11 = "m00_b_ov13850 4-0010", '\000' <repeats 11 times>
+
+phy -> sensor：启动视频流时，先启动 phy（接收端），后启动 sensor（发送端），避免数据丢失；
+sensor -> phy：停止视频流时，先停止 sensor（发送端），后停止 phy（接收端），避免硬件卡死；
+核心原则：数据流启停需遵循「接收端先就绪、发送端先关闭」的顺序，这是 MIPI CSI 硬件的通用规范；
+底层逻辑：p->subdevs数组按phy在前、sensor在后排列，因此正向遍历是 phy→sensor，反向是 sensor→phy。
+这个顺序是嵌入式 MIPI 摄像头开发的 “通用坑点”，如果顺序反了，会出现摄像头启动后无图像、停止后设备卡死等问题，
+
 ubuntu20@NYX:~/opt/test$ ./a.out
 VIDIOC_QUERYCAP:    2154321408 (0x80685600)
 VIDIOC_ENUM_FMT:    3225441794 (0xC0405602)
