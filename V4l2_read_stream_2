@@ -1,0 +1,137 @@
+//test_pattern
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <linux/videodev2.h>
+
+// 自定义ARRAY_SIZE宏（用户态通用，替代内核宏）
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+#endif
+
+// 定义测试模式menu的映射（和驱动侧保持一致）
+static const char *ov13850_test_pattern_str[] = {
+    "Disabled",
+    "Vertical Color Bar Type 1",
+    "Vertical Color Bar Type 2",
+    "Vertical Color Bar Type 3",
+    "Vertical Color Bar Type 4"
+};
+
+// 函数：查看V4L2_CID_TEST_PATTERN的menu选项
+static int query_test_pattern_menu(int fd) {
+    struct v4l2_queryctrl qctrl = {0};
+    qctrl.id = V4L2_CID_TEST_PATTERN;
+
+    // 查询控件基本信息
+    if (ioctl(fd, VIDIOC_QUERYCTRL, &qctrl) < 0) {
+        perror("VIDIOC_QUERYCTRL failed (test pattern ctrl not exist?)");
+        return -1;
+    }
+
+    printf("==== Test Pattern Control Info ====\n");
+    printf("Name: %s\n", qctrl.name);
+    printf("Min: %d, Max: %d, Default: %d\n", qctrl.minimum, qctrl.maximum, qctrl.default_value);
+    printf("Menu Options:\n");
+
+    // 遍历menu选项并打印
+    struct v4l2_querymenu qmenu = {0};
+    qmenu.id = V4L2_CID_TEST_PATTERN;
+    for (qmenu.index = qctrl.minimum; qmenu.index <= qctrl.maximum; qmenu.index++) {
+        if (ioctl(fd, VIDIOC_QUERYMENU, &qmenu) < 0) {
+            perror("VIDIOC_QUERYMENU failed");
+            continue;
+        }
+        printf("  %d: %s\n", qmenu.index, qmenu.name);
+    }
+    printf("====================================\n\n");
+    return 0;
+}
+
+// 函数：设置测试模式
+static int set_test_pattern(int fd, int value) {
+    struct v4l2_control ctrl = {0};
+    ctrl.id = V4L2_CID_TEST_PATTERN;
+    ctrl.value = value;
+
+    if (ioctl(fd, VIDIOC_S_CTRL, &ctrl) < 0) {
+        perror("VIDIOC_S_CTRL failed");
+        return -1;
+    }
+    printf("Set test pattern to: %d (%s)\n", value, 
+           (value >=0 && value < ARRAY_SIZE(ov13850_test_pattern_str)) ? 
+           ov13850_test_pattern_str[value] : "Unknown");
+    return 0;
+}
+
+// 函数：读取当前测试模式
+static int get_test_pattern(int fd) {
+    struct v4l2_control ctrl = {0};
+    ctrl.id = V4L2_CID_TEST_PATTERN;
+
+    if (ioctl(fd, VIDIOC_G_CTRL, &ctrl) < 0) {
+        perror("VIDIOC_G_CTRL failed");
+        return -1;
+    }
+    printf("Current test pattern: %d (%s)\n", ctrl.value,
+           (ctrl.value >=0 && ctrl.value < ARRAY_SIZE(ov13850_test_pattern_str)) ? 
+           ov13850_test_pattern_str[ctrl.value] : "Unknown");
+    return ctrl.value;
+}
+
+int main(int argc, char *argv[]) {
+    if (argc != 3) {
+        fprintf(stderr, "Usage: %s <video_dev> <test_pattern_value>\n", argv[0]);
+        fprintf(stderr, "Example: %s /dev/video0 1 (set to Vertical Color Bar Type 1)\n", argv[0]);
+        return -1;
+    }
+
+    // 1. 打开视频设备
+    int fd = open(argv[1], O_RDWR);
+    if (fd < 0) {
+        perror("open video dev failed");
+        return -1;
+    }
+
+    // 2. 查询测试模式的menu选项
+    if (query_test_pattern_menu(fd) < 0) {
+        close(fd);
+        return -1;
+    }
+
+    // 3. 设置测试模式（参数2为要设置的值）
+    int target_value = atoi(argv[2]);
+    if (set_test_pattern(fd, target_value) < 0) {
+        close(fd);
+        return -1;
+    }
+
+    // 4. 读取并验证设置结果
+    get_test_pattern(fd);
+
+    // 5. 关闭设备
+    close(fd);
+    return 0;
+}
+
+///
+
+root@ATK-DLRK3568:/data# ./v4l2TestPt /dev/video0 3
+==== Test Pattern Control Info ====
+Name: Test Pattern
+Min: 0, Max: 4, Default: 0
+Menu Options:
+  0: Disabled
+  1: Vertical Color Bar Type 1
+  2: Vertical Color Bar Type 2
+  3: Vertical Color Bar Type 3
+  4: Vertical Color Bar Type 4
+====================================
+
+Set test pattern to: 3 (Vertical Color Bar Type 3)
+Current test pattern: 3 (Vertical Color Bar Type 3)
+
+open camera 
