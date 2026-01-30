@@ -1,3 +1,6 @@
+csi2-dphy-hw@fe870000 => drivers/phy/rockchip/phy-rockchip-csi2-dphy-hw.c
+#define CSI2_DPHY_CTRL_LANE_ENABLE	(0x00)
+
 wdt: watchdog@fe600000 => drivers/watchdog/dw_wdt.c
 #define WDOG_CONTROL_REG_OFFSET		    0x00
 root@ATK-DLRK3568:/sys/bus/platform/drivers/dw_wdt# devmem 0xfe600000
