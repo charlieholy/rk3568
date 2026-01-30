@@ -1,3 +1,11 @@
+---Type <return> to continue, or q <return> to quit---^Cmagic = 37358Quit
+(gdb) p q->ops->start_streaming
+$26 = (int (*)(struct vb2_queue *, unsigned int)) 0xffffff80089eda10 <rkisp_start_streaming>
+(gdb) p ((struct rkisp_stream*)q->drv_priv)->ispdev
+$27 = (struct rkisp_device *) 0xffffffc0e6880080
+(gdb) p q
+$28 = (struct vb2_queue *) 0xffffffc0e6880d78
+
 (gdb) p (p->subdevs[0])->name
 $9 = "rkisp-csi-subdev", '\000' <repeats 15 times>
 (gdb) p (p->subdevs[1])->name
