@@ -1,4 +1,6 @@
- v4l2-ctl -d /dev/video1 --stream-mmap --stream-count=10 --stream-to=test.yuv
+media-ctl -p // dump v4l2_subdev
+
+v4l2-ctl -d /dev/video1 --stream-mmap --stream-count=10 --stream-to=test.yuv
     ==> vb2_mmap
 
 #0  __fill_vb2_buffer (vb=0xffffffc0e592c400, pb=0xffffff80100b3c58, planes=0xffffffc0e592c428)
