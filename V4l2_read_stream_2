@@ -1,3 +1,43 @@
+ubuntu20@NYX:~/opt/test$ ./a.out
+VIDIOC_QUERYCAP:    2154321408 (0x80685600)
+VIDIOC_ENUM_FMT:    3225441794 (0xC0405602)
+VIDIOC_G_FMT:       3234878980 (0xC0D05604)
+VIDIOC_S_FMT:       3234878981 (0xC0D05605)
+VIDIOC_REQBUFS:     3222558216 (0xC0145608)
+VIDIOC_QUERYBUF:    3227014665 (0xC0585609)
+VIDIOC_G_FBUF:      2150651402 (0x8030560A)
+VIDIOC_S_FBUF:      1076909579 (0x4030560B)
+VIDIOC_OVERLAY:     1074025998 (0x4004560E)
+VIDIOC_QBUF:        3227014671 (0xC058560F)
+VIDIOC_EXPBUF:      3225441808 (0xC0405610)
+VIDIOC_DQBUF:       3227014673 (0xC0585611)
+VIDIOC_STREAMON:    1074026002 (0x40045612)
+VIDIOC_STREAMOFF:   1074026003 (0x40045613)
+ubuntu20@NYX:~/opt/test$ cat a.c
+#include <stdio.h>
+#include <linux/videodev2.h>  // 包含V4L2宏定义
+#include <linux/ioctl.h>      // 包含_IO/_IOR/_IOW/_IOWR宏
+
+int main() {
+    // 打印所有命令的十进制和十六进制值
+    printf("VIDIOC_QUERYCAP:    %u (0x%X)\n", VIDIOC_QUERYCAP, VIDIOC_QUERYCAP);
+    printf("VIDIOC_ENUM_FMT:    %u (0x%X)\n", VIDIOC_ENUM_FMT, VIDIOC_ENUM_FMT);
+    printf("VIDIOC_G_FMT:       %u (0x%X)\n", VIDIOC_G_FMT, VIDIOC_G_FMT);
+    printf("VIDIOC_S_FMT:       %u (0x%X)\n", VIDIOC_S_FMT, VIDIOC_S_FMT);
+    printf("VIDIOC_REQBUFS:     %u (0x%X)\n", VIDIOC_REQBUFS, VIDIOC_REQBUFS);
+    printf("VIDIOC_QUERYBUF:    %u (0x%X)\n", VIDIOC_QUERYBUF, VIDIOC_QUERYBUF);
+    printf("VIDIOC_G_FBUF:      %u (0x%X)\n", VIDIOC_G_FBUF, VIDIOC_G_FBUF);
+    printf("VIDIOC_S_FBUF:      %u (0x%X)\n", VIDIOC_S_FBUF, VIDIOC_S_FBUF);
+    printf("VIDIOC_OVERLAY:     %u (0x%X)\n", VIDIOC_OVERLAY, VIDIOC_OVERLAY);
+    printf("VIDIOC_QBUF:        %u (0x%X)\n", VIDIOC_QBUF, VIDIOC_QBUF);
+    printf("VIDIOC_EXPBUF:      %u (0x%X)\n", VIDIOC_EXPBUF, VIDIOC_EXPBUF);
+    printf("VIDIOC_DQBUF:       %u (0x%X)\n", VIDIOC_DQBUF, VIDIOC_DQBUF);
+    printf("VIDIOC_STREAMON:    %u (0x%X)\n", VIDIOC_STREAMON, VIDIOC_STREAMON);
+    printf("VIDIOC_STREAMOFF:   %u (0x%X)\n", VIDIOC_STREAMOFF, VIDIOC_STREAMOFF);
+    return 0;
+}
+ubuntu20@NYX:~/opt/test$
+
 //test_pattern
 #include <stdio.h>
 #include <stdlib.h>
