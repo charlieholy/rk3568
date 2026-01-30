@@ -1,3 +1,7 @@
+mipi-csi2: mipi-csi2@fdfb0000 { => drivers/media/platform/rockchip/cif/mipi-csi2.c
+		compatible = "rockchip,rk3568-mipi-csi2";
+#define CSIHOST_N_LANES		0x04
+
 csi2-dphy-hw@fe870000 => drivers/phy/rockchip/phy-rockchip-csi2-dphy-hw.c
 #define CSI2_DPHY_CTRL_LANE_ENABLE	(0x00)
 
