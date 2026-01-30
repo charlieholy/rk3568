@@ -1,3 +1,38 @@
+(gdb) p video_devices[0]->name
+$43 = "rkisp_mainpath", '\000' <repeats 17 times>
+(gdb) p video_devices[2]->name
+$44 = "rkisp_rawwr0", '\000' <repeats 19 times>
+(gdb) p video_devices[1]->name
+$45 = "rkisp_selfpath", '\000' <repeats 17 times>
+(gdb) p video_devices[0]->name
+$46 = "rkisp_mainpath", '\000' <repeats 17 times>
+(gdb) p video_devices[1]->name
+$47 = "rkisp_selfpath", '\000' <repeats 17 times>
+(gdb) p video_devices[2]->name
+$48 = "rkisp_rawwr0", '\000' <repeats 19 times>
+(gdb) p video_devices[3]->name
+$49 = "rkisp_rawwr2", '\000' <repeats 19 times>
+(gdb) p video_devices[4]->name
+$50 = "rkisp_rawwr3", '\000' <repeats 19 times>
+(gdb) p video_devices[5]->name
+$51 = "rkisp_rawrd0_m", '\000' <repeats 17 times>
+(gdb) p video_devices[6]->name
+$52 = "rkisp_rawrd2_s", '\000' <repeats 17 times>
+(gdb) p video_devices[7]->name
+$53 = "rkisp-statistics", '\000' <repeats 15 times>
+(gdb) p video_devices[8]->name
+$54 = "rkisp-input-params", '\000' <repeats 13 times>
+(gdb) p video_devices[9]->name
+$55 = "rkisp-isp-subdev", '\000' <repeats 15 times>
+(gdb) p video_devices[10]->name
+$56 = "rkisp-csi-subdev", '\000' <repeats 15 times>
+(gdb) p video_devices[11]->name
+$57 = "rockchip-csi2-dphy0", '\000' <repeats 12 times>
+(gdb) p video_devices[12]->name
+$58 = "m00_b_ov13850 4-0010", '\000' <repeats 11 times>
+(gdb) p video_devices[13]->name
+Cannot access memory at address 0x600
+
 ---Type <return> to continue, or q <return> to quit---^Cmagic = 37358Quit
 (gdb) p q->ops->start_streaming
 $26 = (int (*)(struct vb2_queue *, unsigned int)) 0xffffff80089eda10 <rkisp_start_streaming>
