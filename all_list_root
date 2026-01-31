@@ -4,3 +4,11 @@ struct resource iomem_resource = {
 
 
 dev->of_node // dtb_node.
+
+if (v4l2_is_known_ioctl(cmd)) {
+	info = &v4l2_ioctls[_IOC_NR(cmd)];
+ubuntu20@NYX:~/opt/linux_sdk/kernel$ aarch64-linux-gnu-nm vmlinux | grep v4l2_ioctls
+ffffff8009559ba8 d v4l2_ioctls  .data 段，全局 / 静态变量，已初始化
+
+ubuntu20@NYX:~/opt/linux_sdk/kernel$ aarch64-linux-gnu-nm vmlinux | grep video_devices
+ffffff80096b9560 b video_devices .bss 段，全局 / 静态变量，未初始化
