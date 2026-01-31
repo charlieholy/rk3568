@@ -1,3 +1,8 @@
+///////
+		rkisp_vir0 = "/rkisp-vir0";
+		isp0_in = "/rkisp-vir0/port/endpoint@0";
+
+
 /////
 &rkisp_vir0 {
 	status = "okay";
@@ -15,7 +20,7 @@
 
 ///
 
-&csi2_dphy0 {
+&csi2_c0 {
 	status = "okay";
 	ports {
 		#address-cells = <1>;
