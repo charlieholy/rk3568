@@ -1,3 +1,8 @@
+root@ATK-DLRK3568:/sys/class/video4linux/video0/device/media0# realpath model
+/sys/devices/platform/rkisp-vir0/media0/model
+root@ATK-DLRK3568:/sys/class/video4linux/video0/device/media0# cat model
+rkisp0
+
 ///////
 		rkisp_vir0 = "/rkisp-vir0";
 		isp0_in = "/rkisp-vir0/port/endpoint@0";
