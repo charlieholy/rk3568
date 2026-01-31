@@ -1,3 +1,28 @@
+csi2_dphy_hw 对接 csi2_dphy的拓扑关系
+csi2_dphy1: csi2-dphy1 {
+		compatible = "rockchip,rk3568-csi2-dphy";
+		rockchip,hw = <&csi2_dphy_hw>;
+		status = "disabled";
+	};
+
+np = of_parse_phandle(dev->of_node, "rockchip,hw", 0);
+if (!np || !of_device_is_available(np)) {
+	dev_err(dphy->dev,
+		"failed to get dphy%d hw node\n", dphy->phy_index);
+	return -ENODEV;
+}
+	plat_dev = of_find_device_by_node(np);
+	of_node_put(np);
+	if (!plat_dev) {
+		dev_err(dphy->dev,
+			"failed to get dphy%d hw from node\n",
+			dphy->phy_index);
+		return -ENODEV;
+	}
+
+	dphy_hw = platform_get_drvdata(plat_dev);
+//////////////////////
+
 (gdb) p v4l2_ioctls
 $8 = {{ioctl = 2154321408, flags = 0, name = 0xffffff8009201eed "VIDIOC_QUERYCAP",
     func = 0xffffff800898da1c <v4l_querycap>, debug = 0xffffff800898cd3c <v4l_print_querycap>}, {ioctl = 0, flags = 0,
