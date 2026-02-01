@@ -1,0 +1,31 @@
+
+	i2c1 {
+		/omit-if-no-ref/
+		i2c1_xfer: i2c1-xfer {
+			rockchip,pins =
+				/* i2c1_scl */
+				<0 RK_PB3 1 &pcfg_pull_none_smt>,
+				/* i2c1_sda */
+				<0 RK_PB4 1 &pcfg_pull_none_smt>;
+		};
+	};
+
+PMU_GRF_GPIO0B_IOMUX_L 
+Address: Operational Base + offset (0x0008)
+14:12 RW 0x0 
+gpio0b3_sel 
+3'h0: GPIO0_B3 
+3'h1: I2C1_SCL 
+3'h2: CAN0_TXM0 
+3'h3: PCIE30X1_BUTTONRSTN 
+3'h4: MCU_JTAGTDO
+
+PMU_GRF_GPIO0B_IOMUX_H 
+Address: Operational Base + offset (0x000C) 
+2:0 RW 0x0 
+gpio0b4_sel 
+3'h0: GPIO0_B4 
+3'h1: I2C1_SDA 
+3'h2: CAN0_RXM0 
+3'h3: PCIE20_BUTTONRSTN 
+3'h4: MCU_JTAGTCK
