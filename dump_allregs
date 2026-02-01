@@ -1,3 +1,17 @@
+GPIO 组 GPIOX_A0~A7 GPIOX_B0~B7 GPIOX_C0~C7 GPIOX_D0~D7 
+对应的 bit bit0~bit7 bit8~bit15 bit16~bit23 bit24~bit31 
+GPIO3 0xFE760000
+GPIO4 0xFE770000
+
+ov13850: ov13850@10 {
+		reset-gpios = <&gpio3 RK_PB6 GPIO_ACTIVE_HIGH>;
+		pwdn-gpios = <&gpio4 RK_PB4 GPIO_ACTIVE_HIGH>;
+root@ATK-DLRK3568:/sys/kernel/debug/dynamic_debug# devmem 0xFE760000
+0x00004000
+root@ATK-DLRK3568:/sys/kernel/debug/dynamic_debug# devmem 0xFE770000
+0x00003000
+
+
 GPIO0_C0
 echo none > /sys/class/leds/work/trigger
 PMU_GRF 0xFDC20000 
