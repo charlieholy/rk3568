@@ -1,0 +1,7 @@
+root@ATK-DLRK3568:/data# cat /sys/devices/platform/fe5d0000.i2c/i2c-4/4-0010/power/runtime_status
+active
+
+root@ATK-DLRK3568:/data# i2ctransfer -y 4 w2@0x10 0x30 0x0A r2
+0xd8 0x50
+root@ATK-DLRK3568:/data# i2ctransfer -y 4 w2@0x10 0x30 0x2A r1
+0xb2
