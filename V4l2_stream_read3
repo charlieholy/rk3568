@@ -1,0 +1,25 @@
+(gdb) p ((struct v4l2_subdev*)((char*)v4l2_dev->subdevs->next-0x80))->name
+$23 = "rkisp-isp-subdev", '\000' <repeats 15 times>
+(gdb) p ((struct v4l2_subdev*)((char*)v4l2_dev->subdevs->next->next-0x80))->name
+$24 = "rkisp-csi-subdev", '\000' <repeats 15 times>
+(gdb) p ((struct v4l2_subdev*)((char*)v4l2_dev->subdevs->next->next->next-0x80))->name
+$25 = "rockchip-csi2-dphy0", '\000' <repeats 12 times>
+(gdb) p ((struct v4l2_subdev*)((char*)v4l2_dev->subdevs->next->next->next->next0x80))->name
+There is no member named next0x80.
+(gdb) p ((struct v4l2_subdev*)((char*)v4l2_dev->subdevs->next->next->next->next-0x80))->name
+$26 = "m00_b_ov13850 4-0010", '\000' <repeats 11 times>
+(gdb) p ((struct v4l2_subdev*)((char*)v4l2_dev->subdevs->next->next->next->next->next-0x80))->name
+$27 = '\000' <repeats 24 times>, "\300\001E\347\300\377\377\377"
+(gdb) bt
+#0  __video_register_device (vdev=0xffffffc0e7f07800, type=VFL_TYPE_SUBDEV, nr=-1, warn_if_nr_in_use=1, owner=0x0)
+    at drivers/media/v4l2-core/v4l2-dev.c:837
+#1  0xffffff8008995330 in v4l2_device_register_subdev_nodes (v4l2_dev=0xffffffc0e7450130) at drivers/media/v4l2-core/v4l2-device.c:253
+#2  0xffffff80089c0ab4 in subdev_notifier_complete (notifier=0xffffffc0e74504e8) at drivers/media/platform/rockchip/isp/dev.c:455
+#3  0xffffff800899f7e8 in v4l2_async_notifier_call_complete (n=<optimized out>) at drivers/media/v4l2-core/v4l2-async.c:53
+#4  v4l2_async_notifier_try_complete (notifier=0xffffffc0e74504e8) at drivers/media/v4l2-core/v4l2-async.c:196
+#5  0xffffff800899fe8c in v4l2_async_notifier_try_complete (notifier=<optimized out>) at drivers/media/v4l2-core/v4l2-async.c:181
+#6  v4l2_async_notifier_clr_unready_dev (notifier=0xffffffc0e74504e8) at drivers/media/v4l2-core/v4l2-async.c:502
+#7  0xffffff80092eaa74 in __rkisp_clr_unready_dev () at drivers/media/platform/rockchip/isp/dev.c:99
+#8  rkisp_clr_unready_dev () at drivers/media/platform/rockchip/isp/dev.c:856
+#9  0xffffff8008084124 in do_one_initcall (fn=0xffffff80092eaa18 <rkisp_clr_unready_dev>) at init/main.c:934
+#10 0xffffff80092a13a4 in do_initcall_level (level=<optimized out>) at init/main.c:1186
