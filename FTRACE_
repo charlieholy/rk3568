@@ -1,0 +1,15 @@
+root@ATK-DLRK3568:/sys/kernel/debug/tracing# cat trace_pipe
+,^C
+root@ATK-DLRK3568:/sys/kernel/debug/tracing# cat tracing_on
+1
+root@ATK-DLRK3568:/sys/kernel/debug/tracing# cat events/i2c/
+enable      filter      i2c_read/   i2c_reply/  i2c_result/ i2c_write/
+root@ATK-DLRK3568:/sys/kernel/debug/tracing# cat events/i2c/i2c_read/
+enable   filter   format   id       trigger
+root@ATK-DLRK3568:/sys/kernel/debug/tracing# cat events/i2c/i2c_read/enable
+0                                                                              e
+root@ATK-DLRK3568:/sys/kernel/debug/tracing# echo 1 > events/i2c/i2c_read/enable
+root@ATK-DLRK3568:/sys/kernel/debug/tracing#
+root@ATK-DLRK3568:/sys/kernel/debug/tracing# cat trace_pipe
+   cfinteractive-42    [001] .... 17345.744081: i2c_read: i2c-0 #1 a=01c f=0001 l=1
+   cfinteractive-42    [001] .... 17345.744666: i2c_read: i2c-0 #1 a=01c f=0001 l=1
