@@ -1,0 +1,127 @@
+//////////////////////////////////////////////////
+
+// SPDX-License-Identifier: GPL-2.0
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <elf.h>
+#include <time.h>
+#include <sys/time.h>
+#include <sys/syscall.h>
+
+// 定义VDSO函数的函数指针类型
+typedef int (*vdso_clock_gettime_t)(clockid_t clk_id, struct timespec *ts);
+typedef int (*vdso_gettimeofday_t)(struct timeval *tv, struct timezone *tz);
+typedef long (*vdso_getcpu_t)(unsigned *cpu, unsigned *node, void *cache);
+
+// 从/proc/self/maps解析VDSO的起始地址
+static int parse_vdso_addr(unsigned long *start) {
+    FILE *fp = fopen("/proc/self/maps", "r");
+    char line[256];
+    *start = 0;
+
+    if (!fp) {
+        perror("fopen /proc/self/maps");
+        return -1;
+    }
+
+    // 查找包含[vdso]的行
+    while (fgets(line, sizeof(line), fp)) {
+        if (strstr(line, "[vdso]")) {
+            // 仅解析起始地址
+            if (sscanf(line, "%lx-", start) == 1) {
+                fclose(fp);
+                return 0;
+            }
+            break;
+        }
+    }
+
+    fclose(fp);
+    fprintf(stderr, "VDSO not found in /proc/self/maps\n");
+    return -1;
+}
+
+// 从内核导出的vdso偏移表获取函数地址（x86_64架构）
+static void get_vdso_offsets(unsigned long vdso_base, 
+                            vdso_clock_gettime_t *clock_gettime,
+                            vdso_gettimeofday_t *gettimeofday,
+                            vdso_getcpu_t *getcpu) {
+    // x86_64架构Ubuntu 20.04内核的VDSO函数偏移（实测值，可适配）
+    // 若偏移不对，可通过`objdump -d /usr/lib/x86_64-linux-gnu/vdso/vdso.so`查看
+    const unsigned long OFFSET_CLOCK_GETTIME = 0xa70;
+    const unsigned long OFFSET_GETTIMEOFDAY = 0x7b0;
+    const unsigned long OFFSET_GETCPU = 0xe40;
+
+    *clock_gettime = (vdso_clock_gettime_t)(vdso_base + OFFSET_CLOCK_GETTIME);
+    *gettimeofday = (vdso_gettimeofday_t)(vdso_base + OFFSET_GETTIMEOFDAY);
+    *getcpu = (vdso_getcpu_t)(vdso_base + OFFSET_GETCPU);
+
+    // 简单校验：函数地址不能是NULL，且需在VDSO范围内（粗略校验）
+    if ((unsigned long)*clock_gettime < vdso_base || 
+        (unsigned long)*clock_gettime > vdso_base + 0x10000) {
+        fprintf(stderr, "VDSO clock_gettime offset invalid\n");
+        *clock_gettime = NULL;
+    }
+    if ((unsigned long)*gettimeofday < vdso_base || 
+        (unsigned long)*gettimeofday > vdso_base + 0x10000) {
+        fprintf(stderr, "VDSO gettimeofday offset invalid\n");
+        *gettimeofday = NULL;
+    }
+    if ((unsigned long)*getcpu < vdso_base || 
+        (unsigned long)*getcpu > vdso_base + 0x10000) {
+        fprintf(stderr, "VDSO getcpu offset invalid\n");
+        *getcpu = NULL;
+    }
+}
+
+int main() {
+    unsigned long vdso_start;
+    vdso_clock_gettime_t vdso_clock_gettime = NULL;
+    vdso_gettimeofday_t vdso_gettimeofday = NULL;
+    vdso_getcpu_t vdso_getcpu = NULL;
+
+    // 步骤1：解析VDSO起始地址
+    if (parse_vdso_addr(&vdso_start) != 0) {
+        return -1;
+    }
+    printf("VDSO found: start=0x%lx\n", vdso_start);
+
+    // 步骤2：通过固定偏移获取VDSO函数地址
+    get_vdso_offsets(vdso_start, &vdso_clock_gettime, &vdso_gettimeofday, &vdso_getcpu);
+
+    // 步骤3：调用VDSO函数
+    if (vdso_clock_gettime) {
+        struct timespec ts;
+        vdso_clock_gettime(CLOCK_REALTIME, &ts);
+        printf("__vdso_clock_gettime: %ld sec, %ld nsec\n", ts.tv_sec, ts.tv_nsec);
+    } else {
+        fprintf(stderr, "Failed to get __vdso_clock_gettime\n");
+    }
+
+    if (vdso_gettimeofday) {
+        struct timeval tv;
+        vdso_gettimeofday(&tv, NULL);
+        printf("__vdso_gettimeofday: %ld sec, %ld usec\n", tv.tv_sec, tv.tv_usec);
+    } else {
+        fprintf(stderr, "Failed to get __vdso_gettimeofday\n");
+    }
+
+    if (vdso_getcpu) {
+        unsigned cpu, node;
+        vdso_getcpu(&cpu, &node, NULL);
+        printf("__vdso_getcpu: cpu=%u, node=%u\n", cpu, node);
+    } else {
+        fprintf(stderr, "Failed to get __vdso_getcpu\n");
+    }
+
+    // 对比：标准库调用
+    struct timespec ts_std;
+    clock_gettime(CLOCK_REALTIME, &ts_std);
+    printf("Standard clock_gettime: %ld sec, %ld nsec\n", ts_std.tv_sec, ts_std.tv_nsec);
+
+    return 0;
+}
