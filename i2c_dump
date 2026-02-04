@@ -1,3 +1,5 @@
+// depond on kprobe 需要开启CONFIG_KPROBE
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/kprobes.h>
