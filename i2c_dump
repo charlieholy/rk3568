@@ -5,25 +5,32 @@
 #include <linux/string.h>
 #include <linux/ctype.h>
 
-// 定义kprobe结构体（挂钩RK3568真实导出的__i2c_transfer）
+// 定义kprobe和kretprobe结构体（分别处理函数执行前/后）
 static struct kprobe kp_i2c_transfer;
+static struct kretprobe krp_i2c_transfer;
 
-// 格式化输出数据（十六进制+ASCII）
+// 保存读操作的上下文（用于post_handler匹配读请求和返回数据）
+struct i2c_read_ctx {
+    int adap_nr;          // I2C适配器号
+    u8 dev_addr;          // 设备地址
+    int msg_len;          // 读取长度
+    const u8 *read_buf;   // 读取数据缓冲区
+};
+static struct i2c_read_ctx read_ctx;
+
+// 格式化输出数据（精简版，仅保留十六进制）
 static void dump_i2c_data(const u8 *data, int len)
 {
     int i;
-    pr_cont("data (hex): ");
+    pr_cont("data:");
     for (i = 0; i < len; i++) {
-        pr_cont("%02x ", data[i]);
-    }
-    pr_cont(" | (ascii): ");
-    for (i = 0; i < len; i++) {
-        pr_cont("%c", isprint(data[i]) ? data[i] : '.');
+        pr_cont("%02x", data[i]);
+        if (i < len - 1) pr_cont(" ");
     }
     pr_cont("\n");
 }
 
-// -------------------------- I2C底层传输函数探针 --------------------------
+// -------------------------- 函数执行前处理（抓写数据+记录读上下文） --------------------------
 static int __kprobes i2c_transfer_pre_handler(struct kprobe *p, struct pt_regs *regs)
 {
     /* 
@@ -40,28 +47,53 @@ static int __kprobes i2c_transfer_pre_handler(struct kprobe *p, struct pt_regs *
     int i;
 
     // 合法性校验
-    if (!adap || !msgs || num <= 0 || num > 8) { // 限制最大8个消息，避免刷屏
+    if (!adap || !msgs || num <= 0 || num > 8) {
         return 0;
     }
 
-    // 遍历每个I2C消息，解析读写方向和数据
+    // 遍历每个I2C消息
     for (i = 0; i < num; i++) {
         struct i2c_msg *msg = &msgs[i];
-        if (!msg->buf || msg->len <= 0 || msg->len > 1024) {
+        if (!msg->buf || msg->len <= 0 || msg->len > 64) { // 限制长度，避免刷屏
             continue;
         }
 
-        // 区分读/写方向（I2C_M_RD为读标志）
-        if (msg->flags & I2C_M_RD) {
-            pr_info("[I2C-READ ] adapter: %d, dev_addr: 0x%02x, len: %d (pending)...\n",
-                    adap->nr, msg->addr, msg->len);
-        } else {
-            pr_info("[I2C-WRITE] adapter: %d, dev_addr: 0x%02x, len: %d, ",
-                    adap->nr, msg->addr, msg->len);
+        // 1. 写操作：直接打印（精简格式）
+        if (!(msg->flags & I2C_M_RD)) {
+            pr_info("[W:ID:%d,add:0x%02x,len:%d,", adap->nr, msg->addr, msg->len);
             dump_i2c_data(msg->buf, msg->len);
+        }
+        // 2. 读操作：记录上下文（函数执行后才会有数据）
+        else {
+            read_ctx.adap_nr = adap->nr;
+            read_ctx.dev_addr = msg->addr;
+            read_ctx.msg_len = msg->len;
+            read_ctx.read_buf = msg->buf;
+            // 先打印读请求（精简格式）
+            pr_info("[R:ID:%d,add:0x%02x,len:%d,pending]\n", 
+                    adap->nr, msg->addr, msg->len);
         }
     }
 
+    return 0;
+}
+
+// -------------------------- 函数执行后处理（抓读数据） --------------------------
+static int __kprobes i2c_transfer_ret_handler(struct kretprobe_instance *ri, struct pt_regs *regs)
+{
+    // 校验返回值和读上下文（ret>=0表示传输成功）
+    int ret = (int)regs->regs[0]; // ARM64返回值存在x0寄存器
+    if (ret <= 0 || !read_ctx.read_buf || read_ctx.msg_len <= 0) {
+        return 0;
+    }
+
+    // 打印读结果（精简格式）
+    pr_info("[R:ID:%d,add:0x%02x,len:%d,", 
+            read_ctx.adap_nr, read_ctx.dev_addr, read_ctx.msg_len);
+    dump_i2c_data(read_ctx.read_buf, read_ctx.msg_len);
+
+    // 清空上下文，避免干扰下一次请求
+    memset(&read_ctx, 0, sizeof(struct i2c_read_ctx));
     return 0;
 }
 
@@ -70,32 +102,45 @@ static int __init i2c_kprobe_init(void)
 {
     int ret;
 
-    // 核心修改：挂钩RK3568真实导出的__i2c_transfer（带双下划线）
+    // 1. 配置kprobe（函数执行前）
     kp_i2c_transfer.symbol_name = "__i2c_transfer";
     kp_i2c_transfer.pre_handler = i2c_transfer_pre_handler;
     
     // 注册kprobe
     ret = register_kprobe(&kp_i2c_transfer);
     if (ret < 0) {
-        pr_err("Failed to register kprobe for __i2c_transfer: %d\n", ret);
+        pr_err("Failed to register kprobe: %d\n", ret);
         return ret;
     }
 
-    pr_info("I2C kprobe driver loaded successfully (RK3568 ARM64)\n");
+    // 2. 配置kretprobe（函数执行后）
+    krp_i2c_transfer.kp.symbol_name = "__i2c_transfer";
+    krp_i2c_transfer.handler = i2c_transfer_ret_handler;
+    krp_i2c_transfer.maxactive = 8; // 支持最大8个并发请求
+    
+    // 注册kretprobe
+    ret = register_kretprobe(&krp_i2c_transfer);
+    if (ret < 0) {
+        unregister_kprobe(&kp_i2c_transfer);
+        pr_err("Failed to register kretprobe: %d\n", ret);
+        return ret;
+    }
+
+    pr_info("I2C kprobe loaded (RK3568 ARM64)\n");
     return 0;
 }
 
 static void __exit i2c_kprobe_exit(void)
 {
+    unregister_kretprobe(&krp_i2c_transfer);
     unregister_kprobe(&kp_i2c_transfer);
-    pr_info("I2C kprobe driver unloaded successfully\n");
+    pr_info("I2C kprobe unloaded\n");
 }
 
 module_init(i2c_kprobe_init);
 module_exit(i2c_kprobe_exit);
 
-// 模块信息
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Custom");
-MODULE_DESCRIPTION("Kprobe driver to dump I2C data (RK3568 ARM64)");
-MODULE_VERSION("5.0");
+MODULE_DESCRIPTION("精简版I2C Kprobe (RK3568)");
+MODULE_VERSION("1.0");
