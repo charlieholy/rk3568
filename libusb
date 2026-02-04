@@ -1,0 +1,157 @@
+ ../buildroot/output/rockchip_rk3568/host/bin/aarch64-buildroot-linux-gnu-gcc libusb_usb_demo.c -I ../buildroot/output/rockchip_rk3568/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/ -L../buildroot/output/rockchip_rk3568/host/aarch64-buildroot-linux-gnu/sysroot/usr/lib/ -lusb-1.0 -o libusb_demo
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <libusb-1.0/libusb.h>
+
+// 宏定义（可根据实际 U 盘调整）
+#define USB_VENDOR_ID    0x090c  // 示例：金士顿 U 盘 VID，需替换为你的 U 盘 VID4n
+#define USB_PRODUCT_ID   0x1000  // 示例：金士顿 U 盘 PID，需替换为你的 U 盘 PID
+#define BULK_ENDPOINT_IN 0x81     // 输入端点（U 盘 → 主机），需根据 U 盘调整
+#define BULK_ENDPOINT_OUT 0x01    // 输出端点（主机 → U 盘），需根据 U 盘调整
+#define TRANSFER_SIZE    512      // USB 存储块大小（默认 512 字节）
+#define TIMEOUT          5000     // 传输超时时间（ms）
+
+// 枚举 USB 设备，打印 U 盘信息
+void enumerate_usb_devices(libusb_context *ctx) {
+    libusb_device **devs;
+    ssize_t cnt = libusb_get_device_list(ctx, &devs);
+    if (cnt < 0) {
+        fprintf(stderr, "获取 USB 设备列表失败: %s\n", libusb_strerror((enum libusb_error)cnt));
+        return;
+    }
+
+    printf("=== 已连接的 USB 设备 ===\n");
+    for (ssize_t i = 0; devs[i]; ++i) {
+        libusb_device *dev = devs[i];
+        struct libusb_device_descriptor desc;
+        int ret = libusb_get_device_descriptor(dev, &desc);
+        if (ret < 0) {
+            fprintf(stderr, "获取设备描述符失败: %s\n", libusb_strerror((enum libusb_error)ret));
+            continue;
+        }
+
+        // 打印设备信息（VID/PID 是关键）
+        printf("设备 %zd: VID=0x%04x, PID=0x%04x, 总线号=%d, 地址=%d\n",
+               i, desc.idVendor, desc.idProduct,
+               libusb_get_bus_number(dev), libusb_get_device_address(dev));
+    }
+
+    libusb_free_device_list(devs, 1);
+    printf("=========================\n");
+}
+
+// 向 U 盘写入数据
+int write_to_usb(libusb_device_handle *dev_handle, const unsigned char *data, int len) {
+    int transferred = 0;
+    int ret = libusb_bulk_transfer(
+        dev_handle,                // 设备句柄
+        BULK_ENDPOINT_OUT,         // 输出端点
+        (unsigned char *)data,     // 待写入数据
+        len,                       // 数据长度
+        &transferred,              // 实际传输字节数
+        TIMEOUT                    // 超时时间
+    );
+
+    if (ret != LIBUSB_SUCCESS) {
+        fprintf(stderr, "写入数据失败: %s\n", libusb_strerror((enum libusb_error)ret));
+        return -1;
+    }
+
+    printf("成功写入 %d 字节（预期 %d 字节）\n", transferred, len);
+    return 0;
+}
+
+// 从 U 盘读取数据
+int read_from_usb(libusb_device_handle *dev_handle, unsigned char *buf, int len) {
+    int transferred = 0;
+    int ret = libusb_bulk_transfer(
+        dev_handle,                // 设备句柄
+        BULK_ENDPOINT_IN,          // 输入端点
+        buf,                       // 接收数据缓冲区
+        len,                       // 期望读取长度
+        &transferred,              // 实际传输字节数
+        TIMEOUT                    // 超时时间
+    );
+
+    if (ret != LIBUSB_SUCCESS) {
+        fprintf(stderr, "读取数据失败: %s\n", libusb_strerror((enum libusb_error)ret));
+        return -1;
+    }
+
+    printf("成功读取 %d 字节（预期 %d 字节）\n", transferred, len);
+    // 打印读取到的数据（十六进制 + 字符串）
+    printf("读取到的数据: ");
+    for (int i = 0; i < transferred; ++i) {
+        printf("%02x ", buf[i]);
+        if ((i + 1) % 16 == 0) printf("\n              ");
+    }
+    printf("\n字符串形式: %.*s\n", transferred, buf);
+    return 0;
+}
+
+int main() {
+    libusb_context *ctx = NULL;
+    libusb_device_handle *dev_handle = NULL;
+    int ret = 0;
+
+    // 1. 初始化 libusb
+    ret = libusb_init(&ctx);
+    if (ret < 0) {
+        fprintf(stderr, "libusb 初始化失败: %s\n", libusb_strerror((enum libusb_error)ret));
+        return -1;
+    }
+
+    // 2. 枚举 USB 设备（帮助你找到 U 盘的 VID/PID/端点）
+    enumerate_usb_devices(ctx);
+
+    // 3. 打开目标 U 盘设备
+    dev_handle = libusb_open_device_with_vid_pid(ctx, USB_VENDOR_ID, USB_PRODUCT_ID);
+    if (!dev_handle) {
+        fprintf(stderr, "打开 U 盘设备失败（请检查 VID/PID 是否正确，或是否有 root 权限）\n");
+        goto cleanup;
+    }
+
+    // 4. 分离内核驱动（关键：避免与系统自带的 USB 存储驱动冲突）
+    if (libusb_kernel_driver_active(dev_handle, 0)) {
+        ret = libusb_detach_kernel_driver(dev_handle, 0);
+        if (ret != LIBUSB_SUCCESS) {
+            fprintf(stderr, "分离内核驱动失败: %s\n", libusb_strerror((enum libusb_error)ret));
+            goto cleanup;
+        }
+        printf("已分离内核驱动\n");
+    }
+
+    // 5. 声明接口（USB 存储设备通常使用接口 0）
+    ret = libusb_claim_interface(dev_handle, 0);
+    if (ret != LIBUSB_SUCCESS) {
+        fprintf(stderr, "声明接口失败: %s\n", libusb_strerror((enum libusb_error)ret));
+        goto cleanup;
+    }
+    printf("已声明 USB 接口 0\n");
+
+    // 6. 测试：向 U 盘写入数据
+    unsigned char write_buf[TRANSFER_SIZE] = "Hello USB Disk! 这是 libusb 测试数据";
+    if (write_to_usb(dev_handle, write_buf, strlen((char *)write_buf)) < 0) {
+        goto release_interface;
+    }
+
+    // 7. 测试：从 U 盘读取数据
+    unsigned char read_buf[TRANSFER_SIZE] = {0};
+    if (read_from_usb(dev_handle, read_buf, TRANSFER_SIZE) < 0) {
+        goto release_interface;
+    }
+
+// 释放接口
+release_interface:
+    libusb_release_interface(dev_handle, 0);
+    // 重新附加内核驱动（恢复 U 盘正常使用）
+    libusb_attach_kernel_driver(dev_handle, 0);
+
+// 清理资源
+cleanup:
+    if (dev_handle) libusb_close(dev_handle);
+    libusb_exit(ctx);
+    return 0;
+}
