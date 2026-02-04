@@ -1,0 +1,18 @@
+ubuntu20@NYX:~/opt/tmp$ PID=1838
+ubuntu20@NYX:~/opt/tmp$ START_ADDR_HEX=0x7ffdb75f2000
+ubuntu20@NYX:~/opt/tmp$ END_ADDR_HEX=0x7ffdb75f5000
+ubuntu20@NYX:~/opt/tmp$ START_ADDR_DEC=$(printf "%d" $START_ADDR_HEX)
+ubuntu20@NYX:~/opt/tmp$ SIZE_DEC=$(( $(printf "%d" $END_ADDR_HEX) - $START_ADDR_DEC ))
+ubuntu20@NYX:~/opt/tmp$ dd if=/proc/$PID/mem of=vdso.elf bs=1 skip=$START_ADDR_DEC count=$SIZE_DEC
+
+sudo dd if=/proc/$PID/mem of=vdso.elf bs=1 skip=$START_ADDR_DEC count=$SIZE_DEC
+
+file vdso.elf
+vdso.elf: ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked, BuildID[sha1]=db469fb3d3d1f916c08281b31108a5038f87d15b, stripped
+ubuntu20@NYX:~/opt/tmp$ readelf -s vdso.elf -W | grep vdso_
+     2: 00000000000007b0   650 FUNC    GLOBAL DEFAULT   11 __vdso_gettimeofday@@LINUX_2.6
+     4: 0000000000000dd0   100 FUNC    GLOBAL DEFAULT   11 __vdso_clock_getres@@LINUX_2.6
+     6: 0000000000000a40    45 FUNC    GLOBAL DEFAULT   11 __vdso_time@@LINUX_2.6
+     7: 0000000000000e70   160 FUNC    GLOBAL DEFAULT   11 __vdso_sgx_enter_enclave@@LINUX_2.6
+     9: 0000000000000a70   850 FUNC    GLOBAL DEFAULT   11 __vdso_clock_gettime@@LINUX_2.6
+    11: 0000000000000e40    41 FUNC    GLOBAL DEFAULT   11 __vdso_getcpu@@LINUX_2.6
