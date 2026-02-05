@@ -123,6 +123,34 @@ D:  Ver= 3.00 Cls=09(hub  ) Sub=00 Prot=03 MxPS= 9 #Cfgs=  1
 P:  Vendor=1d6b ProdID=0003 Rev= 4.19
 S:  Manufacturer=Linux 4.19.232 xhci-hcd
 S:  Product=xHCI Host Controller
+
+
+
+
+//
+ffffffc0e5821300 4013943859 C Ii:4:002:1 0:8 5 = 10000000 00
+ffffffc0e5821300 4013944056 S Ii:4:002:1 -115:8 5 <
+ffffffc0e5821300 4013991837 C Ii:4:002:1 0:8 5 = 14000000 00
+ffffffc0e5821300 4013991904 S Ii:4:002:1 -115:8 5 <
+ffffffc0e5821300 4014095835 C Ii:4:002:1 0:8 5 = 00000000 00
+ffffffc0e5821300 4014095897 S Ii:4:002:1 -115:8 5 <
+ffffffc0e5821300 4014983934 C Ii:4:002:1 0:8 5 = 00feffff 00
+ffffffc0e5821300 4014984117 S Ii:4:002:1 -115:8 5 <
+ffffffc0e5821300 4014991839 C Ii:4:002:1 0:8 5 = 00fcefff 00
+ffffffc0e5821300 4014991904 S Ii:4:002:1 -115:8 5 <
+ffffffc0e5821300 4014999840 C Ii:4:002:1 0:8 5 = 00ff0f00 00
+ffffffc0e5821300 4014999903 S Ii:4:002:1 -115:8 5 <
+ffffffc0e5821300 4015007836 C Ii:4:002:1 0:8 5 = 00feffff 00
+ffffffc0e5821300 4015007894 S Ii:4:002:1 -115:8 5 <
+ffffffc0e5821300 4015015870 C Ii:4:002:1 0:8 5 = 00feffff 00
+ffffffc0e5821300 4015015937 S Ii:4:002:1 -115:8 5 <
+ffffffc0e5821300 4015023869 C Ii:4:002:1 0:8 5 = 00ff0f00 00
+ffffffc0e5821300 4015023939 S Ii:4:002:1 -115:8 5 <
+ffffffc0e5821300 4015263838 C Ii:4:002:1 0:8 5 = 00ffffff 00
+ffffffc0e5821300 4015263898 S Ii:4:002:1 -115:8 5 <
+^C
+root@ATK-DLRK3568:/sys/kernel/debug/usb/usbmon# cat 4u   ///  Bus=04 Lev=01 Prnt=01 Port=00 Cnt=01 Dev#=  2 
+
 S:  SerialNumber=xhci-hcd.0.auto
 C:* #Ifs= 1 Cfg#= 1 Atr=e0 MxPwr=  0mA
 I:* If#= 0 Alt= 0 #EPs= 1 Cls=09(hub  ) Sub=00 Prot=00 Driver=hub
