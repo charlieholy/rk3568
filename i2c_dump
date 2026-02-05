@@ -146,3 +146,42 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Custom");
 MODULE_DESCRIPTION("精简版I2C Kprobe (RK3568)");
 MODULE_VERSION("1.0");
+
+
+///////////////
+ko
+            if(msg->addr == 0x20 && dump_triggered == 0) {
+                dump_triggered = 1;
+                dump_stack();
+            }
+
+[ 3610.728328]  regmap_i2c_write+0x38/0x64
+[ 3610.728341]  _regmap_raw_write_impl+0x568/0x6e8
+[ 3610.728354]  _regmap_bus_raw_write+0x84/0x94
+[ 3610.728367]  _regmap_write+0xfc/0x128
+[ 3610.728379]  regmap_write+0x50/0x78
+[ 3610.728393]  snd_soc_component_write+0x38/0x70
+[ 3610.728407]  rk817_hw_params+0x108/0x240
+[ 3610.728416]  soc_dai_hw_params+0xa0/0xc4
+[ 3610.728424]  soc_pcm_hw_params+0x29c/0x558
+[ 3610.728433]  snd_pcm_hw_params+0x13c/0x360
+[ 3610.728446]  snd_pcm_common_ioctl+0x6e8/0xf6c
+[ 3610.728459]  snd_pcm_ioctl+0x48/0x64
+[ 3610.728474]  vfs_ioctl+0x58/0x68
+//
+
+static int rk817_hw_params(struct snd_pcm_substream *substream,
+			   struct snd_pcm_hw_params *params,
+			    struct snd_soc_dai *dai)
+{
+[ 1490.352666] [W:ID:0,add:0x20,len:2,data:42 04
+[ 1490.353036] [W:ID:0,add:0x20,len:2,data:46 a5
+[ 1490.353393] [W:ID:0,add:0x20,len:2,data:45 0c
+[ 1490.353751] [W:ID:0,add:0x20,len:2,data:15 f0
+[ 1490.354109] [W:ID:0,add:0x20,len:2,data:15 ff
+[ 1490.354467] [W:ID:0,add:0x20,len:2,data:4b 0f
+[ 1490.354823] [W:ID:0,add:0x20,len:2,data:4e 0f
+[ 1490.356077] [W:ID:0,add:0x20,len:2,data:38 00
+[ 1490.356445] [W:ID:0,add:0x20,len:2,data:2f 03
+[ 1496.036385] [W:ID:0,add:0x20,len:2,data:38 01
+[ 1496.037036] [W:ID:0,add:0x20,len:2,data:2f 0f
