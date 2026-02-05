@@ -1,0 +1,130 @@
+trigger 重新枚举 
+cd /sys/bus/usb/devices/4-1
+   echo 0 > authorized
+   echo 1 > authorized
+
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/kprobes.h>
+#include <linux/hid.h>
+#include <linux/usb.h>
+#include <linux/string.h>
+
+// 最大打印数据长度（避免刷屏）
+#define MAX_PRINT_LEN 64
+// 模块参数：是否过滤仅USB HID设备（1=过滤，0=所有HID设备）
+static int filter_usb_hid = 1;
+module_param(filter_usb_hid, int, 0644);
+MODULE_PARM_DESC(filter_usb_hid, "Filter only USB HID devices (1=enable, 0=disable)");
+
+// 打印16进制+ASCII格式数据
+static void print_hid_data(const u8 *data, int len, const char *direction)
+{
+    int i;
+    char ascii_buf[MAX_PRINT_LEN + 1] = {0};
+    if (!data || len <= 0) {
+        pr_info("  HID Data: (empty)\n");
+        return;
+    }
+
+    // 限制打印长度
+    len = (len > MAX_PRINT_LEN) ? MAX_PRINT_LEN : len;
+
+    // 打印16进制
+    pr_info("  HID Hex (%s): ", direction);
+    for (i = 0; i < len; i++) {
+        pr_cont("%02x ", data[i]);
+        // 构建ASCII（仅可显示字符）
+        ascii_buf[i] = (data[i] >= 0x20 && data[i] <= 0x7E) ? data[i] : '.';
+    }
+    pr_cont("\n");
+
+    // 打印ASCII
+    pr_info("  HID ASCII: %s\n", ascii_buf);
+}
+
+// kprobe处理函数：挂钩hid_report_raw_event
+static int __kprobes hid_report_raw_event_handler(struct kprobe *p, struct pt_regs *regs)
+{
+    // 解析函数参数（不同架构参数位置不同，arm64下regs->regs[]对应x0-x7）
+    // hid_report_raw_event(struct hid_device *hdev, unsigned int type, u8 *data, int len, int interrupt)
+    struct hid_device *hdev = (struct hid_device *)regs->regs[0];
+    unsigned int type = (unsigned int)regs->regs[1];
+    u8 *data = (u8 *)regs->regs[2];
+    int len = (int)regs->regs[3];
+    const char *event_type, *direction;
+
+    // 过滤仅USB HID设备（可选）
+    if (filter_usb_hid && hdev->bus != BUS_USB) {
+        return 0; // 非USB HID设备，跳过
+    }
+
+    // 识别HID事件类型
+    switch (type) {
+        case HID_INPUT_REPORT:
+            event_type = "INPUT";   // 设备→主机（如鼠标按键/键盘输入）
+            direction = "IN (Device→Host)";
+            break;
+        case HID_OUTPUT_REPORT:
+            event_type = "OUTPUT";  // 主机→设备（如键盘灯控制）
+            direction = "OUT (Host→Device)";
+            break;
+        case HID_FEATURE_REPORT:
+            event_type = "FEATURE"; // 特征报告（配置/查询）
+            direction = "FEATURE";
+            break;
+        default:
+            event_type = "UNKNOWN";
+            direction = "UNKNOWN";
+            break;
+    }
+
+    // 打印核心信息
+    pr_info("[HID DATA] Device: %s (bus: %d, vid: 0x%04x, pid: 0x%04x)",
+            hdev->name, hdev->bus, hdev->vendor, hdev->product);
+    pr_info("[HID DATA] Type: %s, Len: %d", event_type, len);
+    
+    // 打印数据
+    print_hid_data(data, len, direction);
+    pr_info("-------------------------------------------------\n");
+
+    return 0;
+}
+
+// 定义kprobe结构体
+static struct kprobe kp = {
+    .symbol_name    = "hid_report_raw_event", // 挂钩的函数名
+    .pre_handler    = hid_report_raw_event_handler, // 前置处理函数
+};
+
+// 模块初始化
+static int __init hid_kprobe_init(void)
+{
+    int ret;
+
+    // 注册kprobe
+    ret = register_kprobe(&kp);
+    if (ret < 0) {
+        pr_err("HID kprobe register failed! err: %d\n", ret);
+        return ret;
+    }
+
+    pr_info("HID kprobe loaded successfully! Filter USB HID: %d\n", filter_usb_hid);
+    pr_info("Hooked function: %s\n", kp.symbol_name);
+    return 0;
+}
+
+// 模块退出
+static void __exit hid_kprobe_exit(void)
+{
+    unregister_kprobe(&kp);
+    pr_info("HID kprobe unloaded successfully!\n");
+}
+
+module_init(hid_kprobe_init);
+module_exit(hid_kprobe_exit);
+
+MODULE_LICENSE("GPL"); // 必须GPL，否则kprobe可能报错
+MODULE_AUTHOR("Custom");
+MODULE_DESCRIPTION("Kprobe to print USB HID device read/write data");
+MODULE_VERSION("1.0");
