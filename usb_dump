@@ -1,0 +1,96 @@
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/kprobes.h>
+#include <linux/usb.h>
+#include <linux/ktime.h>
+
+// 仅保留使用到的传输方向映射
+static const char *usb_dir_str[] = { "OUT", "IN" };
+
+// 目标 U 盘信息（适配你的 aigo U330）
+#define TARGET_VID 0x3535    // U 盘厂商 ID
+#define TARGET_PID 0x6300    // U 盘产品 ID
+
+// ========== 核心：通用 USB URB 捕获（无未使用变量） ==========
+static int __kprobes usb_submit_urb_handler(struct kprobe *p, struct pt_regs *regs)
+{
+    // arm64: x0 = urb 指针（usb_submit_urb 的第一个参数）
+    struct urb *urb = (struct urb *)(unsigned long)regs->regs[0];
+    struct usb_device *dev;
+    u8 ep_addr;
+    int dir, transfer_type;
+    u64 ts;
+
+    // ========== 多层安全校验（杜绝崩溃） ==========
+    // 1. 过滤无效 URB
+    if (!urb) return 0;
+    // 2. 过滤无效 USB 设备
+    if (!urb->dev) return 0;
+    dev = urb->dev;
+    // 3. 过滤非目标 U 盘（VID/PID 匹配）
+    if (le16_to_cpu(dev->descriptor.idVendor) != TARGET_VID ||
+        le16_to_cpu(dev->descriptor.idProduct) != TARGET_PID) return 0;
+    // 4. 过滤无效端点
+    if (!urb->ep) return 0;
+    ep_addr = urb->ep->desc.bEndpointAddress;
+    // 5. 仅处理批量传输（U 盘主要传输类型）
+    transfer_type = urb->ep->desc.bmAttributes & USB_ENDPOINT_XFERTYPE_MASK;
+    if (transfer_type != USB_ENDPOINT_XFER_BULK) return 0;
+
+    // 提取传输信息
+    ts = ktime_get_real_ns();
+    dir = (ep_addr & USB_ENDPOINT_DIR_MASK) ? 1 : 0; // 0=OUT(写), 1=IN(读)
+
+    // 打印 U 盘读写信息（简洁、稳定）
+    printk(KERN_INFO "[USB UDISK RW] "
+           "TS: %llu | Bus: %d | Dev: %d | "
+           "EP: 0x%02x | Dir: %s | Len: %d\n",
+           ts,
+           dev->bus->busnum,                      // USB 总线号
+           dev->devnum,                           // USB 设备地址
+           ep_addr & USB_ENDPOINT_NUMBER_MASK,    // 端点号
+           usb_dir_str[dir],                      // 读写方向
+           urb->transfer_buffer_length);          // 传输长度
+
+    return 0;
+}
+
+// 定义 kprobe（挂载通用 USB 函数，无依赖）
+static struct kprobe kp = {
+    .symbol_name = "usb_submit_urb", // 你的内核已导出该符号（/proc/kallsyms 可见）
+    .pre_handler = usb_submit_urb_handler,
+};
+
+// 模块初始化
+static int __init usb_kprobe_init(void)
+{
+    int ret;
+
+    // 注册 kprobe
+    ret = register_kprobe(&kp);
+    if (ret < 0) {
+        printk(KERN_ERR "USB kprobe register failed: %d (symbol: %s)\n", ret, kp.symbol_name);
+        return ret;
+    }
+
+    printk(KERN_INFO "USB UDisk kprobe loaded (target: VID=0x%04x, PID=0x%04x)\n",
+           TARGET_VID, TARGET_PID);
+    printk(KERN_INFO "Track function: usb_submit_urb (bulk transfer only)\n");
+    return 0;
+}
+
+// 模块退出
+static void __exit usb_kprobe_exit(void)
+{
+    unregister_kprobe(&kp);
+    printk(KERN_INFO "USB UDisk kprobe unloaded\n");
+}
+
+module_init(usb_kprobe_init);
+module_exit(usb_kprobe_exit);
+
+// 必须声明 GPL 许可证（内核模块要求）
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Custom");
+MODULE_DESCRIPTION("USB UDisk RW Kprobe (RK3568 4.19, No SCSI Dependency)");
+MODULE_VERSION("1.6");
