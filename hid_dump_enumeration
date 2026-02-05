@@ -1,0 +1,268 @@
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/kprobes.h>
+#include <linux/usb.h>
+#include <linux/hid.h>
+
+// 核心常量（直接用数值，不依赖任何头文件）
+#define USB_REQ_GET_DESCRIPTOR    0x06
+#define USB_DT_DEVICE             0x01
+#define USB_DT_CONFIG             0x02
+#define USB_DT_STRING             0x03
+#define USB_DT_HID                0x21
+#define USB_DT_REPORT             0x22
+
+// kprobe结构体定义
+static struct kprobe kp_ctrl = {
+    .symbol_name    = "usb_control_msg",
+};
+
+static struct kprobe kp_newdev = {
+    .symbol_name    = "usb_new_device",
+};
+
+static struct kprobe kp_hid = {
+    .symbol_name    = "hid_parse_report",
+};
+
+// ------------------------ usb_control_msg 前置处理（无警告版） ------------------------
+static int __kprobes usb_ctrl_pre_handler(struct kprobe *p, struct pt_regs *regs)
+{
+    // ARM64寄存器传参：x0=dev, x2=request, x3=reqtype, x4=value, x7=size
+    struct usb_device *dev;
+    u8 request;
+    u8 reqtype;
+    u16 value;
+    u16 size;
+    u8 desc_type;
+    const char *desc_name;
+
+    // 分步赋值，避免C90警告
+    dev = (struct usb_device *)regs->regs[0];
+    request = (u8)regs->regs[2];
+    reqtype = (u8)regs->regs[3];
+    value = (u16)regs->regs[4];
+    size = (u16)regs->regs[7];
+
+    // 空指针检查 + 仅监控目标鼠标（VID=0x17ef, PID=0x6050）
+    if (!dev) {
+        return 0;
+    }
+    if (dev->descriptor.idVendor != 0x17ef || dev->descriptor.idProduct != 0x6050) {
+        return 0;
+    }
+
+    // 打印控制传输请求
+    printk(KERN_INFO "[USB枚举] Bus%d Dev%d: 控制请求 [0x%02x/0x%02x]\n",
+           dev->bus->busnum, dev->devnum, reqtype, request);
+    
+    // 解析描述符类型（C90兼容：先声明变量再使用）
+    if (request == USB_REQ_GET_DESCRIPTOR) {
+        desc_type = (value >> 8) & 0xFF;
+        desc_name = "未知";
+        switch (desc_type) {
+            case USB_DT_DEVICE:
+                desc_name = "设备描述符";
+                break;
+            case USB_DT_CONFIG:
+                desc_name = "配置描述符";
+                break;
+            case USB_DT_STRING:
+                desc_name = "字符串描述符";
+                break;
+            case USB_DT_HID:
+                desc_name = "HID描述符";
+                break;
+            case USB_DT_REPORT:
+                desc_name = "HID报告描述符";
+                break;
+            default:
+                desc_name = "未知";
+                break;
+        }
+        printk(KERN_INFO "[USB枚举] 描述符: %s(0x%02x), 长度: %d\n",
+               desc_name, desc_type, size);
+    }
+
+    return 0;
+}
+
+// ------------------------ usb_control_msg 后置处理（无警告版） ------------------------
+static void __kprobes usb_ctrl_post_handler(struct kprobe *p, struct pt_regs *regs, unsigned long flags)
+{
+    // void函数：无返回值，所有变量前置声明（C90兼容）
+    struct usb_device *dev;
+    u8 request;
+    u16 value;
+    void *data;
+    int ret;
+    u8 desc_type;
+    struct usb_device_descriptor *desc;
+
+    // 分步赋值
+    dev = (struct usb_device *)regs->regs[0];
+    request = (u8)regs->regs[2];
+    value = (u16)regs->regs[4];
+    data = (void *)regs->regs[6];
+    ret = (int)regs->regs[0];
+
+    // 空指针 + 传输成功 + 目标鼠标检查
+    if (!dev || ret <= 0) {
+        return; // void函数：无返回值，直接return
+    }
+    if (dev->descriptor.idVendor != 0x17ef || dev->descriptor.idProduct != 0x6050) {
+        return;
+    }
+
+    // 打印设备描述符
+    if (request == USB_REQ_GET_DESCRIPTOR) {
+        desc_type = (value >> 8) & 0xFF;
+        if (desc_type == USB_DT_DEVICE && data) {
+            desc = (struct usb_device_descriptor *)data;
+            printk(KERN_INFO "[USB枚举] Bus%d Dev%d: 设备描述符返回\n",
+                   dev->bus->busnum, dev->devnum);
+            printk(KERN_INFO "  VID:0x%04x, PID:0x%04x, 版本:%d.%d\n",
+                   desc->idVendor, desc->idProduct,
+                   desc->bcdDevice >> 8, desc->bcdDevice & 0xFF);
+        }
+    }
+}
+
+// ------------------------ usb_new_device 处理（无警告版） ------------------------
+static int __kprobes usb_newdev_pre_handler(struct kprobe *p, struct pt_regs *regs)
+{
+    struct usb_device *dev;
+    char *speed_str;
+
+    dev = (struct usb_device *)regs->regs[0];
+    if (!dev) {
+        return 0;
+    }
+
+    // 仅监控目标鼠标
+    if (dev->descriptor.idVendor == 0x17ef && dev->descriptor.idProduct == 0x6050) {
+        // C90兼容：先赋值字符串
+        if (dev->speed == 1) {
+            speed_str = "低速(1.5Mbps)";
+        } else if (dev->speed == 2) {
+            speed_str = "全速(12Mbps)";
+        } else {
+            speed_str = "高速(480Mbps)";
+        }
+        printk(KERN_INFO "[USB枚举] Bus%d Dev%d: 枚举完成！\n",
+               dev->bus->busnum, dev->devnum);
+        printk(KERN_INFO "  设备名: %s, 速度: %s\n",
+               dev->product ?: "未知", speed_str);
+    }
+
+    return 0;
+}
+
+// ------------------------ hid_parse_report 处理（C90兼容版） ------------------------
+static int __kprobes hid_parse_pre_handler(struct kprobe *p, struct pt_regs *regs)
+{
+    // C90要求：所有变量必须在函数开头声明
+    struct hid_device *hid;
+    struct usb_interface *intf;
+    struct usb_device *dev;
+
+    // 分步赋值，避免混合声明和代码
+    hid = (struct hid_device *)regs->regs[0];
+    if (!hid || !hid->dev.parent) {
+        return 0;
+    }
+
+    intf = to_usb_interface(hid->dev.parent);
+    dev = interface_to_usbdev(intf);
+    if (!dev) {
+        return 0;
+    }
+
+    // 仅打印目标鼠标的HID解析
+    if (dev->descriptor.idVendor == 0x17ef && dev->descriptor.idProduct == 0x6050) {
+        printk(KERN_INFO "[HID枚举] Bus%d Dev%d: 解析报告描述符\n",
+               dev->bus->busnum, dev->devnum);
+        printk(KERN_INFO "  HID版本:%d.%d, 描述符长度:%d\n",
+               hid->version >> 8, hid->version & 0xFF, hid->rsize);
+    }
+
+    return 0;
+}
+
+// 模块初始化（无警告）
+static int __init usb_hid_enum_kprobe_init(void)
+{
+    int ret;
+
+    // 注册usb_control_msg探针
+    kp_ctrl.pre_handler = usb_ctrl_pre_handler;
+    kp_ctrl.post_handler = usb_ctrl_post_handler;
+    ret = register_kprobe(&kp_ctrl);
+    if (ret < 0) {
+        printk(KERN_ERR "注册usb_control_msg探针失败: %d\n", ret);
+        goto err1;
+    }
+
+    // 注册usb_new_device探针
+    kp_newdev.pre_handler = usb_newdev_pre_handler;
+    ret = register_kprobe(&kp_newdev);
+    if (ret < 0) {
+        printk(KERN_ERR "注册usb_new_device探针失败: %d\n", ret);
+        goto err2;
+    }
+
+    // 注册hid_parse_report探针
+    kp_hid.pre_handler = hid_parse_pre_handler;
+    ret = register_kprobe(&kp_hid);
+    if (ret < 0) {
+        printk(KERN_ERR "注册hid_parse_report探针失败: %d\n", ret);
+        goto err3;
+    }
+
+    printk(KERN_INFO "USB HID枚举kprobe模块加载成功\n");
+    return 0;
+
+err3:
+    unregister_kprobe(&kp_newdev);
+err2:
+    unregister_kprobe(&kp_ctrl);
+err1:
+    return ret;
+}
+
+// 模块退出
+static void __exit usb_hid_enum_kprobe_exit(void)
+{
+    unregister_kprobe(&kp_hid);
+    unregister_kprobe(&kp_newdev);
+    unregister_kprobe(&kp_ctrl);
+    printk(KERN_INFO "USB HID枚举kprobe模块卸载成功\n");
+}
+
+module_init(usb_hid_enum_kprobe_init);
+module_exit(usb_hid_enum_kprobe_exit);
+
+MODULE_LICENSE("GPL");
+MODULE_DESCRIPTION("Kprobe for USB HID Enumeration (RK3568 C90 Compatible)");
+MODULE_AUTHOR("Debug");
+
+root@ATK-DLRK3568:/data# cd /sys/bus/usb/devices/4-1
+root@ATK-DLRK3568:/sys/bus/usb/devices/4-1# echo 0 > authorized
+root@ATK-DLRK3568:/sys/bus/usb/devices/4-1# echo 1 > authorized
+
+  [ 1456.482284] USB HID枚举kprobe模块加载成功
+[16:32:05.358] event4  - Lenovo Precision USB Mouse: device removed
+[ 1475.918789] [USB枚举] Bus4 Dev2: 控制请求 [0x00/0x09]
+[ 1493.807425] [USB枚举] Bus4 Dev2: 控制请求 [0x00/0x09]
+[ 1493.809697] [USB枚举] Bus4 Dev2: 控制请求 [0x21/0x0a]
+[ 1493.811250] [USB枚举] Bus4 Dev2: 控制请求 [0x81/0x06]
+[ 1493.811317] [USB枚举] 描述符: HID报告描述符(0x22), 长度: 80
+[ 1493.815193] [HID枚举] Bus4 Dev2: 解析报告描述符
+[ 1493.815223]   HID版本:1.17, 描述符长度:0
+[ 1493.816319] input: Lenovo Precision USB Mouse as /devices/platform/fd8c0000.usb/usb4/4-1/4-1:1.0/0003:17EF:6050.0003/input/input9
+[ 1493.871775] hid-generic 0003:17EF:6050.0003: input,hidraw0: USB HID v1.11 Mouse [Lenovo Precision USB Mouse] on usb-fd8c0000.usb-1/input0
+[ 1493.872685] usb 4-1: authorized to connect
+[16:32:23.414] event4  - Lenovo Precision USB Mouse: is tagged by udev as: Mouse
+[16:32:23.415] event4  - Lenovo Precision USB Mouse: device is a pointer
+
+  
