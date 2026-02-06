@@ -1,0 +1,24 @@
+build.sh
+# 进入perf源码目录
+cd /home/ubuntu20/opt/linux_sdk/kernel/tools/perf
+
+# 彻底清理旧编译产物
+make clean
+
+# 终极编译命令（复制粘贴直接执行）
+make ARCH=arm64 \
+     CROSS_COMPILE=aarch64-linux-gnu- \
+     NO_LIBUNWIND=1 \
+     NO_LIBAUDIT=1 \
+     NO_SLANG=1 \
+     NO_PYTHON=1 \
+     NO_PERF_READ_VDSO=1 \
+     NO_OPENSSL=1 \  # 解决libcrypto链接错误
+     NO_ZLIB=1 \     # 解决zlib.h缺失错误
+     NO_DWARF=1 \    # 禁用DWARF调试（可选，进一步精简）
+     NO_LZMA=1 \     # 禁用LZMA压缩（可选）
+     -j$(nproc)
+
+
+./perf record -g aplay /usr/share/sound/test.wav
+./perf report -n --stdio > connman_perf_report.txt
