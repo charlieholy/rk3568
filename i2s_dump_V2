@@ -1,3 +1,51 @@
+     6.53%     0.00%             0  snd      [kernel.kallsyms]      [k] el0_svc_handler
+            |
+            ---el0_svc_handler
+               el0_svc_common.constprop.0
+               |          
+                --6.40%--__arm64_sys_ioctl
+                          |          
+                           --5.72%--ksys_ioctl
+                                     do_vfs_ioctl
+                                     |          
+                                      --5.70%--vfs_ioctl
+                                                snd_pcm_ioctl
+                                                |          
+                                                |--5.08%--snd_pcm_common_ioctl
+                                                |          |          
+                                                |          |--2.08%--__snd_pcm_lib_xfer
+                                                |          |          |          
+                                                |          |          |--1.32%--snd_pcm_stream_unlock_irq
+                                                |          |          |          _raw_read_unlock_irq
+                                                |          |          |          
+                                                |          |           --0.76%--interleaved_copy
+                                                |          |                     __arch_copy_from_user
+
+build.sh
+# 进入perf源码目录
+cd /home/ubuntu20/opt/linux_sdk/kernel/tools/perf
+
+# 彻底清理旧编译产物
+make clean
+
+# 终极编译命令（复制粘贴直接执行）
+make ARCH=arm64 \
+     CROSS_COMPILE=aarch64-linux-gnu- \
+     NO_LIBUNWIND=1 \
+     NO_LIBAUDIT=1 \
+     NO_SLANG=1 \
+     NO_PYTHON=1 \
+     NO_PERF_READ_VDSO=1 \
+     NO_OPENSSL=1 \  # 解决libcrypto链接错误
+     NO_ZLIB=1 \     # 解决zlib.h缺失错误
+     NO_DWARF=1 \    # 禁用DWARF调试（可选，进一步精简）
+     NO_LZMA=1 \     # 禁用LZMA压缩（可选）
+     -j$(nproc)
+
+
+./perf record -g aplay /usr/share/sound/test.wav
+./perf report -n --stdio > connman_perf_report.txt
+
 // user
 #include <stdio.h>
 #include <stddef.h>
