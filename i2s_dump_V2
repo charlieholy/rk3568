@@ -1,0 +1,315 @@
+// user
+#include <stdio.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include <unistd.h>
+#include <alsa/asoundlib.h>
+
+/************************ 音频参数配置（适配RK3568） ************************/
+#define SOUND_CARD    "hw:0"
+#define SAMPLE_RATE   44100
+#define CHANNELS      2
+#define PCM_FORMAT    SND_PCM_FORMAT_S16_LE
+#define TOTAL_FRAMES  10  // 只发送10帧
+/**************************************************************************************/
+#define FRAME_BYTES   (CHANNELS * 2)
+#define TOTAL_BYTES   (TOTAL_FRAMES * FRAME_BYTES)
+
+// 按单个字节打印PCM数据（16进制），展示所有帧的完整数据
+void print_pcm_hex(uint8_t *pcm_buf, int frames)
+{
+    printf("\n===== PCM数据（按字节16进制，双声道帧结构：左[低,高],右[低,高] | 共%d帧，16bit LE）=====\n", frames);
+    
+    // 按帧遍历，打印所有帧的每一个字节
+    for (int frame_idx = 0; frame_idx < frames; frame_idx++)
+    {
+        // 计算当前帧的起始字节位置
+        int byte_offset = frame_idx * FRAME_BYTES;
+        
+        // 逐字节打印：左声道低字节、左声道高字节、右声道低字节、右声道高字节
+        printf("帧[%02d]: [0x%02X,0x%02X] [0x%02X,0x%02X]  ", 
+               frame_idx,
+               pcm_buf[byte_offset],    // 左声道低字节
+               pcm_buf[byte_offset+1],  // 左声道高字节
+               pcm_buf[byte_offset+2],  // 右声道低字节
+               pcm_buf[byte_offset+3]); // 右声道高字节
+        
+        // 每行打印5帧，换行易读
+        if ((frame_idx + 1) % 5 == 0)
+            printf("\n");
+    }
+    
+    // 额外打印字节流形式（连续所有字节），便于核对
+    printf("\n完整字节流（全部%d字节）：", frames * FRAME_BYTES);
+    for (int i = 0; i < frames * FRAME_BYTES; i++)
+    {
+        printf("0x%02X ", pcm_buf[i]);
+        if ((i + 1) % 20 == 0) // 每20个字节换行
+            printf("\n                          ");
+    }
+    
+    printf("\n====================================================\n");
+}
+
+// 生成440Hz正弦波PCM数据
+void generate_sine_wave(short *pcm_buf, int frames, int sample_rate)
+{
+    static double phase = 0.0;
+    const double freq = 440.0;
+    const double step = 2 * M_PI * freq / sample_rate;
+    const short max_amp = 32767;
+
+    for (int i = 0; i < frames * CHANNELS; i++)
+    {
+        pcm_buf[i] = (short)(max_amp * 0.5 * sin(phase));
+        phase += step;
+        if (phase > 2 * M_PI) phase -= 2 * M_PI;
+    }
+}
+
+// 音频播放核心函数（只发送10帧）
+int alsa_audio_play(const char *card)
+{
+    snd_pcm_t *pcm_handle = NULL;
+    snd_pcm_hw_params_t *hw_params = NULL;
+    short *pcm_buf = NULL;
+    int ret = -1;
+    unsigned int sample_rate = SAMPLE_RATE;
+    snd_pcm_uframes_t period_frames = TOTAL_FRAMES; // 周期帧数改为10帧
+
+    snd_pcm_hw_params_alloca(&hw_params);
+    if (hw_params == NULL)
+    {
+        fprintf(stderr, "分配ALSA参数结构体失败\n");
+        goto err_exit;
+    }
+
+    ret = snd_pcm_open(&pcm_handle, card, SND_PCM_STREAM_PLAYBACK, 0);
+    if (ret < 0)
+    {
+        fprintf(stderr, "打开声卡[%s]失败: %s\n", card, snd_strerror(ret));
+        goto err_exit;
+    }
+    printf("成功打开声卡: %s\n", card);
+
+    ret = snd_pcm_hw_params_any(pcm_handle, hw_params);
+    if (ret < 0)
+    {
+        fprintf(stderr, "初始化硬件参数失败: %s\n", snd_strerror(ret));
+        goto err_close;
+    }
+
+    // 设置音频参数
+    ret = snd_pcm_hw_params_set_access(pcm_handle, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED);
+    ret |= snd_pcm_hw_params_set_channels(pcm_handle, hw_params, CHANNELS);
+    ret |= snd_pcm_hw_params_set_rate_near(pcm_handle, hw_params, &sample_rate, 0);
+    ret |= snd_pcm_hw_params_set_format(pcm_handle, hw_params, PCM_FORMAT);
+    ret |= snd_pcm_hw_params_set_period_size_near(pcm_handle, hw_params, &period_frames, 0);
+    if (ret < 0)
+    {
+        fprintf(stderr, "设置音频参数失败: %s\n", snd_strerror(ret));
+        goto err_close;
+    }
+
+    ret = snd_pcm_hw_params(pcm_handle, hw_params);
+    if (ret < 0)
+    {
+        fprintf(stderr, "应用硬件参数失败: %s\n", snd_strerror(ret));
+        goto err_close;
+    }
+
+    // 分配刚好容纳10帧的缓冲区
+    pcm_buf = (short *)malloc(TOTAL_BYTES);
+    if (pcm_buf == NULL)
+    {
+        fprintf(stderr, "分配PCM缓冲区失败（内存不足）\n");
+        goto err_close;
+    }
+
+    printf("音频参数初始化完成：%dHz/%dCh/16bitLE | 本次发送%d帧\n", 
+           sample_rate, CHANNELS, TOTAL_FRAMES);
+    
+    // 生成10帧正弦波PCM数据
+    generate_sine_wave(pcm_buf, TOTAL_FRAMES, sample_rate);
+    
+    // 打印所有10帧的完整字节数据
+    print_pcm_hex((uint8_t *)pcm_buf, TOTAL_FRAMES);
+    
+    // 发送10帧数据到声卡
+    printf("\n开始发送%d帧PCM数据到声卡...\n", TOTAL_FRAMES);
+    ret = snd_pcm_writei(pcm_handle, pcm_buf, TOTAL_FRAMES);
+    if (ret < 0)
+    {
+        if (ret == -EPIPE)
+        {
+            fprintf(stderr, "播放下溢，尝试恢复...\n");
+            snd_pcm_prepare(pcm_handle);
+            // 重试发送
+            ret = snd_pcm_writei(pcm_handle, pcm_buf, TOTAL_FRAMES);
+        }
+        else if (ret == -ESTRPIPE)
+        {
+            while ((ret = snd_pcm_resume(pcm_handle)) == -EAGAIN)
+                sleep(1);
+            if (ret < 0) snd_pcm_prepare(pcm_handle);
+            // 重试发送
+            ret = snd_pcm_writei(pcm_handle, pcm_buf, TOTAL_FRAMES);
+        }
+        
+        if (ret < 0)
+        {
+            fprintf(stderr, "写入%d帧PCM数据失败: %s\n", TOTAL_FRAMES, snd_strerror(ret));
+            goto err_free;
+        }
+    }
+    
+    printf("成功发送%d帧PCM数据（实际发送%d帧），程序结束\n", TOTAL_FRAMES, ret);
+    
+    // 等待播放完成
+    snd_pcm_drain(pcm_handle);
+
+err_free:
+    free(pcm_buf);
+err_close:
+    if (pcm_handle != NULL)
+        snd_pcm_close(pcm_handle);
+err_exit:
+    return ret < 0 ? -1 : 0;
+}
+
+// 主函数
+int main(int argc, char *argv[])
+{
+    const char *sound_card = (argc == 2) ? argv[1] : SOUND_CARD;
+    int result = alsa_audio_play(sound_card);
+    
+    if (result < 0)
+    {
+        fprintf(stderr, "音频播放程序执行失败！\n");
+        return EXIT_FAILURE;
+    }
+    
+    return EXIT_SUCCESS;
+}
+
+../../buildroot/output/rockchip_rk3568/host/bin/aarch64-buildroot-linux-gnu-gcc snd.c -o snd \
+   -L ../../buildroot/output/rockchip_rk3568/host/aarch64-buildroot-linux-gnu/sysroot/usr/lib -lasound -lm \
+   -I ../../buildroot/output/rockchip_rk3568/host/aarch64-buildroot-linux-gnu/sysroot/usr/include
+// kernel
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/kprobes.h>
+#include <linux/types.h>
+#include <linux/stddef.h>
+#include <linux/uaccess.h>  // 引入uaccess头文件，用于安全的用户内存访问
+
+// 定义要打印的最大字节数（限制为较小值，避免内存访问过多）
+#define MAX_PRINT_BYTES 32
+
+/*
+ * kprobe 处理函数 - 在interleaved_copy被调用时执行
+ * ARM64架构：参数通过x0-x7寄存器传递
+ * 核心改进：使用内核安全函数访问用户内存，避免直接解引用
+ */
+static int __kprobes handler_pre_interleaved_copy(struct kprobe *p, struct pt_regs *regs)
+{
+    // ARM64架构参数解析（只保留必要的指针，不依赖具体类型）
+    void *substream = (void *)regs->regs[0];
+    unsigned long long hwoff = (unsigned long long)regs->regs[1];
+    void __user *data = (void __user *)regs->regs[2];  // 明确标记为用户态指针
+    unsigned long long off = (unsigned long long)regs->regs[3];
+    unsigned long long frames = (unsigned long long)regs->regs[4];
+    
+    unsigned char pcm_buffer[MAX_PRINT_BYTES];  // 内核缓冲区
+    unsigned long actual_read;
+    unsigned long byte_off, byte_frames;
+    int i;
+    
+    // 1. 安全检查：过滤无效指针和异常长度
+    if (!data || frames == 0 || frames > 8192) {  // 限制最大frames数，避免异常值
+        return 0;
+    }
+    
+    // 2. 简化字节计算：不依赖runtime，使用音频常用的2字节/帧（16bit）
+    // 避免之前的溢出问题，使用合理的默认值
+    byte_off = off * 2;       // 每帧2字节
+    byte_frames = frames * 2; // 每帧2字节
+    
+    // 限制最大访问长度
+    if (byte_frames > MAX_PRINT_BYTES) {
+        byte_frames = MAX_PRINT_BYTES;
+    }
+    
+    // 3. 打印基础信息（只打印确定安全的信息）
+    pr_info("===== interleaved_copy PCM Data =====\n");
+    pr_info("substream: %p, hwoff: %llu\n", substream, hwoff);
+    pr_info("off: %llu (bytes: %lu), frames: %llu (bytes: %lu)\n",
+            off, byte_off, frames, byte_frames);
+    pr_info("data (user ptr): %p\n", data);
+    
+    // 4. 安全读取用户态内存（核心修复）
+    if (byte_frames > 0 && data) {
+        // 使用copy_from_user安全读取用户内存到内核缓冲区
+        actual_read = copy_from_user(pcm_buffer, 
+                                    (void __user *)(data + byte_off), 
+                                    byte_frames);
+        
+        // 计算实际成功读取的字节数
+        actual_read = byte_frames - actual_read;
+        
+        pr_info("PCM data (hex) - read %lu/%lu bytes: ", actual_read, byte_frames);
+        for (i = 0; i < actual_read; i++) {
+            pr_cont("%02x ", pcm_buffer[i]);
+            if ((i + 1) % 16 == 0)  // 每16个字节换行
+                pr_cont("\n                ");
+        }
+        pr_cont("\n");
+    }
+    
+    pr_info("=====================================\n");
+    
+    return 0;
+}
+
+// 定义kprobe结构体
+static struct kprobe kp = {
+    .symbol_name    = "interleaved_copy",  // 要挂钩的函数名
+    .pre_handler    = handler_pre_interleaved_copy,  // 前置处理函数
+};
+
+/*
+ * 模块初始化函数
+ */
+static int __init kprobe_interleaved_copy_init(void)
+{
+    int ret;
+    
+    ret = register_kprobe(&kp);
+    if (ret < 0) {
+        pr_err("register_kprobe failed, returned %d\n", ret);
+        return ret;
+    }
+    
+    pr_info("kprobe registered for interleaved_copy (ARM64 - safe version)\n");
+    return 0;
+}
+
+/*
+ * 模块退出函数
+ */
+static void __exit kprobe_interleaved_copy_exit(void)
+{
+    unregister_kprobe(&kp);
+    pr_info("kprobe unregistered\n");
+}
+
+module_init(kprobe_interleaved_copy_init);
+module_exit(kprobe_interleaved_copy_exit);
+
+MODULE_DESCRIPTION("Safe Kprobe demo for interleaved_copy to print PCM data in hex (ARM64)");
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("");
+//
+
