@@ -1,0 +1,157 @@
+../../buildroot/output/rockchip_rk3568/host/bin/aarch64-buildroot-linux-gnu-gcc snd.c -o snd \
+   -L ../../buildroot/output/rockchip_rk3568/host/aarch64-buildroot-linux-gnu/sysroot/usr/lib -lasound -lm \
+   -I ../../buildroot/output/rockchip_rk3568/host/aarch64-buildroot-linux-gnu/sysroot/usr/include
+
+// 1. 引入所有基础C库头文件（解决NULL/stdio/stdlib等报错）
+#include <stdio.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include <unistd.h>
+
+// 2. 引入ALSA核心头文件（解决snd_pcm_t/SND_PCM_*等所有ALSA相关报错）
+#include <alsa/asoundlib.h>
+
+/************************ 音频参数配置（适配RK3568，可按需修改） ************************/
+#define SOUND_CARD    "hw:0"        // 声卡0=板载RK817Codec，声卡1=HDMI(hw:1)
+#define SAMPLE_RATE   44100         // 采样率：44100Hz（通用标准）
+#define CHANNELS      2             // 声道数：2=双声道，1=单声道
+#define PCM_FORMAT    SND_PCM_FORMAT_S16_LE  // 16bit小端（RK3568完美支持）
+#define PERIOD_FRAMES 1024          // 每周期帧数（嵌入式稳定值）
+/**************************************************************************************/
+
+// 3. 音频缓冲区宏定义（直接固定计算，无ALSA宏依赖，解决隐式声明警告）
+#define FRAME_BYTES   (CHANNELS * 2)  // 16bit采样=2字节/采样点，固定计算
+#define PERIOD_BYTES  (PERIOD_FRAMES * FRAME_BYTES)
+
+// 4. 生成440Hz正弦波PCM数据（无需外部WAV，直接播放可听到标准A音）
+void generate_sine_wave(short *pcm_buf, int frames, int sample_rate)
+{
+    static double phase = 0.0;
+    const double freq = 440.0;
+    const double step = 2 * M_PI * freq / sample_rate;
+    const short max_amp = 32767; // 16bit最大振幅（避免爆音）
+
+    for (int i = 0; i < frames * CHANNELS; i++)
+    {
+        pcm_buf[i] = (short)(max_amp * 0.5 * sin(phase));
+        phase += step;
+        if (phase > 2 * M_PI) phase -= 2 * M_PI;
+    }
+}
+
+// 5. 音频播放核心函数（完整：含头文件、宏、变量、err_close标签）
+int alsa_audio_play(const char *card)
+{
+    snd_pcm_t *pcm_handle = NULL;
+    snd_pcm_hw_params_t *hw_params = NULL;
+    short *pcm_buf = NULL;
+    int ret = -1;
+    // 局部变量（解决&宏常量取地址报错）
+    unsigned int sample_rate = SAMPLE_RATE;
+    snd_pcm_uframes_t period_frames = PERIOD_FRAMES;
+
+    // 初始化ALSA硬件参数结构体
+    snd_pcm_hw_params_alloca(&hw_params);
+    if (hw_params == NULL)
+    {
+        fprintf(stderr, "分配ALSA参数结构体失败\n");
+        goto err_exit;
+    }
+
+    // 打开PCM播放设备
+    ret = snd_pcm_open(&pcm_handle, card, SND_PCM_STREAM_PLAYBACK, 0);
+    if (ret < 0)
+    {
+        fprintf(stderr, "打开声卡[%s]失败: %s\n", card, snd_strerror(ret));
+        goto err_exit;
+    }
+    printf("成功打开声卡: %s\n", card);
+
+    // 初始化硬件参数
+    ret = snd_pcm_hw_params_any(pcm_handle, hw_params);
+    if (ret < 0)
+    {
+        fprintf(stderr, "初始化硬件参数失败: %s\n", snd_strerror(ret));
+        goto err_close;
+    }
+
+    // 设置音频参数（变量地址，解决取地址报错）
+    ret = snd_pcm_hw_params_set_access(pcm_handle, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED);
+    ret |= snd_pcm_hw_params_set_channels(pcm_handle, hw_params, CHANNELS);
+    ret |= snd_pcm_hw_params_set_rate_near(pcm_handle, hw_params, &sample_rate, 0);
+    ret |= snd_pcm_hw_params_set_format(pcm_handle, hw_params, PCM_FORMAT);
+    ret |= snd_pcm_hw_params_set_period_size_near(pcm_handle, hw_params, &period_frames, 0);
+    if (ret < 0)
+    {
+        fprintf(stderr, "设置音频参数失败: %s\n", snd_strerror(ret));
+        goto err_close;
+    }
+
+    // 应用硬件参数
+    ret = snd_pcm_hw_params(pcm_handle, hw_params);
+    if (ret < 0)
+    {
+        fprintf(stderr, "应用硬件参数失败: %s\n", snd_strerror(ret));
+        goto err_close;
+    }
+
+    // 分配PCM数据缓冲区
+    pcm_buf = (short *)malloc(PERIOD_BYTES);
+    if (pcm_buf == NULL)
+    {
+        fprintf(stderr, "分配PCM缓冲区失败（内存不足）\n");
+        goto err_close;
+    }
+
+    printf("音频参数初始化完成：%dHz/%dCh/16bitLE | 每周期%d帧\n", 
+           sample_rate, CHANNELS, (int)period_frames);
+    printf("开始播放440Hz标准A音（按Ctrl+C停止）...\n");
+
+    // 核心播放循环
+    while (1)
+    {
+        generate_sine_wave(pcm_buf, PERIOD_FRAMES, sample_rate);
+        ret = snd_pcm_writei(pcm_handle, pcm_buf, PERIOD_FRAMES);
+        if (ret < 0)
+        {
+            if (ret == -EPIPE)
+            {
+                fprintf(stderr, "\r播放下溢，正在恢复...");
+                snd_pcm_prepare(pcm_handle);
+                continue;
+            }
+            else if (ret == -ESTRPIPE)
+            {
+                while ((ret = snd_pcm_resume(pcm_handle)) == -EAGAIN)
+                    sleep(1);
+                if (ret < 0) snd_pcm_prepare(pcm_handle);
+                continue;
+            }
+            fprintf(stderr, "写入PCM数据失败: %s\n", snd_strerror(ret));
+            break;
+        }
+    }
+
+    // 释放缓冲区
+    free(pcm_buf);
+// 6. 定义err_close标签（解决goto标签未定义报错）
+err_close:
+    if (pcm_handle != NULL)
+        snd_pcm_close(pcm_handle);
+err_exit:
+    return ret < 0 ? -1 : 0;
+}
+
+// 主函数（程序入口，支持传参指定声卡）
+int main(int argc, char *argv[])
+{
+    const char *sound_card = (argc == 2) ? argv[1] : SOUND_CARD;
+    if (alsa_audio_play(sound_card) < 0)
+    {
+        fprintf(stderr, "音频播放程序执行失败！\n");
+        return EXIT_FAILURE;
+    }
+    return EXIT_SUCCESS;
+}
