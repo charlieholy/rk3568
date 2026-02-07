@@ -11,6 +11,13 @@ perf script | ./stackcollapse-perf.pl > l1_miss.fold
 
 # 4. 将svg文件传到PC端，用浏览器打开查看
 
+如果通过 perf 发现你的 ALSA 音频程序有 L1 缓存命中率低的问题，可针对性调优，核心方向：
+内存访问连续化：你的程序中有pcm_buf数组的读写，确保数组是连续的物理内存（嵌入式中用dma_alloc_coherent代替malloc，避免内存碎片化，提升 L1d 命中率）；
+数据对齐：L1 缓存的行大小通常为 64 字节（Cortex-A55），将pcm_buf按 64 字节对齐（用__attribute__((aligned(64)))），避免跨缓存行访问；
+减少随机读写：你的print_pcm_hex函数中有大量的循环打印，减少循环内的内存随机访问，将数据批量读取后再处理；
+指令优化：如果 L1i 未命中高，可优化函数内联（inline），减少函数调用的指令跳转，提升 L1i 缓存的指令命中率；
+数据分块：若处理的 PCM 数据量较大，将数据分块为 L1 缓存大小的倍数（Cortex-A55 的 L1d 为 32KB / 核，L1i 为 32KB / 核），避免缓存溢出。
+
 Flame Graph
 Search
 ic
