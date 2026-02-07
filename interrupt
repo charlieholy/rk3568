@@ -14,3 +14,10 @@
 #9  gic_handle_irq (regs=0xffffff800c713ab0) at drivers/irqchip/irq-gic-v3.c:373 // =>  		irqnr = gic_read_iar();
 #10 0xffffff8008082bf0 in el1_irq () at arch/arm64/kernel/entry.S:645
 Backtrace stopped: previous frame identical to this frame (corrupt stack?)
+
+(gdb) p  *(struct arm_pmu*)(*(void **)dev)
+$5 = {pmu = {entry = {next = 0xffffff8009497660 <perf_breakpoint>, prev = 0xffffff8009496ae8 <pmus>}, module = 0x0,
+    dev = 0xffffffc0e7cfb000, attr_groups = 0xffffffc0e7cf05d0, name = 0xffffff80090fe47e "armv8_pmuv3", type = 8,
+    capabilities = 64, pmu_disable_count = 0xffffff8009448af0, pmu_cpu_context = 0xffffff8009448af8, exclusive_cnt = {
+      counter = 0}, task_ctx_nr = 0, hrtimer_interval_ms = 3, events_across_hotplug = 0, reserved = 0, nr_addr_filters = 0,
+    pmu_enable = 0xffffff8008aaf864 <armpmu_enable>, pmu_disable = 0xffffff8008aafd30 <armpmu_disable>,
