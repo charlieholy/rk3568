@@ -21,3 +21,8 @@ $5 = {pmu = {entry = {next = 0xffffff8009497660 <perf_breakpoint>, prev = 0xffff
     capabilities = 64, pmu_disable_count = 0xffffff8009448af0, pmu_cpu_context = 0xffffff8009448af8, exclusive_cnt = {
       counter = 0}, task_ctx_nr = 0, hrtimer_interval_ms = 3, events_across_hotplug = 0, reserved = 0, nr_addr_filters = 0,
     pmu_enable = 0xffffff8008aaf864 <armpmu_enable>, pmu_disable = 0xffffff8008aafd30 <armpmu_disable>,
+(gdb) p  ((struct arm_pmu*)(*(void **)dev))->handle_irq
+$6 = (irqreturn_t (*)(struct arm_pmu *)) 0xffffff800809a308 <armv8pmu_handle_irq>
+(gdb) info line armv8pmu_handle_irq
+Line 800 of "arch/arm64/kernel/perf_event.c" starts at address 0xffffff800809a308 <armv8pmu_handle_irq>
+   and ends at 0xffffff800809a324 <armv8pmu_handle_irq+28>.
