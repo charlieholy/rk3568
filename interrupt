@@ -11,6 +11,6 @@
     regs=0xffffff800c713ab0) at kernel/irq/irqdesc.c:676
 #8  0xffffff8008081174 in handle_domain_irq (regs=<optimized out>, hwirq=<optimized out>, domain=<optimized out>)
     at ./include/linux/irqdesc.h:173
-#9  gic_handle_irq (regs=0xffffff800c713ab0) at drivers/irqchip/irq-gic-v3.c:373
+#9  gic_handle_irq (regs=0xffffff800c713ab0) at drivers/irqchip/irq-gic-v3.c:373 // =>  		irqnr = gic_read_iar();
 #10 0xffffff8008082bf0 in el1_irq () at arch/arm64/kernel/entry.S:645
 Backtrace stopped: previous frame identical to this frame (corrupt stack?)
