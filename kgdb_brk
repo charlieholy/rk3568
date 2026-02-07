@@ -36,3 +36,33 @@ static struct break_hook kgdb_compiled_brkpt_hook = {
 	.esr_val	= (u32)ESR_ELx_VAL_BRK64(KGDB_COMPILED_DBG_BRK_IMM),
 	.fn		= kgdb_compiled_brk_fn
 };
+
+
+////////////////////////////////////
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <asm/kgdb.h>  // 包含 KGDB_COMPILED_DBG_BRK_IMM 定义
+
+static inline void my_kgdb_break(void)
+{
+    // 内联汇编执行 brk #0x401（和内核原生写法一致）
+    asm volatile ("brk %0" : : "I" (KGDB_COMPILED_DBG_BRK_IMM));
+}
+
+static int __init kgdb_brk_init(void)
+{
+    printk(KERN_INFO "KO: About to trigger kgdb breakpoint...\n");
+    my_kgdb_break();  // 调用 brk #0x401
+    printk(KERN_INFO "KO: Breakpoint done (unreachable if kgdb pauses)\n");
+    return 0;
+}
+
+static void __exit kgdb_brk_exit(void)
+{
+    printk(KERN_INFO "KO: Module exit\n");
+}
+
+module_init(kgdb_brk_init);
+module_exit(kgdb_brk_exit);
+MODULE_LICENSE("GPL");
+
