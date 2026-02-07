@@ -3,7 +3,7 @@ git clone https://github.com/brendangregg/FlameGraph.git
 cd FlameGraph
 
 # 2. 采样L1d未命中事件，生成perf.data
-perf record -e L1-dcache-load-misses -g -F 1000 ./pcm_play_10frames
+perf record -e L1-dcache-load-misses -g -F 1000 ./snd
 
 # 3. 转换为火焰图格式
 perf script | ./stackcollapse-perf.pl > l1_miss.fold
