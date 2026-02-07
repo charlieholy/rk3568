@@ -57,3 +57,20 @@ b perf_output_sample
 #15 gic_handle_irq (regs=0xffffff80106d3a00) at drivers/irqchip/irq-gic-v3.c:373
 #16 0xffffff8008082bf0 in el1_irq () at arch/arm64/kernel/entry.S:645
 Backtrace stopped: previous frame identical to this frame (corrupt stack?)
+
+/////////////unwind_frame
+(gdb) p /x frame->pc
+$55 = 0xffffff80081b514c
+(gdb) info symbol $55
+perf_event_exec + 244 in section .text
+(gdb) p /x ((struct stackframe*)frame->fp)->pc
+$56 = 0xffffff8008223a14
+(gdb) info symbol 0xffffff8008223a14
+setup_new_exec + 176 in section .text
+(gdb) p /x ((struct stackframe*)frame->fp)
+$57 = 0xffffff8009aa3b90
+(gdb)  p /x ((struct stackframe*)$57->fp)->pc
+$58 = 0xffffff8008276618
+(gdb) info symbol $58
+load_elf_binary + 812 in section .text
+(gdb)
