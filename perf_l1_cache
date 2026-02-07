@@ -18,6 +18,39 @@ perf script | ./stackcollapse-perf.pl > l1_miss.fold
 指令优化：如果 L1i 未命中高，可优化函数内联（inline），减少函数调用的指令跳转，提升 L1i 缓存的指令命中率；
 数据分块：若处理的 PCM 数据量较大，将数据分块为 L1 缓存大小的倍数（Cortex-A55 的 L1d 为 32KB / 核，L1i 为 32KB / 核），避免缓存溢出。
 
+
+/*
+ * attr.type
+ */
+enum perf_type_id {
+	PERF_TYPE_HARDWARE			= 0,
+	PERF_TYPE_SOFTWARE			= 1,
+	PERF_TYPE_TRACEPOINT			= 2,
+	PERF_TYPE_HW_CACHE			= 3,
+	PERF_TYPE_RAW				= 4,
+	PERF_TYPE_BREAKPOINT			= 5,
+
+	PERF_TYPE_MAX,				/* non-ABI */
+};
+
+
+(gdb) p event->attr
+$71 = {type = 3, size = 112, config = 65536, {sample_period = 300, sample_freq = 300}, sample_type = 295,
+  read_format = 4, disabled = 1, inherit = 1, pinned = 0, exclusive = 0, exclude_user = 0, exclude_kernel = 0,
+  exclude_hv = 0, exclude_idle = 0, mmap = 1, comm = 1, freq = 1, inherit_stat = 0, enable_on_exec = 0, task = 1,
+  watermark = 0, precise_ip = 0, mmap_data = 0, sample_id_all = 1, exclude_host = 0, exclude_guest = 1,
+  exclude_callchain_kernel = 0, exclude_callchain_user = 0, mmap2 = 1, comm_exec = 1, use_clockid = 0,
+  context_switch = 0, write_backward = 0, namespaces = 0, __reserved_1 = 0, {wakeup_events = 0, wakeup_watermark = 0},
+  bp_type = 0, {bp_addr = 0, kprobe_func = 0, uprobe_path = 0, config1 = 0}, {bp_len = 0, kprobe_addr = 0,
+    probe_offset = 0, config2 = 0}, branch_sample_type = 0, sample_regs_user = 0, sample_stack_user = 0, clockid = 0,
+  sample_regs_intr = 0, aux_watermark = 0, sample_max_stack = 127, __reserved_2 = 0}
+(gdb) frame
+#0  perf_event_overflow (event=0xffffffc0cd7db800, data=0xffffff8008003b80, regs=0xffffff80104c39d0)
+    at kernel/events/core.c:7919
+7919    {
+(gdb)
+
+
 Flame Graph
 Search
 ic
