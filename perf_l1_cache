@@ -1,0 +1,58 @@
+# 1. 安装火焰图工具（RK3568需先装git）
+git clone https://github.com/brendangregg/FlameGraph.git
+cd FlameGraph
+
+# 2. 采样L1d未命中事件，生成perf.data
+perf record -e L1-dcache-load-misses -g -F 1000 ./pcm_play_10frames
+
+# 3. 转换为火焰图格式
+perf script | ./stackcollapse-perf.pl > l1_miss.fold
+./flamegraph.pl l1_miss.fold > l1_miss.svg
+
+# 4. 将svg文件传到PC端，用浏览器打开查看
+
+Flame Graph
+Search
+ic
+clk_core_get_pa..
+[snd]
+vprintk_emit
+__arm64_sys_exit_group
+free_unref_page
+el0_svc_common.constp..
+rockchip_i2s_td..
+work_pending
+[libasound.so.2.0.0]
+__..
+_r..
+[snd]
+vprintk_default
+vprintk_func
+snd_pcm_ioctl
+snd_pcm_release
+[libasound.so.2.0.0]
+[libc.so.6]
+snd
+el0_svc_common...
+el0_svc
+clk_mux_determi..
+clk_core_determ..
+rk817_digital_m..
+__clk_lookup_su..
+_r..
+[snd]
+i2..
+do_notify_resume
+free_pages
+[libc.so.6]
+____fput
+__arm64_sys_ioctl
+i2..
+snd_pcm_prepare
+el0_svc
+__wake_up_parent
+[libc.so.6]
+unmap_page_range
+clk_core_round_..
+snd_pcm_common_ioctl
+printk
