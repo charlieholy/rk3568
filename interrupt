@@ -1,0 +1,16 @@
+(gdb) bt
+#0  armpmu_dispatch_irq (irq=8, dev=0xffffffc0efec63c8) at drivers/perf/arm_pmu.c:336
+#1  0xffffff8008112184 in __handle_irq_event_percpu (desc=0xffffffc0e9b27800, flags=0xffffff800800bee4)
+    at kernel/irq/handle.c:149
+#2  0xffffff8008112318 in handle_irq_event_percpu (desc=0xffffffc0e9b27800) at kernel/irq/handle.c:189
+#3  0xffffff80081123bc in handle_irq_event (desc=0xffffffc0e9b27800) at kernel/irq/handle.c:206
+#4  0xffffff8008116e4c in handle_fasteoi_irq (desc=0xffffffc0e9b27800) at kernel/irq/chip.c:743
+#5  0xffffff80081111c4 in generic_handle_irq_desc (desc=<optimized out>) at ./include/linux/irqdesc.h:155
+#6  generic_handle_irq (irq=8) at kernel/irq/irqdesc.c:639                   // =>  	struct irq_desc *desc = irq_to_desc(irq);
+#7  0xffffff800811195c in __handle_domain_irq (domain=0xffffffc000236200, hwirq=<optimized out>, lookup=true,
+    regs=0xffffff800c713ab0) at kernel/irq/irqdesc.c:676
+#8  0xffffff8008081174 in handle_domain_irq (regs=<optimized out>, hwirq=<optimized out>, domain=<optimized out>)
+    at ./include/linux/irqdesc.h:173
+#9  gic_handle_irq (regs=0xffffff800c713ab0) at drivers/irqchip/irq-gic-v3.c:373
+#10 0xffffff8008082bf0 in el1_irq () at arch/arm64/kernel/entry.S:645
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
