@@ -1,3 +1,28 @@
+#define LOG_ALIGN __alignof__(struct printk_log)
+#define __LOG_BUF_LEN (1 << CONFIG_LOG_BUF_SHIFT)
+#define LOG_BUF_LEN_MAX (u32)(1 << 31)
+static char __log_buf[__LOG_BUF_LEN] __aligned(LOG_ALIGN);
+static char *log_buf = __log_buf;
+static u32 log_buf_len = __LOG_BUF_LEN;
+
+	/* Store it in the record log */
+	return log_store(facility, level, lflags, 0, dict, dictlen, text, text_len); // => store
+
+/* get record by index; idx must point to valid msg */
+static struct printk_log *log_from_idx(u32 idx)   // => get from
+{
+	struct printk_log *msg = (struct printk_log *)(log_buf + idx);
+
+	/*
+	 * A length == 0 record is the end of buffer marker. Wrap around and
+	 * read the message at the start of the buffer.
+	 */
+	if (!msg->len)
+		return (struct printk_log *)log_buf;
+	return msg;
+}
+
+
 console_write
 
 (gdb) bt
