@@ -83,3 +83,91 @@ $58 = 0xffffff8008276618
 (gdb) info symbol $58
 load_elf_binary + 812 in section .text
 (gdb)
+
+
+(gdb) bt
+#0  armpmu_dispatch_irq (irq=8, dev=0xffffffc0efec63c8) at drivers/perf/arm_pmu.c:336
+#1  0xffffff8008112184 in __handle_irq_event_percpu (desc=0xffffffc0e9b27800, flags=0xffffff800800bee4)
+    at kernel/irq/handle.c:149
+#2  0xffffff8008112318 in handle_irq_event_percpu (desc=0xffffffc0e9b27800) at kernel/irq/handle.c:189
+#3  0xffffff80081123bc in handle_irq_event (desc=0xffffffc0e9b27800) at kernel/irq/handle.c:206
+#4  0xffffff8008116e4c in handle_fasteoi_irq (desc=0xffffffc0e9b27800) at kernel/irq/chip.c:743
+#5  0xffffff80081111c4 in generic_handle_irq_desc (desc=<optimized out>) at ./include/linux/irqdesc.h:155
+#6  generic_handle_irq (irq=8) at kernel/irq/irqdesc.c:639                   // =>  	struct irq_desc *desc = irq_to_desc(irq);
+#7  0xffffff800811195c in __handle_domain_irq (domain=0xffffffc000236200, hwirq=<optimized out>, lookup=true,
+    regs=0xffffff800c713ab0) at kernel/irq/irqdesc.c:676
+#8  0xffffff8008081174 in handle_domain_irq (regs=<optimized out>, hwirq=<optimized out>, domain=<optimized out>)
+    at ./include/linux/irqdesc.h:173
+#9  gic_handle_irq (regs=0xffffff800c713ab0) at drivers/irqchip/irq-gic-v3.c:373 // =>  		irqnr = gic_read_iar();
+#10 0xffffff8008082bf0 in el1_irq () at arch/arm64/kernel/entry.S:645
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
+
+(gdb) p  *(struct arm_pmu*)(*(void **)dev)
+$5 = {pmu = {entry = {next = 0xffffff8009497660 <perf_breakpoint>, prev = 0xffffff8009496ae8 <pmus>}, module = 0x0,
+    dev = 0xffffffc0e7cfb000, attr_groups = 0xffffffc0e7cf05d0, name = 0xffffff80090fe47e "armv8_pmuv3", type = 8,
+    capabilities = 64, pmu_disable_count = 0xffffff8009448af0, pmu_cpu_context = 0xffffff8009448af8, exclusive_cnt = {
+      counter = 0}, task_ctx_nr = 0, hrtimer_interval_ms = 3, events_across_hotplug = 0, reserved = 0, nr_addr_filters = 0,
+    pmu_enable = 0xffffff8008aaf864 <armpmu_enable>, pmu_disable = 0xffffff8008aafd30 <armpmu_disable>,
+(gdb) p  ((struct arm_pmu*)(*(void **)dev))->handle_irq
+$6 = (irqreturn_t (*)(struct arm_pmu *)) 0xffffff800809a308 <armv8pmu_handle_irq>
+(gdb) info line armv8pmu_handle_irq
+Line 800 of "arch/arm64/kernel/perf_event.c" starts at address 0xffffff800809a308 <armv8pmu_handle_irq>
+   and ends at 0xffffff800809a324 <armv8pmu_handle_irq+28>.
+
+b perf_event_wakeup
+b perf_output_sample
+
+(gdb) bt
+#0  callchain_trace (frame=0xffffff8008003980, data=0xffffff8008003a10) at arch/arm64/kernel/perf_callchain.c:150
+#1  0xffffff800808db1c in walk_stackframe (tsk=0xffffff800808db1c <walk_stackframe+44>, frame=0xffffff8008003a10,
+    fn=0x0, data=0xffffff8009aa3b90) at arch/arm64/kernel/stacktrace.c:97
+#2  0xffffff8008099b00 in perf_callchain_kernel (entry=0xffffff8008003a10, regs=0xffffff8009aa3a00)
+    at arch/arm64/kernel/perf_callchain.c:170
+#3  0xffffff80081b7f90 in get_perf_callchain (regs=0xffffff8009aa3a00, init_nr=0, kernel=true, user=true,
+    max_stack=127, crosstask=<optimized out>, add_mark=true) at kernel/events/callchain.c:202
+#4  0xffffff80081b4a70 in perf_callchain (event=<optimized out>, regs=<optimized out>) at kernel/events/core.c:6473
+#5  0xffffff80081b4b24 in perf_prepare_sample (header=0xffffff8008003ac8, data=0xffffff8008003b80,
+    event=0xffffffc0e5e98800, regs=0xffffff8009aa3a00) at kernel/events/core.c:6500
+#6  0xffffff80081b4ed8 in __perf_event_output (output_begin=<optimized out>, regs=<optimized out>,
+    data=<optimized out>, event=<optimized out>) at kernel/events/core.c:6615
+#7  perf_event_output_forward (event=0xffffffc0e5e98800, data=0xffffff8008003b80, regs=<optimized out>)
+    at kernel/events/core.c:6633
+#8  0xffffff80081b3344 in __perf_event_overflow (event=0xffffffc0e5e98800, throttle=<optimized out>,
+    data=0xffffff8008003b80, regs=0xffffff8009aa3a00) at kernel/events/core.c:7906
+#9  0xffffff80081b57cc in perf_event_overflow (event=<optimized out>, data=<optimized out>, regs=<optimized out>)
+    at kernel/events/core.c:7920
+#10 0xffffff800809a414 in armv8pmu_handle_irq (cpu_pmu=0xffffffc0e8df2a00) at arch/arm64/kernel/perf_event.c:849
+#11 0xffffff8008aaf850 in armpmu_dispatch_irq (irq=<optimized out>, dev=<optimized out>) at drivers/perf/arm_pmu.c:352
+#12 0xffffff8008112184 in __handle_irq_event_percpu (desc=0xffffffc0e9b27600, flags=0xffffff8008003ee4)
+    at kernel/irq/handle.c:149
+#13 0xffffff8008112318 in handle_irq_event_percpu (desc=0xffffffc0e9b27600) at kernel/irq/handle.c:189
+#14 0xffffff80081123bc in handle_irq_event (desc=0xffffffc0e9b27600) at kernel/irq/handle.c:206
+#15 0xffffff8008116e4c in handle_fasteoi_irq (desc=0xffffffc0e9b27600) at kernel/irq/chip.c:743
+#16 0xffffff80081111c4 in generic_handle_irq_desc (desc=<optimized out>) at ./include/linux/irqdesc.h:155
+#17 generic_handle_irq (irq=7) at kernel/irq/irqdesc.c:639
+#18 0xffffff800811195c in __handle_domain_irq (domain=0xffffffc000236200, hwirq=<optimized out>, lookup=true,
+    regs=0xffffff8009aa3a00) at kernel/irq/irqdesc.c:676
+---Type <return> to continue, or q <return> to quit---
+#19 0xffffff8008081174 in handle_domain_irq (regs=<optimized out>, hwirq=<optimized out>, domain=<optimized out>)
+    at ./include/linux/irqdesc.h:173
+#20 gic_handle_irq (regs=0xffffff8009aa3a00) at drivers/irqchip/irq-gic-v3.c:373
+#21 0xffffff8008082bf0 in el1_irq () at arch/arm64/kernel/entry.S:645
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
+
+/////////////unwind_frame
+(gdb) p /x frame->pc
+$55 = 0xffffff80081b514c
+(gdb) info symbol $55
+perf_event_exec + 244 in section .text
+(gdb) p /x ((struct stackframe*)frame->fp)->pc
+$56 = 0xffffff8008223a14
+(gdb) info symbol 0xffffff8008223a14
+setup_new_exec + 176 in section .text
+(gdb) p /x ((struct stackframe*)frame->fp)
+$57 = 0xffffff8009aa3b90
+(gdb)  p /x ((struct stackframe*)$57->fp)->pc
+$58 = 0xffffff8008276618
+(gdb) info symbol $58
+load_elf_binary + 812 in section .text
+(gdb)
+
