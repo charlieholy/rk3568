@@ -1,0 +1,53 @@
+console_write
+
+(gdb) bt
+#0  console_write (pdev=0xffffffc0e8c2f000,
+    s=0xffffff800966adf8 <text> "[ 1687.925236] sysrq: DEBUG\nemo init success =====\n 12\nes\nrnel.\nse use /proc/819/oom_score_adj instead.\nus:phy_addr=stmmac-1:00, irq=POLL)\nng_from_arm of this mali_ko is '', rk_ko_ver is '5', built at"..., count=28) at drivers/soc/rockchip/rk_fiq_debugger.c:307
+#1  0xffffff8008a95c18 in fiq_debugger_console_write (co=0xffffffc0e92f86b8,
+    s=0xffffff800966adf8 <text> "[ 1687.925236] sysrq: DEBUG\nemo init success =====\n 12\nes\nrnel.\nse use /proc/819/oom_score_adj instead.\nus:phy_addr=stmmac-1:00, irq=POLL)\nng_from_arm of this mali_ko is '', rk_ko_ver is '5', built at"..., count=28) at drivers/staging/android/fiq_debugger/fiq_debugger.c:1129
+#2  0xffffff800810edac in call_console_drivers (ext_text=<optimized out>, text=<optimized out>, len=<optimized out>,
+    ext_len=<optimized out>) at kernel/printk/printk.c:1888
+#3  console_unlock () at kernel/printk/printk.c:2594
+#4  0xffffff8008110440 in vprintk_emit (facility=0, level=<optimized out>, dict=0x0, dictlen=0, fmt=<optimized out>,
+    args=<error reading variable: Cannot access memory at address 0x558>) at kernel/printk/printk.c:2089
+#5  0xffffff800811066c in vprintk_default (fmt=0xffffff8009169c63 "\001\066sysrq: %s\n", args=...)
+    at kernel/printk/printk.c:2131
+#6  0xffffff8008111104 in vprintk_func (fmt=0xffffff8009169c63 "\001\066sysrq: %s\n", args=...)
+    at kernel/printk/printk_safe.c:405
+#7  0xffffff8008dbad6c in printk (fmt=0xffffff8009169c63 "\001\066sysrq: %s\n") at kernel/printk/printk.c:2164
+#8  0xffffff80085c8448 in __handle_sysrq (key=103, check_mask=false) at drivers/tty/sysrq.c:550
+#9  0xffffff80085c8940 in write_sysrq_trigger (file=<optimized out>,
+    buf=0x1d8763d0 <error: Cannot access memory at address 0x1d8763d0>, count=2, ppos=<optimized out>)
+    at drivers/tty/sysrq.c:1098
+#10 0xffffff8008285400 in proc_reg_write (file=0xffffffc0e5693040,
+    buf=0x1d8763d0 <error: Cannot access memory at address 0x1d8763d0>, count=2, ppos=0xffffff800bafbe40)
+    at fs/proc/inode.c:245
+#11 0xffffff800821a628 in __vfs_write (file=0xffffffc0e5693040,
+    p=0x1d8763d0 <error: Cannot access memory at address 0x1d8763d0>, count=2, pos=0xffffff800bafbe40)
+    at fs/read_write.c:486
+#12 0xffffff800821a938 in vfs_write (file=0xffffffc0e5693040,
+---Type <return> to continue, or q <return> to quit---
+    buf=0x1d8763d0 <error: Cannot access memory at address 0x1d8763d0>, count=2, pos=0xffffff800bafbe40)
+    at fs/read_write.c:550
+#13 0xffffff800821ac2c in ksys_write (fd=<optimized out>,
+    buf=0x1d8763d0 <error: Cannot access memory at address 0x1d8763d0>, count=2) at fs/read_write.c:601
+#14 0xffffff800821acc0 in __do_sys_write (count=<optimized out>, buf=<optimized out>, fd=<optimized out>)
+    at fs/read_write.c:613
+#15 __se_sys_write (count=<optimized out>, buf=<optimized out>, fd=<optimized out>) at fs/read_write.c:610
+#16 __arm64_sys_write (regs=0xffffff800bafbec0) at fs/read_write.c:610
+#17 0xffffff8008095610 in __invoke_syscall (syscall_fn=<optimized out>, regs=<optimized out>)
+    at arch/arm64/kernel/syscall.c:36
+#18 invoke_syscall (syscall_table=<optimized out>, sc_nr=<optimized out>, scno=<optimized out>, regs=<optimized out>)
+    at arch/arm64/kernel/syscall.c:48
+#19 el0_svc_common (regs=0xffffff800bafbec0, scno=<optimized out>, syscall_table=0xffffff8008de0870 <sys_call_table>,
+    sc_nr=<optimized out>) at arch/arm64/kernel/syscall.c:117
+#20 0xffffff8008095700 in el0_svc_handler (regs=0xffffff800bafbec0) at arch/arm64/kernel/syscall.c:163
+#21 0xffffff8008083848 in el0_svc () at arch/arm64/kernel/entry.S:940
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
+(gdb) frame
+#0  console_write (pdev=0xffffffc0e8c2f000,
+    s=0xffffff800966adf8 <text> "[ 1687.925236] sysrq: DEBUG\nemo init success =====\n 12\nes\nrnel.\nse use /proc/819/oom_score_adj instead.\nus:phy_addr=stmmac-1:00, irq=POLL)\nng_from_arm of this mali_ko is '', rk_ko_ver is '5', built at"..., count=28) at drivers/soc/rockchip/rk_fiq_debugger.c:307
+307     static void console_write(struct platform_device *pdev, const char *s, unsigned int count)
+(gdb) p s
+$1 = 0xffffff800966adf8 <text> "[ 1687.925236] sysrq: DEBUG\nemo init success =====\n 12\nes\nrnel.\nse use /proc/819/oom_score_adj instead.\nus:phy_addr=stmmac-1:00, irq=POLL)\nng_from_arm of this mali_ko is '', rk_ko_ver is '5', built at"...
+(gdb)
