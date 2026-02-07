@@ -1,0 +1,38 @@
+(gdb) disas
+Dump of assembler code for function kgdb_breakpoint:
+   0xffffff80081671ec <+0>:     stp     x29, x30, [sp,#-16]!
+   0xffffff80081671f0 <+4>:     mov     x29, sp
+   0xffffff80081671f4 <+8>:     mov     x0, x30
+   0xffffff80081671f8 <+12>:    nop
+   0xffffff80081671fc <+16>:    adrp    x2, 0xffffff80096b1000 <kretprobe_table_locks+2432>
+   0xffffff8008167200 <+20>:    mov     w0, #0x1                        // #1
+   0xffffff8008167204 <+24>:    add     x1, x2, #0x680
+   0xffffff8008167208 <+28>:    stadd   w0, [x1]
+   0xffffff800816720c <+32>:    dsb     st
+=> 0xffffff8008167210 <+36>:    brk     #0x401
+   0xffffff8008167214 <+40>:    dsb     st
+   0xffffff8008167218 <+44>:    mov     w0, #0x1                        // #1
+   0xffffff800816721c <+48>:    neg     w0, w0
+   0xffffff8008167220 <+52>:    stadd   w0, [x1]
+   0xffffff8008167224 <+56>:    ldp     x29, x30, [sp],#16
+   0xffffff8008167228 <+60>:    ret
+End of assembler dump.
+(gdb) frame
+#0  kgdb_breakpoint () at kernel/debug/debug_core.c:1091
+1091            arch_kgdb_breakpoint();
+(gdb) info line arch_kgdb_breakpoint
+Line 32 of "./arch/arm64/include/asm/kgdb.h" starts at address 0xffffff8008167210 <kgdb_breakpoint+36>
+   and ends at 0xffffff8008167214 <kgdb_breakpoint+40>.
+(gdb)
+
+arch/arm64/include/asm/kgdb.h
+static inline void arch_kgdb_breakpoint(void)
+{
+	asm ("brk %0" : : "I" (KGDB_COMPILED_DBG_BRK_IMM));
+}
+
+static struct break_hook kgdb_compiled_brkpt_hook = {
+	.esr_mask	= 0xffffffff,
+	.esr_val	= (u32)ESR_ELx_VAL_BRK64(KGDB_COMPILED_DBG_BRK_IMM),
+	.fn		= kgdb_compiled_brk_fn
+};
