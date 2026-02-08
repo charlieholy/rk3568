@@ -1,0 +1,2 @@
+=> setenv ipaddr 192.168.2.99
+=> setenv gatewayip 192.168.2.1
