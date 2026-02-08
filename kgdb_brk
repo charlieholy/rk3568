@@ -1,3 +1,23 @@
+remcom_in_buffer
+remcom_out_buffer
+
+NOKPROBE_SYMBOL
+
+// 1. gdb 协议解析层
+gdb_serial_stub()                // 解析串口传来的 "c" 命令
+  └── kgdb_arch_handle_exception()  // 调用架构专属的命令处理
+      └── kgdb_arch_update_addr()   // 处理 "c" 命令的地址参数（可选）
+          └── kgdb_arch_set_pc()    // 设置 PC 寄存器（恢复执行地址）
+// 2. 调试循环退出层
+kgdb_cpu_enter()                 // 退出主 CPU 调试循环
+  ├── raw_spin_unlock(&dbg_slave_lock)  // 释放从 CPU 锁，让从 CPU 恢复
+  ├── atomic_set(&kgdb_active, -1)      // 清空主 CPU 标记
+  ├── local_irq_restore(flags)          // 恢复 CPU 中断
+  └── rcu_read_unlock()                 // 释放 RCU 锁
+// 3. 异常返回层
+kgdb_handle_exception()          // 完成异常处理，返回异常上下文
+  └── el1_sync()                  // ARM64 异常返回，跳转到 PC 指向的地址继续执行
+
 (gdb) disas
 Dump of assembler code for function kgdb_breakpoint:
    0xffffff80081671ec <+0>:     stp     x29, x30, [sp,#-16]!
