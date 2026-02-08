@@ -1,0 +1,6 @@
+root@ATK-DLRK3568:/data# cat /etc/shadow
+root:$1$87nKU7EN$FwIs/A5jpwCyRQJ0EKqsM.:20492:0:99999:7:::
+
+ubuntu20@NYX:/mnt/c/Users/35748$ openssl passwd -1 -salt 87nKU7EN 123456
+$1$87nKU7EN$FwIs/A5jpwCyRQJ0EKqsM.
+
