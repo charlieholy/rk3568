@@ -1,3 +1,8 @@
+kgdb_handle_exception
+          kgdb_cpu_enter
+          	while (1) {
+                    cpu_loop:
+
 高地址 →
 +---------------------+
 | 函数A的返回地址（lr）| ← x30（lr）压栈
