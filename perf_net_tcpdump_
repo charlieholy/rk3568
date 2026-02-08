@@ -1,0 +1,2 @@
+./perf record -g -o tcpdump_perf.data tcpdump -i eth0 -nn
+./perf report -n --stdio -i tcpdump_perf.data > perf_tcp.txt
