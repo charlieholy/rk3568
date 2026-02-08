@@ -1,10 +1,161 @@
-root@ATK-DLRK3568:/data# ip link set eth0 promisc on
-root@ATK-DLRK3568:/data# ip link show eth0
-3: eth0: <BROADCAST,MULTICAST,PROMISC,DYNAMIC,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
-    link/ether 46:6a:97:d7:16:68 brd ff:ff:ff:ff:ff:ff
-root@ATK-DLRK3568:/data# ip link set eth0 promisc off
+./perf record -g ip link set eth0 promisc on
+./perf report -n --stdio > perf_net.txt
+
+
+    17.25%    17.25%             1  ip       [kernel.kallsyms]      [k] dev_change_flags
+            |
+            ---0x40a1b0
+               0x7f9bb373dc
+               0x7f9bb372e0
+               0x40a148
+               0x40a314
+               0x421860
+               0x458ec8
+               0x457ce0
+               0x7f9bbd3e1c
+               el0_svc
+               el0_svc_handler
+               el0_svc_common.constprop.0
+               __arm64_sys_sendmsg
+               __sys_sendmsg
+               ___sys_sendmsg
+               sock_sendmsg
+               netlink_sendmsg
+               netlink_unicast
+               rtnetlink_rcv
+               netlink_rcv_skb
+               rtnetlink_rcv_msg
+               rtnl_newlink
+               do_setlink
+               dev_change_flags
+
 root@ATK-DLRK3568:/data# ip link show eth0
 3: eth0: <BROADCAST,MULTICAST,DYNAMIC,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
     link/ether 46:6a:97:d7:16:68 brd ff:ff:ff:ff:ff:ff
-root@ATK-DLRK3568:/data#
+root@ATK-DLRK3568:/data# insmod net_devices.ko
+root@ATK-DLRK3568:/data# ip link show eth0
+3: eth0: <BROADCAST,MULTICAST,PROMISC,DYNAMIC,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
+    link/ether 46:6a:97:d7:16:68 brd ff:ff:ff:ff:ff:ff
 
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/netdevice.h>
+#include <linux/init.h>
+#include <linux/string.h>
+#include <linux/slab.h>
+#include <net/rtnetlink.h>  // 必须包含 RTNL 锁的头文件
+
+// 模块参数：指定要操作的网卡名称（默认 eth0）
+static char *ifname = "eth0";
+module_param(ifname, charp, 0644);
+MODULE_PARM_DESC(ifname, "Network interface name (default: eth0)");
+
+// 模块参数：1=开启混杂模式，0=关闭混杂模式（默认开启）
+static int promisc_enable = 1;
+module_param(promisc_enable, int, 0644);
+MODULE_PARM_DESC(promisc_enable, "1=enable promisc mode, 0=disable (default: 1)");
+
+// 保存驱动加载时的网卡 flags，退出时精准恢复（而非直接清零 IFF_PROMISC）
+static unsigned int orig_flags = 0;
+static struct net_device *dev = NULL;
+
+// 安全修改网卡 flags 的封装函数（带 RTNL 锁）
+static int safe_dev_change_flags(struct net_device *dev, unsigned int new_flags)
+{
+    int ret = 0;
+    
+    // 1. 持有 RTNL 写锁（核心修复点）
+    rtnl_lock();
+    
+    // 2. 检查设备是否有效
+    if (!dev || !netif_device_present(dev)) {
+        printk(KERN_ERR "promisc_driver: Device %s not present\n", dev->name);
+        ret = -ENODEV;
+        goto unlock;
+    }
+
+    // 3. 调用 dev_change_flags（必须在 RTNL 锁保护下）
+    ret = dev_change_flags(dev, new_flags);
+    if (ret < 0) {
+        printk(KERN_ERR "promisc_driver: dev_change_flags failed (ret: %d)\n", ret);
+        goto unlock;
+    }
+
+    printk(KERN_INFO "promisc_driver: %s flags updated to 0x%08x\n", dev->name, dev->flags);
+
+unlock:
+    // 4. 释放 RTNL 锁（必须！否则导致内核死锁）
+    rtnl_unlock();
+    return ret;
+}
+
+// 模块初始化函数
+static int __init promisc_driver_init(void)
+{
+    unsigned int new_flags;
+    int ret;
+
+    // 1. 获取网卡设备引用
+    dev = dev_get_by_name(&init_net, ifname);
+    if (!dev) {
+        printk(KERN_ERR "promisc_driver: Failed to find interface %s\n", ifname);
+        return -ENODEV;
+    }
+
+    // 2. 保存原始 flags，用于退出时精准恢复
+    orig_flags = dev->flags;
+    printk(KERN_INFO "promisc_driver: Found %s, orig flags: 0x%08x\n", ifname, orig_flags);
+
+    // 3. 计算新 flags
+    new_flags = orig_flags;
+    if (promisc_enable) {
+        new_flags |= IFF_PROMISC;
+        printk(KERN_INFO "promisc_driver: Enabling promisc mode for %s\n", ifname);
+    } else {
+        new_flags &= ~IFF_PROMISC;
+        printk(KERN_INFO "promisc_driver: Disabling promisc mode for %s\n", ifname);
+    }
+
+    // 4. 安全修改 flags（带 RTNL 锁）
+    ret = safe_dev_change_flags(dev, new_flags);
+    if (ret < 0) {
+        dev_put(dev);
+        dev = NULL;
+        return ret;
+    }
+
+    return 0;
+}
+
+// 模块退出函数（精准恢复原始 flags）
+static void __exit promisc_driver_exit(void)
+{
+    int ret;
+
+    // 1. 检查设备引用是否有效
+    if (!dev) {
+        printk(KERN_ERR "promisc_driver: Exit - no valid device reference\n");
+        return;
+    }
+
+    // 2. 恢复到驱动加载前的原始 flags（带 RTNL 锁）
+    printk(KERN_INFO "promisc_driver: Exit - restoring %s flags to 0x%08x\n", ifname, orig_flags);
+    ret = safe_dev_change_flags(dev, orig_flags);
+    if (ret < 0) {
+        printk(KERN_ERR "promisc_driver: Exit - failed to restore flags (ret: %d)\n", ret);
+    } else {
+        printk(KERN_INFO "promisc_driver: Exit - %s promisc mode restored to original state\n", ifname);
+    }
+
+    // 3. 释放设备引用
+    dev_put(dev);
+    dev = NULL;
+}
+
+module_init(promisc_driver_init);
+module_exit(promisc_driver_exit);
+
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Your Name");
+MODULE_DESCRIPTION("A driver to control promiscuous mode via dev_change_flags (with RTNL lock)");
+MODULE_VERSION("2.0");
