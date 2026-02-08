@@ -1,0 +1,10 @@
+root@ATK-DLRK3568:/data# ip link set eth0 promisc on
+root@ATK-DLRK3568:/data# ip link show eth0
+3: eth0: <BROADCAST,MULTICAST,PROMISC,DYNAMIC,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
+    link/ether 46:6a:97:d7:16:68 brd ff:ff:ff:ff:ff:ff
+root@ATK-DLRK3568:/data# ip link set eth0 promisc off
+root@ATK-DLRK3568:/data# ip link show eth0
+3: eth0: <BROADCAST,MULTICAST,DYNAMIC,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
+    link/ether 46:6a:97:d7:16:68 brd ff:ff:ff:ff:ff:ff
+root@ATK-DLRK3568:/data#
+
