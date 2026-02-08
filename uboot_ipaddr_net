@@ -1,2 +1,9 @@
 => setenv ipaddr 192.168.2.99
 => setenv gatewayip 192.168.2.1
+=> setenv serverip 192.168.2.200
+=> tftpbootm 0x48000000 aosp/uImage/fitImage
+Using ethernet@fe2a0000 device
+TFTP from server 192.168.2.200; our IP address is 192.168.2.99
+Filename 'aosp/uImage/fitImage'.
+Load address: 0x48000000
+Loading: *
