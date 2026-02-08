@@ -1,0 +1,14 @@
+ubuntu20@NYX:/mnt/c/Users/35748$ echo -n '$3#33' > /dev/ttyACM0  //it works
+
+<6>[ 3163.852278] KGDB: kgdb nyx: DBG_PASS_EVENT0 0 error -12345
+<6>[ 3163.852303] KGDB: kgdb nyx: DBG_PASS_EVENT0 0
+<6>[ 3163.852323] KGDB: kgdb nyx: DBG_PASS_EVENT1 1
+<6>[ 3163.852343] KGDB: kgdb nyx: dbg_kdb_mode 1
+<6>[ 3163.852362] KGDB: kgdb nyx: kdb_stub 1
+<6>[ 3168.092106] KGDB: kgdb nyx: DBG_PASS_EVENT0 1 error -12345
+<6>[ 3168.092128] KGDB: kgdb nyx: DBG_PASS_EVENT0 1
+<6>[ 3168.092147] KGDB: kgdb nyx: DBG_PASS_EVENT1 0
+<6>[ 3168.092165] KGDB: kgdb nyx: dbg_kdb_mode 0
+<6>[ 3168.092183] KGDB: kgdb nyx: gdb_serial_stub 0
+
+but not sure why turn back to gdb.
