@@ -1,3 +1,16 @@
+高地址 →
++---------------------+
+| 函数A的返回地址（lr）| ← x30（lr）压栈
++---------------------+
+| 函数A的fp（x29）| ← 旧fp压栈，成为当前fp的“前向指针”
++---------------------+
+| 函数B的局部变量      |
++---------------------+
+| 函数B的临时数据      |
++---------------------+
+低地址 →  ← fp（x29）指向这里（函数B的栈帧起始）
+          ← sp（x31）指向栈顶
+
 (gdb) bt
 #0  armpmu_dispatch_irq (irq=8, dev=0xffffffc0efec63c8) at drivers/perf/arm_pmu.c:336
 #1  0xffffff8008112184 in __handle_irq_event_percpu (desc=0xffffffc0e9b27800, flags=0xffffff800800bee4)
