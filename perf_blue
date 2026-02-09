@@ -1,3 +1,25 @@
+# 1. 核心控制：如果CONFIG_BT_HCIUART开启（y/m），则编译hci_uart.o模块
+obj-$(CONFIG_BT_HCIUART)	+= hci_uart.o
+
+# 2. 基础依赖：hci_uart.o默认包含hci_ldisc.o（UART线路规程核心文件）
+hci_uart-y				:= hci_ldisc.o
+
+# 3. 条件追加：根据不同配置项，追加对应功能的源文件
+hci_uart-$(CONFIG_BT_HCIUART_SERDEV)	+= hci_serdev.o  # SERDEV串口设备支持
+hci_uart-$(CONFIG_BT_HCIUART_H4)	+= hci_h4.o      # H4协议（最常用的蓝牙UART协议）
+hci_uart-$(CONFIG_BT_HCIUART_BCSP)	+= hci_bcsp.o    # BCSP协议（早期蓝牙协议）
+hci_uart-$(CONFIG_BT_HCIUART_LL)	+= hci_ll.o      # LL协议（低功耗蓝牙）
+hci_uart-$(CONFIG_BT_HCIUART_ATH3K)	+= hci_ath.o     # Atheros 3K系列蓝牙芯片支持
+hci_uart-$(CONFIG_BT_HCIUART_3WIRE)	+= hci_h5.o      # 3线H5协议（节省引脚的UART协议）
+hci_uart-$(CONFIG_BT_HCIUART_INTEL)	+= hci_intel.o   # Intel蓝牙芯片支持
+hci_uart-$(CONFIG_BT_HCIUART_BCM)	+= hci_bcm.o     # Broadcom蓝牙芯片支持
+hci_uart-$(CONFIG_BT_HCIUART_QCA)	+= hci_qca.o     # QCA（高通）蓝牙芯片支持
+hci_uart-$(CONFIG_BT_HCIUART_AG6XX)	+= hci_ag6xx.o   # AG6XX系列蓝牙芯片支持
+hci_uart-$(CONFIG_BT_HCIUART_MRVL)	+= hci_mrvl.o    # Marvell蓝牙芯片支持
+
+# 4. 最终确定：hci_uart-objs（模块最终依赖的.o文件）等于上面所有hci_uart-y的集合
+hci_uart-objs				:= $(hci_uart-y)
+
 $4 = (struct inode *) 0xffffffc0e7f98ae8
 (gdb) p file
 $5 = (struct file *) 0xffffffc0cd3faa00
