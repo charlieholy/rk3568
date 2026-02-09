@@ -1,0 +1,5 @@
+$4 = (struct inode *) 0xffffffc0e7f98ae8
+(gdb) p file
+$5 = (struct file *) 0xffffffc0cd3faa00
+(gdb) p file->f_path->dentry->d_name->name
+$6 = (const unsigned char *) 0xffffffc0e81da778 "ttyS8"
