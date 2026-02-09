@@ -1,4 +1,3 @@
-// so far , it only work for tx seems.
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/kprobes.h>
@@ -7,57 +6,83 @@
 #include <linux/uaccess.h>
 #include <linux/string.h>
 #include <linux/types.h>
+#include <linux/path.h>    // path 结构体头文件
+#include <linux/dcache.h>  // dentry 操作头文件
 
-// 从你的日志提取的稳定特征
-#define TARGET_TTY_INDEX 265  // ttyS8 实际 index=265
-#define TARGET_TTY_TYPE  22208 // 硬件串口 type=22208
 #define MAX_DUMP_LEN     32
-#define DEBUG_LOG        0     // 关闭调试日志，只打印核心数据
+#define DEBUG_LOG        1  // 打印详细调试信息
 
 // 保存 tty_read 入参
 static struct file *g_tty_read_file = NULL;
 static char __user *g_tty_read_buf = NULL;
 
-// -------------------- 核心过滤：基于稳定的 index+type 特征 --------------------
-static inline int is_target_tty(struct tty_struct *tty)
+// -------------------- 核心函数：从 file 获取可读的设备名（严格 C89 语法） --------------------
+static inline const char *get_file_tty_name(struct file *file, char *buf, int buf_len)
 {
-    if (!tty || !tty->driver) {
-        return 0;
+    // C89 要求：所有变量声明必须在函数开头
+    const char *dname = NULL;
+    struct tty_struct *tty = NULL;  // 移到函数开头，避免混合声明
+
+    if (!file || !buf || buf_len < 32) {
+        snprintf(buf, buf_len, "unknown");
+        return buf;
     }
 
-    // 匹配从日志提取的稳定特征
-    if (tty->index == TARGET_TTY_INDEX && tty->driver->type == TARGET_TTY_TYPE) {
-        return 1;
+    // 1. 从 file 提取 dentry（文件目录项），获取设备名
+    if (file->f_path.dentry && file->f_path.dentry->d_name.name) {
+        dname = file->f_path.dentry->d_name.name;
+        // 只保留 tty 相关设备名（过滤 ptmx、console 等无关设备）
+        if (strstr(dname, "tty") != NULL) {
+            snprintf(buf, buf_len, "%s", dname);
+            return buf;
+        }
     }
 
-    return 0;
+    // 2. 备用方案：从 tty_struct 的 index 生成（如 ttyS265）
+    if (file && file->private_data) {
+        tty = (struct tty_struct *)file->private_data;
+    }
+    if (tty) {
+        snprintf(buf, buf_len, "ttyS%d", tty->index);
+    } else {
+        snprintf(buf, buf_len, "unknown");
+    }
+
+    return buf;
 }
 
-// -------------------- TX：tty_write 监控 --------------------
+// -------------------- TX：tty_write 监控（所有串口，打印 file 设备名） --------------------
 static int __kprobes tty_write_pre_handler(struct kprobe *p, struct pt_regs *regs)
 {
+    // C89：所有变量声明移到函数开头
     struct file *file = (struct file *)regs->regs[0];
     const char __user *buf = (const char __user *)regs->regs[1];
     size_t count = (size_t)regs->regs[2];
     struct tty_struct *tty = NULL;
+    char tty_name[64] = {0};  // 扩容：容纳完整设备名
     unsigned char kbuf[MAX_DUMP_LEN] = {0};
     int copy_len, i;
 
-    // 解析 tty_struct
+    // 1. 从 file 获取可读串口号（核心！）
+    get_file_tty_name(file, tty_name, sizeof(tty_name));
+
+    // 2. 解析 tty_struct（用于调试）
     if (file && file->private_data) {
         tty = (struct tty_struct *)file->private_data;
     }
 
-    // 匹配目标串口
-    if (!is_target_tty(tty)) {
-        return 0;
+    // 3. 调试信息：file 设备名 + tty 特征（对比验证）
+    if (DEBUG_LOG && tty) {
+        printk(KERN_INFO "[TTY DEBUG] TX | file_name:%s | tty_ptr:0x%lx | tty_index:%d | tty_type:%d",
+               tty_name, (unsigned long)tty, tty->index,
+               tty->driver ? tty->driver->type : -1);
     }
 
-    // 打印 TX 数据
-    if (count > 0) {
+    // 4. 打印 TX 数据（带 file 设备名）
+    if (count > 0 && tty) {
         copy_len = (count > MAX_DUMP_LEN) ? MAX_DUMP_LEN : count;
         if (copy_from_user(kbuf, buf, copy_len) == 0) {
-            printk(KERN_INFO "[UART8 TX] len: %zu | data: ", count);
+            printk(KERN_INFO "[TTY %s TX] len: %zu | data: ", tty_name, count);
             for (i = 0; i < copy_len; i++) {
                 printk(KERN_CONT "%02x ", kbuf[i]);
             }
@@ -68,25 +93,32 @@ static int __kprobes tty_write_pre_handler(struct kprobe *p, struct pt_regs *reg
     return 0;
 }
 
-// -------------------- RX：tty_read 监控 --------------------
+// -------------------- RX：tty_read 监控（所有串口，打印 file 设备名） --------------------
 static int __kprobes tty_read_pre_handler(struct kprobe *p, struct pt_regs *regs)
 {
+    // C89：所有变量声明移到函数开头
     struct file *file = (struct file *)regs->regs[0];
     char __user *buf = (char __user *)regs->regs[1];
     struct tty_struct *tty = NULL;
+    char tty_name[64] = {0};
 
-    // 保存入参
+    // 1. 保存入参到全局变量
     g_tty_read_file = file;
     g_tty_read_buf = buf;
 
-    // 提前过滤
+    // 2. 从 file 获取可读串口号
+    get_file_tty_name(file, tty_name, sizeof(tty_name));
+
+    // 3. 解析 tty_struct（用于调试）
     if (file && file->private_data) {
         tty = (struct tty_struct *)file->private_data;
     }
-    if (!is_target_tty(tty)) {
-        g_tty_read_file = NULL;
-        g_tty_read_buf = NULL;
-        return 0;
+
+    // 4. 调试信息
+    if (DEBUG_LOG && tty) {
+        printk(KERN_INFO "[TTY DEBUG] RX | file_name:%s | tty_ptr:0x%lx | tty_index:%d | tty_type:%d",
+               tty_name, (unsigned long)tty, tty->index,
+               tty->driver ? tty->driver->type : -1);
     }
 
     return 0;
@@ -94,10 +126,12 @@ static int __kprobes tty_read_pre_handler(struct kprobe *p, struct pt_regs *regs
 
 static void __kprobes tty_read_post_handler(struct kprobe *p, struct pt_regs *regs, unsigned long flags)
 {
+    // C89：所有变量声明移到函数开头
     ssize_t read_len = (ssize_t)regs->regs[0];
     struct file *file = g_tty_read_file;
     char __user *buf = g_tty_read_buf;
     struct tty_struct *tty = NULL;
+    char tty_name[64] = {0};
     unsigned char kbuf[MAX_DUMP_LEN] = {0};
     int copy_len, i;
 
@@ -105,27 +139,29 @@ static void __kprobes tty_read_post_handler(struct kprobe *p, struct pt_regs *re
     g_tty_read_file = NULL;
     g_tty_read_buf = NULL;
 
-    // 过滤无效数据
+    // 过滤无效数据（仅过滤长度，不过滤串口）
     if (read_len <= 0 || !file || !buf) {
         return;
     }
 
-    // 二次验证
+    // 1. 从 file 获取可读串口号
+    get_file_tty_name(file, tty_name, sizeof(tty_name));
+
+    // 2. 解析 tty_struct
     if (file->private_data) {
         tty = (struct tty_struct *)file->private_data;
     }
-    if (!is_target_tty(tty)) {
-        return;
-    }
 
-    // 打印 RX 数据
-    copy_len = (read_len > MAX_DUMP_LEN) ? MAX_DUMP_LEN : read_len;
-    if (copy_from_user(kbuf, buf, copy_len) == 0) {
-        printk(KERN_INFO "[UART8 RX] len: %zd | data: ", read_len);
-        for (i = 0; i < copy_len; i++) {
-            printk(KERN_CONT "%02x ", kbuf[i]);
+    // 3. 打印 RX 数据（带 file 设备名）
+    if (tty) {
+        copy_len = (read_len > MAX_DUMP_LEN) ? MAX_DUMP_LEN : read_len;
+        if (copy_from_user(kbuf, buf, copy_len) == 0) {
+            printk(KERN_INFO "[TTY %s RX] len: %zd | data: ", tty_name, read_len);
+            for (i = 0; i < copy_len; i++) {
+                printk(KERN_CONT "%02x ", kbuf[i]);
+            }
+            printk(KERN_CONT "\n");
         }
-        printk(KERN_CONT "\n");
     }
 }
 
@@ -141,24 +177,25 @@ static struct kprobe kp_tty_read = {
     .post_handler   = tty_read_post_handler,
 };
 
-static int __init uart8_dump_init(void)
+static int __init tty_dump_init(void)
 {
     int ret;
 
+    // 注册 tty_write 探针
     ret = register_kprobe(&kp_tty_write);
     if (ret < 0) {
         printk(KERN_ERR "register tty_write kprobe failed: %d\n", ret);
         goto err_tty_write;
     }
 
+    // 注册 tty_read 探针
     ret = register_kprobe(&kp_tty_read);
     if (ret < 0) {
         printk(KERN_ERR "register tty_read kprobe failed: %d\n", ret);
         goto err_tty_read;
     }
 
-    printk(KERN_INFO "UART8 TX/RX dump loaded (index: %d, type: %d)\n",
-           TARGET_TTY_INDEX, TARGET_TTY_TYPE);
+    printk(KERN_INFO "All TTY dump loaded (get name from file)\n");
     return 0;
 
 err_tty_read:
@@ -167,16 +204,16 @@ err_tty_write:
     return ret;
 }
 
-static void __exit uart8_dump_exit(void)
+static void __exit tty_dump_exit(void)
 {
     unregister_kprobe(&kp_tty_read);
     unregister_kprobe(&kp_tty_write);
-    printk(KERN_INFO "UART8 TX/RX dump unloaded\n");
+    printk(KERN_INFO "All TTY dump unloaded\n");
 }
 
-module_init(uart8_dump_init);
-module_exit(uart8_dump_exit);
+module_init(tty_dump_init);
+module_exit(tty_dump_exit);
 
 MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("RK3568 ttyS8 TX/RX Dump (Stable Index+Type)");
+MODULE_DESCRIPTION("RK3568 All TTY Dump (Get Name From File)");
 MODULE_AUTHOR("Custom");
