@@ -1,0 +1,62 @@
+static int h5_enqueue(struct hci_uart *hu, struct sk_buff *skb)
+{
+	struct h5 *h5 = hu->priv;
+
+	if (skb->len > 0xfff) {
+		BT_ERR("Packet too long (%u bytes)", skb->len);
+		kfree_skb(skb);
+		return 0;
+	}
+
+	if (h5->state != H5_ACTIVE) {
+		BT_ERR("Ignoring HCI data in non-active state");
+		kfree_skb(skb);
+		return 0;
+	}
+
+	h5_dump_data("h5_enqueue (SEND_HCI)", skb->data, skb->len);
+
+/////
+
+static int h5_recv(struct hci_uart *hu, const void *data, int count)
+{
+	struct h5 *h5 = hu->priv;
+	const unsigned char *ptr = data;
+
+	BT_DBG("%s pending %zu count %d", hu->hdev->name, h5->rx_pending,
+	       count);
+	
+	h5_dump_data("nyx h5_recv (RECV_RAW)", data, count);
+
+////////////
+
+// 数据dump辅助函数：打印十六进制+ASCII
+static void h5_dump_data(const char *prefix, const void *data, int len)
+{
+    const unsigned char *buf = data;
+    int i;
+
+    if (!data || len <= 0 || len > 4096) { // 限制最大长度，避免溢出
+        return;
+    }
+
+    // 打印前缀+长度
+    pr_info("[H5_KPROBE] %s: len=%d data: ", prefix, len);
+
+    // 打印十六进制
+    for (i = 0; i < len; i++) {
+        pr_cont("%02x ", buf[i]);
+        if ((i + 1) % 16 == 0 && i != len - 1)
+            pr_cont("\n[H5_KPROBE]          ");
+    }
+
+    // 打印ASCII（仅可打印字符）
+    pr_cont(" | ");
+    for (i = 0; i < len; i++) {
+        if (buf[i] >= 0x20 && buf[i] <= 0x7e)
+            pr_cont("%c", buf[i]);
+        else
+            pr_cont(".");
+    }
+    pr_cont("\n");
+}
