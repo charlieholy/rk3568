@@ -1,0 +1,10 @@
+# 临时生效（重启后失效）
+sysctl -w net.core.netdev_budget=1000       # 单次轮询最多处理 1000 个包
+sysctl -w net.core.netdev_budget_usecs=5000 # 单次轮询最长 5 毫秒
+sysctl -w net.core.netdev_max_backlog=5000  # 接收队列最大长度 5000
+
+# 永久生效（写入配置文件）
+echo "net.core.netdev_budget = 1000" >> /etc/sysctl.conf
+echo "net.core.netdev_budget_usecs = 5000" >> /etc/sysctl.conf
+echo "net.core.netdev_max_backlog = 5000" >> /etc/sysctl.conf
+sysctl -p  # 加载配置
