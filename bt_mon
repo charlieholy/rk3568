@@ -1,0 +1,666 @@
+root@ATK-DLRK3568:/data#  btmon -i hci0 -w bluetooth_dump.bts
+Bluetooth monitor ver 5.50
+= Note: Linux version 4.19.232 (aarch64)                               0.833498
+= Note: Bluetooth subsystem version 2.22                               0.833505
+@ MGMT Open: btmon (privileged) version 1.14                  {0x0001} 0.833561
+= New Index: 00:00:00:00:00:00 (Primary,UART,hci0)                    59.901228
+= Open Index: 00:00:00:00:00:00                                       59.902235
+= Index Info: 00:00:00:00:00:00 (Ericsson Technology Licensing)       59.902258
+< HCI Command: Read Local Supported Features (0x04|0x0003) plen 0  #1 59.902294
+> HCI Event: Vendor (0xff) plen 47                                 #2 60.030234
+        34 00 01 10 00 ff ff 00 08 00 00 01 00 00 00 17  4...............
+        0e 01 80 06 00 00 00 0b 00 05 00 00 00 5d 53 11  .............]S.
+        80 01 00 00 00 00 00 00 00 00 01 00 00 00 00     ...............
+> HCI Event: Command Complete (0x0e) plen 12                       #3 60.030457
+      Read Local Supported Features (0x04|0x0003) ncmd 2
+        Status: Success (0x00)
+        Features: 0xff 0xff 0xff 0xfa 0xdb 0xbf 0x7b 0x87
+          3 slot packets
+          5 slot packets
+          Encryption
+          Slot offset
+          Timing accuracy
+          Role switch
+          Hold mode
+          Sniff mode
+          Park state
+          Power control requests
+          Channel quality driven data rate (CQDDR)
+          SCO link
+          HV2 packets
+          HV3 packets
+          u-law log synchronous data
+          A-law log synchronous data
+          CVSD synchronous data
+          Paging parameter negotiation
+          Power control
+          Transparent synchronous data
+          Flow control lag (least significant bit)
+          Flow control lag (middle bit)
+          Flow control lag (most significant bit)
+          Broadcast Encryption
+          Enhanced Data Rate ACL 2 Mbps mode
+          Enhanced inquiry scan
+          Interlaced inquiry scan
+          Interlaced page scan
+          RSSI with inquiry results
+          Extended SCO link (EV3 packets)
+          EV4 packets
+          EV5 packets
+          AFH capable slave
+          AFH classification slave
+          LE Supported (Controller)
+          3-slot Enhanced Data Rate ACL packets
+          5-slot Enhanced Data Rate ACL packets
+          Sniff subrating
+          Pause encryption
+          AFH capable master
+          AFH classification master
+          Enhanced Data Rate eSCO 2 Mbps mode
+          3-slot Enhanced Data Rate eSCO packets
+          Extended Inquiry Response
+          Simultaneous LE and BR/EDR (Controller)
+          Secure Simple Pairing
+          Encapsulated PDU
+          Erroneous Data Reporting
+          Non-flushable Packet Boundary Flag
+          Link Supervision Timeout Changed Event
+          Inquiry TX Power Level
+          Enhanced Power Control
+          Extended features
+< HCI Command: Read Local Version Informat.. (0x04|0x0001) plen 0  #4 60.030567
+> HCI Event: Command Complete (0x0e) plen 12                       #5 60.031682
+      Read Local Version Information (0x04|0x0001) ncmd 2
+        Status: Success (0x00)
+        HCI version: Reserved (0x0b) - Revision 56759 (0xddb7)
+        LMP version: Reserved (0x0b) - Subversion 17329 (0x43b1)
+        Manufacturer: Realtek Semiconductor Corporation (93)
+< HCI Command: Read BD ADDR (0x04|0x0009) plen 0                   #6 60.031778
+> HCI Event: Command Complete (0x0e) plen 10                       #7 60.032983
+      Read BD ADDR (0x04|0x0009) ncmd 2
+        Status: Success (0x00)
+        Address: A7:81:2A:2B:22:22 (OUI A7-81-2A)
+< HCI Command: Read Buffer Size (0x04|0x0005) plen 0               #8 60.033201
+> HCI Event: Command Complete (0x0e) plen 11                       #9 60.034237
+      Read Buffer Size (0x04|0x0005) ncmd 2
+        Status: Success (0x00)
+        ACL MTU: 1021 ACL max packet: 6
+        SCO MTU: 255  SCO max packet: 12
+< HCI Command: Read Class of Device (0x03|0x0023) plen 0          #10 60.034338
+> HCI Event: Command Complete (0x0e) plen 7                       #11 60.035360
+      Read Class of Device (0x03|0x0023) ncmd 2
+        Status: Success (0x00)
+        Class: 0x000000
+          Major class: Miscellaneous
+          Minor class: 0x00
+< HCI Command: Read Local Name (0x03|0x0014) plen 0               #12 60.035469
+> HCI Event: Command Complete (0x0e) plen 252                     #13 60.038593
+      Read Local Name (0x03|0x0014) ncmd 2
+        Status: Success (0x00)
+        Name: RTK_BT_5.0
+< HCI Command: Read Voice Setting (0x03|0x0025) plen 0            #14 60.038696
+> HCI Event: Command Complete (0x0e) plen 6                       #15 60.039649
+      Read Voice Setting (0x03|0x0025) ncmd 2
+        Status: Success (0x00)
+        Setting: 0x0060
+          Input Coding: Linear
+          Input Data Format: 2's complement
+          Input Sample Size: 16-bit
+          # of bits padding at MSB: 0
+          Air Coding Format: CVSD
+< HCI Command: Read Number of Supported IAC (0x03|0x0038) plen 0  #16 60.039778
+> HCI Event: Command Complete (0x0e) plen 5                       #17 60.040754
+      Read Number of Supported IAC (0x03|0x0038) ncmd 2
+        Status: Success (0x00)
+        Number of IAC: 1
+< HCI Command: Read Current IAC LAP (0x03|0x0039) plen 0          #18 60.040896
+> HCI Event: Command Complete (0x0e) plen 8                       #19 60.041845
+      Read Current IAC LAP (0x03|0x0039) ncmd 2
+        Status: Success (0x00)
+        Number of IAC: 1
+        Access code: 0x9e8b33 (General Inquiry)
+< HCI Command: Set Event Filter (0x03|0x0005) plen 1              #20 60.041970
+        Type: Clear All Filters (0x00)
+> HCI Event: Command Complete (0x0e) plen 4                       #21 60.042887
+      Set Event Filter (0x03|0x0005) ncmd 2
+        Status: Success (0x00)
+< HCI Command: Write Connection Accept Ti.. (0x03|0x0016) plen 2  #22 60.042998
+        Timeout: 20000.000 msec (0x7d00)
+> HCI Event: Command Complete (0x0e) plen 4                       #23 60.043994
+      Write Connection Accept Timeout (0x03|0x0016) ncmd 2
+        Status: Success (0x00)
+< HCI Command: LE Read Buffer Size (0x08|0x0002) plen 0           #24 60.044152
+> HCI Event: Command Complete (0x0e) plen 7                       #25 60.045109
+      LE Read Buffer Size (0x08|0x0002) ncmd 2
+        Status: Success (0x00)
+        Data packet length: 251
+        Num data packets: 8
+< HCI Command: LE Read Local Supported Fe.. (0x08|0x0003) plen 0  #26 60.045265
+> HCI Event: Command Complete (0x0e) plen 12                      #27 60.046188
+      LE Read Local Supported Features (0x08|0x0003) ncmd 2
+        Status: Success (0x00)
+        Features: 0xfd 0x5f 0x66 0x3c 0x00 0x00 0x00 0x00
+          LE Encryption
+          Extended Reject Indication
+          Slave-initiated Features Exchange
+          LE Ping
+          LE Data Packet Length Extension
+          LL Privacy
+          Extended Scanner Filter Policies
+          LE 2M PHY
+          Stable Modulation Index - Transmitter
+          Stable Modulation Index - Receiver
+          LE Coded PHY
+          LE Extended Advertising
+          Channel Selection Algorithm #2
+          Unknown features (0x000000003c660000)
+< HCI Command: LE Read Supported States (0x08|0x001c) plen 0      #28 60.046337
+> HCI Event: Command Complete (0x0e) plen 12                      #29 60.047230
+      LE Read Supported States (0x08|0x001c) ncmd 2
+        Status: Success (0x00)
+        States: 0x000003ffffffffff
+          Non-connectable Advertising State
+          Scannable Advertising State
+          Connectable Advertising State
+          High Duty Cycle Directed Advertising State
+          Passive Scanning State
+          Active Scanning State
+          Initiating State
+            and Connection State (Master Role)
+          Connection State (Slave Role)
+          Non-connectable Advertising State
+            and Passive Scanning State
+          Scannable Advertising State
+            and Passive Scanning State
+          Connectable Advertising State
+            and Passive Scanning State
+          High Duty Cycle Directed Advertising State
+            and Passive Scanning State
+          Non-connectable Advertising State
+            and Active Scanning State
+          Scannable Advertising State
+            and Active Scanning State
+          Connectable Advertising State
+            and Active Scanning State
+          High Duty Cycle Directed Advertising State
+            and Active Scanning State
+          Non-connectable Advertising State
+            and Initiating State
+          Scannable Advertising State
+            and Initiating State
+          Non-connectable Advertising State
+            and Connection State (Master Role)
+          Scannable Advertising State
+            and Connection State (Master Role)
+          Non-connectable Advertising State
+            and Connection State (Slave Role)
+          Scannable Advertising State
+            and Connection State (Slave Role)
+          Passive Scanning State
+            and Initiating State
+          Active Scanning State
+            and Initiating State
+          Passive Scanning State
+            and Connection State (Master Role)
+          Active Scanning State
+            and Connection State (Master Role)
+          Passive Scanning State
+            and Connection State (Slave Role)
+          Active Scanning State
+            and Connection State (Slave Role)
+          Initiating State
+            and Connection State (Master Role)
+            and Master Role & Master Role
+          Low Duty Cycle Directed Advertising State
+          Low Duty Cycle Directed Advertising State
+            and Passive Scanning State
+          Low Duty Cycle Directed Advertising State
+            and Active Scanning State
+          Connectable Advertising State
+            and Initiating State
+            and Master Role & Slave Role
+          High Duty Cycle Directed Advertising State
+            and Initiating State
+            and Master Role & Slave Role
+          Low Duty Cycle Directed Advertising State
+            and Initiating State
+            and Master Role & Slave Role
+          Connectable Advertising State
+            and Connection State (Master Role)
+            and Master Role & Slave Role
+          High Duty Cycle Directed Advertising State
+            and Connection State (Master Role)
+            and Master Role & Slave Role
+          Low Duty Cycle Directed Advertising State
+            and Connection State (Master Role)
+            and Master Role & Slave Role
+          Connectable Advertising State
+            and Connection State (Slave Role)
+            and Master Role & Slave Role
+          High Duty Cycle Directed Advertising State
+            and Connection State (Slave Role)
+            and Slave Role & Slave Role
+          Low Duty Cycle Directed Advertising State
+            and Connection State (Slave Role)
+            and Slave Role & Slave Role
+          Initiating State
+            and Connection State (Slave Role)
+            and Master Role & Slave Role
+< HCI Command: Read Local Supported Comma.. (0x04|0x0002) plen 0  #30 60.047395
+> HCI Event: Command Complete (0x0e) plen 68                      #31 60.048935
+      Read Local Supported Commands (0x04|0x0002) ncmd 2
+        Status: Success (0x00)
+        Commands: 216 entries
+          Inquiry (Octet 0 - Bit 0)
+          Inquiry Cancel (Octet 0 - Bit 1)
+          Periodic Inquiry Mode (Octet 0 - Bit 2)
+          Exit Periodic Inquiry Mode (Octet 0 - Bit 3)
+          Create Connection (Octet 0 - Bit 4)
+          Disconnect (Octet 0 - Bit 5)
+          Add SCO Connection (Octet 0 - Bit 6)
+          Create Connection Cancel (Octet 0 - Bit 7)
+          Accept Connection Request (Octet 1 - Bit 0)
+          Reject Connection Request (Octet 1 - Bit 1)
+          Link Key Request Reply (Octet 1 - Bit 2)
+          Link Key Request Negative Reply (Octet 1 - Bit 3)
+          PIN Code Request Reply (Octet 1 - Bit 4)
+          PIN Code Request Negative Reply (Octet 1 - Bit 5)
+          Change Connection Packet Type (Octet 1 - Bit 6)
+          Authentication Requested (Octet 1 - Bit 7)
+          Set Connection Encryption (Octet 2 - Bit 0)
+          Change Connection Link Key (Octet 2 - Bit 1)
+          Master Link Key (Octet 2 - Bit 2)
+          Remote Name Request (Octet 2 - Bit 3)
+          Remote Name Request Cancel (Octet 2 - Bit 4)
+          Read Remote Supported Features (Octet 2 - Bit 5)
+          Read Remote Extended Features (Octet 2 - Bit 6)
+          Read Remote Version Information (Octet 2 - Bit 7)
+          Read Clock Offset (Octet 3 - Bit 0)
+          Read LMP Handle (Octet 3 - Bit 1)
+          Sniff Mode (Octet 4 - Bit 2)
+          Exit Sniff Mode (Octet 4 - Bit 3)
+          QoS Setup (Octet 4 - Bit 6)
+          Role Discovery (Octet 4 - Bit 7)
+          Switch Role (Octet 5 - Bit 0)
+          Read Link Policy Settings (Octet 5 - Bit 1)
+          Write Link Policy Settings (Octet 5 - Bit 2)
+          Read Default Link Policy Settings (Octet 5 - Bit 3)
+          Write Default Link Policy Settings (Octet 5 - Bit 4)
+          Flow Specification (Octet 5 - Bit 5)
+          Set Event Mask (Octet 5 - Bit 6)
+          Reset (Octet 5 - Bit 7)
+          Set Event Filter (Octet 6 - Bit 0)
+          Flush (Octet 6 - Bit 1)
+          Read PIN Type (Octet 6 - Bit 2)
+          Write PIN Type (Octet 6 - Bit 3)
+          Create New Unit Key (Octet 6 - Bit 4)
+          Read Stored Link Key (Octet 6 - Bit 5)
+          Write Stored Link Key (Octet 6 - Bit 6)
+          Delete Stored Link Key (Octet 6 - Bit 7)
+          Write Local Name (Octet 7 - Bit 0)
+          Read Local Name (Octet 7 - Bit 1)
+          Read Connection Accept Timeout (Octet 7 - Bit 2)
+          Write Connection Accept Timeout (Octet 7 - Bit 3)
+          Read Page Timeout (Octet 7 - Bit 4)
+          Write Page Timeout (Octet 7 - Bit 5)
+          Read Scan Enable (Octet 7 - Bit 6)
+          Write Scan Enable (Octet 7 - Bit 7)
+          Read Page Scan Activity (Octet 8 - Bit 0)
+          Write Page Scan Activity (Octet 8 - Bit 1)
+          Read Inquiry Scan Activity (Octet 8 - Bit 2)
+          Write Inquiry Scan Activity (Octet 8 - Bit 3)
+          Read Authentication Enable (Octet 8 - Bit 4)
+          Write Authentication Enable (Octet 8 - Bit 5)
+          Read Class of Device (Octet 9 - Bit 0)
+          Write Class of Device (Octet 9 - Bit 1)
+          Read Voice Setting (Octet 9 - Bit 2)
+          Write Voice Setting (Octet 9 - Bit 3)
+          Read Automatic Flush Timeout (Octet 9 - Bit 4)
+          Write Automatic Flush Timeout (Octet 9 - Bit 5)
+          Read Num Broadcast Retransmissions (Octet 9 - Bit 6)
+          Write Num Broadcast Retransmissions (Octet 9 - Bit 7)
+          Read Transmit Power Level (Octet 10 - Bit 2)
+          Read Sync Flow Control Enable (Octet 10 - Bit 3)
+          Write Sync Flow Control Enable (Octet 10 - Bit 4)
+          Set Controller To Host Flow Control (Octet 10 - Bit 5)
+          Host Buffer Size (Octet 10 - Bit 6)
+          Host Number of Completed Packets (Octet 10 - Bit 7)
+          Read Link Supervision Timeout (Octet 11 - Bit 0)
+          Write Link Supervision Timeout (Octet 11 - Bit 1)
+          Read Number of Supported IAC (Octet 11 - Bit 2)
+          Read Current IAC LAP (Octet 11 - Bit 3)
+          Write Current IAC LAP (Octet 11 - Bit 4)
+          Read Page Scan Mode (Octet 11 - Bit 7)
+          Write Page Scan Mode (Octet 12 - Bit 0)
+          Set AFH Host Channel Classification (Octet 12 - Bit 1)
+          Read Inquiry Scan Type (Octet 12 - Bit 4)
+          Write Inquiry Scan Type (Octet 12 - Bit 5)
+          Read Inquiry Mode (Octet 12 - Bit 6)
+          Write Inquiry Mode (Octet 12 - Bit 7)
+          Read Page Scan Type (Octet 13 - Bit 0)
+          Write Page Scan Type (Octet 13 - Bit 1)
+          Read AFH Channel Assessment Mode (Octet 13 - Bit 2)
+          Write AFH Channel Assessment Mode (Octet 13 - Bit 3)
+          Read Local Version Information (Octet 14 - Bit 3)
+          Read Local Supported Features (Octet 14 - Bit 5)
+          Read Local Extended Features (Octet 14 - Bit 6)
+          Read Buffer Size (Octet 14 - Bit 7)
+          Read BD ADDR (Octet 15 - Bit 1)
+          Read Failed Contact Counter (Octet 15 - Bit 2)
+          Reset Failed Contact Counter (Octet 15 - Bit 3)
+          Read Link Quality (Octet 15 - Bit 4)
+          Read RSSI (Octet 15 - Bit 5)
+          Read AFH Channel Map (Octet 15 - Bit 6)
+          Read Clock (Octet 15 - Bit 7)
+          Read Loopback Mode (Octet 16 - Bit 0)
+          Write Loopback Mode (Octet 16 - Bit 1)
+          Enable Device Under Test Mode (Octet 16 - Bit 2)
+          Setup Synchronous Connection (Octet 16 - Bit 3)
+          Accept Synchronous Connection Request (Octet 16 - Bit 4)
+          Reject Synchronous Connection Request (Octet 16 - Bit 5)
+          Read Extended Inquiry Response (Octet 17 - Bit 0)
+          Write Extended Inquiry Response (Octet 17 - Bit 1)
+          Refresh Encryption Key (Octet 17 - Bit 2)
+          Sniff Subrating (Octet 17 - Bit 4)
+          Read Simple Pairing Mode (Octet 17 - Bit 5)
+          Write Simple Pairing Mode (Octet 17 - Bit 6)
+          Read Local OOB Data (Octet 17 - Bit 7)
+          Read Inquiry Response TX Power Level (Octet 18 - Bit 0)
+          Write Inquiry Transmit Power Level (Octet 18 - Bit 1)
+          Read Default Erroneous Data Reporting (Octet 18 - Bit 2)
+          Write Default Erroneous Data Reporting (Octet 18 - Bit 3)
+          IO Capability Request Reply (Octet 18 - Bit 7)
+          User Confirmation Request Reply (Octet 19 - Bit 0)
+          User Confirmation Request Neg Reply (Octet 19 - Bit 1)
+          User Passkey Request Reply (Octet 19 - Bit 2)
+          User Passkey Request Negative Reply (Octet 19 - Bit 3)
+          Remote OOB Data Request Reply (Octet 19 - Bit 4)
+          Write Simple Pairing Debug Mode (Octet 19 - Bit 5)
+          Enhanced Flush (Octet 19 - Bit 6)
+          Remote OOB Data Request Neg Reply (Octet 19 - Bit 7)
+          Send Keypress Notification (Octet 20 - Bit 2)
+          IO Capability Request Negative Reply (Octet 20 - Bit 3)
+          Read Encryption Key Size (Octet 20 - Bit 4)
+          Read Enhanced Transmit Power Level (Octet 24 - Bit 0)
+          Read LE Host Supported (Octet 24 - Bit 5)
+          Write LE Host Supported (Octet 24 - Bit 6)
+          LE Set Event Mask (Octet 25 - Bit 0)
+          LE Read Buffer Size (Octet 25 - Bit 1)
+          LE Read Local Supported Features (Octet 25 - Bit 2)
+          LE Set Random Address (Octet 25 - Bit 4)
+          LE Set Advertising Parameters (Octet 25 - Bit 5)
+          LE Read Advertising Channel TX Power (Octet 25 - Bit 6)
+          LE Set Advertising Data (Octet 25 - Bit 7)
+          LE Set Scan Response Data (Octet 26 - Bit 0)
+          LE Set Advertise Enable (Octet 26 - Bit 1)
+          LE Set Scan Parameters (Octet 26 - Bit 2)
+          LE Set Scan Enable (Octet 26 - Bit 3)
+          LE Create Connection (Octet 26 - Bit 4)
+          LE Create Connection Cancel (Octet 26 - Bit 5)
+          LE Read White List Size (Octet 26 - Bit 6)
+          LE Clear White List (Octet 26 - Bit 7)
+          LE Add Device To White List (Octet 27 - Bit 0)
+          LE Remove Device From White List (Octet 27 - Bit 1)
+          LE Connection Update (Octet 27 - Bit 2)
+          LE Set Host Channel Classification (Octet 27 - Bit 3)
+          LE Read Channel Map (Octet 27 - Bit 4)
+          LE Read Remote Used Features (Octet 27 - Bit 5)
+          LE Encrypt (Octet 27 - Bit 6)
+          LE Rand (Octet 27 - Bit 7)
+          LE Start Encryption (Octet 28 - Bit 0)
+          LE Long Term Key Request Reply (Octet 28 - Bit 1)
+          LE Long Term Key Request Neg Reply (Octet 28 - Bit 2)
+          LE Read Supported States (Octet 28 - Bit 3)
+          LE Receiver Test (Octet 28 - Bit 4)
+          LE Transmitter Test (Octet 28 - Bit 5)
+          LE Test End (Octet 28 - Bit 6)
+          Read Local Supported Codecs (Octet 29 - Bit 5)
+          Remote OOB Extended Data Request Reply (Octet 32 - Bit 1)
+          Read Secure Connections Host Support (Octet 32 - Bit 2)
+          Read Authenticated Payload Timeout (Octet 32 - Bit 4)
+          Write Authenticated Payload Timeout (Octet 32 - Bit 5)
+          Read Local OOB Extended Data (Octet 32 - Bit 6)
+          Write Secure Connections Test Mode (Octet 32 - Bit 7)
+          LE Set Data Length (Octet 33 - Bit 6)
+          LE Read Suggested Default Data Length (Octet 33 - Bit 7)
+          LE Write Suggested Default Data Length (Octet 34 - Bit 0)
+          LE Read Maximum Data Length (Octet 35 - Bit 3)
+          LE Read PHY (Octet 35 - Bit 4)
+          LE Set Default PHY (Octet 35 - Bit 5)
+          LE Set PHY (Octet 35 - Bit 6)
+          LE Enhanced Receiver Test (Octet 35 - Bit 7)
+          LE Enhanced Transmitter Test (Octet 36 - Bit 0)
+          LE Set Advertising Set Random Address (Octet 36 - Bit 1)
+          LE Set Extended Advertising Parameters (Octet 36 - Bit 2)
+          LE Set Extended Advertising Data (Octet 36 - Bit 3)
+          LE Set Extended Scan Response Data (Octet 36 - Bit 4)
+          LE Set Extended Advertising Enable (Octet 36 - Bit 5)
+          LE Read Maximum Advertising Data Length (Octet 36 - Bit 6)
+          LE Read Number of Supported Advertising Sets (Octet 36 - Bit 7)
+          LE Remove Advertising Set (Octet 37 - Bit 0)
+          LE Clear Advertising Sets (Octet 37 - Bit 1)
+          LE Set Extended Scan Parameters (Octet 37 - Bit 5)
+          LE Set Extended Scan Enable (Octet 37 - Bit 6)
+          LE Extended Create Connection (Octet 37 - Bit 7)
+          LE Read Transmit Power (Octet 38 - Bit 7)
+          LE Read RF Path Compensation (Octet 39 - Bit 0)
+          LE Write RF Path Compensation (Octet 39 - Bit 1)
+          Octet 41 - Bit 3
+          Octet 41 - Bit 4
+          Octet 41 - Bit 5
+          Octet 41 - Bit 6
+          Octet 41 - Bit 7
+          Octet 42 - Bit 0
+          Octet 42 - Bit 1
+          Octet 42 - Bit 2
+          Octet 42 - Bit 3
+          Octet 42 - Bit 4
+          Octet 43 - Bit 2
+          Octet 43 - Bit 3
+          Octet 43 - Bit 4
+          Octet 43 - Bit 5
+          Octet 43 - Bit 6
+          Octet 43 - Bit 7
+          Octet 44 - Bit 0
+          Octet 44 - Bit 1
+          Octet 44 - Bit 2
+          Octet 45 - Bit 2
+          Octet 45 - Bit 3
+          Octet 45 - Bit 4
+< HCI Command: Write Extended Inquiry R.. (0x03|0x0052) plen 241  #32 60.049114
+        FEC: Not required (0x00)
+> HCI Event: Command Complete (0x0e) plen 4                       #33 60.052890
+      Write Extended Inquiry Response (0x03|0x0052) ncmd 2
+        Status: Success (0x00)
+< HCI Command: Write Inquiry Mode (0x03|0x0045) plen 1            #34 60.053021
+        Mode: Inquiry Result with RSSI or Extended Inquiry Result (0x02)
+> HCI Event: Command Complete (0x0e) plen 4                       #35 60.053816
+      Write Inquiry Mode (0x03|0x0045) ncmd 2
+        Status: Success (0x00)
+< HCI Command: Read Inquiry Response TX P.. (0x03|0x0058) plen 0  #36 60.054009
+> HCI Event: Command Complete (0x0e) plen 5                       #37 60.054813
+      Read Inquiry Response TX Power Level (0x03|0x0058) ncmd 2
+        Status: Success (0x00)
+        TX power: 2 dbm (0x02)
+< HCI Command: Read Local Extended Features (0x04|0x0004) plen 1  #38 60.054924
+        Page: 1
+> HCI Event: Command Complete (0x0e) plen 14                      #39 60.055888
+      Read Local Extended Features (0x04|0x0004) ncmd 2
+        Status: Success (0x00)
+        Page: 1/2
+        Features: 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
+< HCI Command: Set Event Mask (0x03|0x0001) plen 8                #40 60.056079
+        Mask: 0x3dbff807fffbffff
+          Inquiry Complete
+          Inquiry Result
+          Connection Complete
+          Connection Request
+          Disconnection Complete
+          Authentication Complete
+          Remote Name Request Complete
+          Encryption Change
+          Change Connection Link Key Complete
+          Master Link Key Complete
+          Read Remote Supported Features Complete
+          Read Remote Version Information Complete
+          QoS Setup Complete
+          Command Complete
+          Command Status
+          Hardware Error
+          Flush Occurred
+          Role Change
+          Mode Change
+          Return Link Keys
+          PIN Code Request
+          Link Key Request
+          Link Key Notification
+          Loopback Command
+          Data Buffer Overflow
+          Max Slots Change
+          Read Clock Offset Complete
+          Connection Packet Type Changed
+          QoS Violation
+          Page Scan Mode Change
+          Page Scan Repetition Mode Change
+          Flow Specification Complete
+          Inquiry Result with RSSI
+          Read Remote Extended Features Complete
+          Synchronous Connection Complete
+          Synchronous Connection Changed
+          Sniff Subrating
+          Extended Inquiry Result
+          Encryption Key Refresh Complete
+          IO Capability Request
+          IO Capability Request Reply
+          User Confirmation Request
+          User Passkey Request
+          Remote OOB Data Request
+          Simple Pairing Complete
+          Link Supervision Timeout Changed
+          Enhanced Flush Complete
+          User Passkey Notification
+          Keypress Notification
+          Remote Host Supported Features Notification
+          LE Meta
+> HCI Event: Command Complete (0x0e) plen 4                       #41 60.056903
+      Set Event Mask (0x03|0x0001) ncmd 2
+        Status: Success (0x00)
+< HCI Command: Read Stored Link Key (0x03|0x000d) plen 7          #42 60.057017
+        Address: 00:00:00:00:00:00 (OUI 00-00-00)
+        Read all: 0x01
+> HCI Event: Command Complete (0x0e) plen 8                       #43 60.057960
+      Read Stored Link Key (0x03|0x000d) ncmd 2
+        Status: Success (0x00)
+        Max num keys: 7
+        Num keys: 0
+< HCI Command: Write Default Link Policy... (0x02|0x000f) plen 2  #44 60.058081
+        Link policy: 0x000f
+          Enable Role Switch
+          Enable Hold Mode
+          Enable Sniff Mode
+          Enable Park State
+> HCI Event: Command Complete (0x0e) plen 4                       #45 60.058978
+      Write Default Link Policy Settings (0x02|0x000f) ncmd 2
+        Status: Success (0x00)
+< HCI Command: Read Page Scan Activity (0x03|0x001b) plen 0       #46 60.059096
+> HCI Event: Command Complete (0x0e) plen 8                       #47 60.059923
+      Read Page Scan Activity (0x03|0x001b) ncmd 2
+        Status: Success (0x00)
+        Interval: 1280.000 msec (0x0800)
+        Window: 11.250 msec (0x0012)
+< HCI Command: Read Page Scan Type (0x03|0x0046) plen 0           #48 60.060056
+> HCI Event: Command Complete (0x0e) plen 5                       #49 60.060958
+      Read Page Scan Type (0x03|0x0046) ncmd 2
+        Status: Success (0x00)
+        Type: Standard Scan (0x00)
+< HCI Command: LE Set Event Mask (0x08|0x0001) plen 8             #50 60.061105
+        Mask: 0x00000000000a1e5f
+          LE Connection Complete
+          LE Advertising Report
+          LE Connection Update Complete
+          LE Read Remote Used Features Complete
+          LE Long Term Key Request
+          LE Data Length Change
+          LE Enhanced Connection Complete
+          LE Direct Advertising Report
+          LE PHY Update Complete
+          LE Extended Advertising Report
+          LE Extended Advertising Set Terminated
+          LE Channel Selection Algorithm
+> HCI Event: Command Complete (0x0e) plen 4                       #51 60.061987
+      LE Set Event Mask (0x08|0x0001) ncmd 2
+        Status: Success (0x00)
+< HCI Command: LE Read White List Size (0x08|0x000f) plen 0       #52 60.062083
+> HCI Event: Command Complete (0x0e) plen 5                       #53 60.062937
+      LE Read White List Size (0x08|0x000f) ncmd 2
+        Status: Success (0x00)
+        Size: 32
+< HCI Command: LE Clear White List (0x08|0x0010) plen 0           #54 60.063141
+> HCI Event: Command Complete (0x0e) plen 4                       #55 60.063989
+      LE Clear White List (0x08|0x0010) ncmd 2
+        Status: Success (0x00)
+< HCI Command: LE Read Maximum Data Length (0x08|0x002f) plen 0   #56 60.064174
+> HCI Event: Command Complete (0x0e) plen 12                      #57 60.065184
+      LE Read Maximum Data Length (0x08|0x002f) ncmd 2
+        Status: Success (0x00)
+        Max TX octets: 251
+        Max TX time: 17040
+        Max RX octets: 251
+        Max RX time: 17040
+< HCI Command: LE Read Suggested Default... (0x08|0x0023) plen 0  #58 60.065405
+> HCI Event: Command Complete (0x0e) plen 8                       #59 60.066324
+      LE Read Suggested Default Data Length (0x08|0x0023) ncmd 2
+        Status: Success (0x00)
+        TX octets: 27
+        TX time: 328
+< HCI Command: LE Read Number of Supporte.. (0x08|0x003b) plen 0  #60 60.066396
+> HCI Event: Command Complete (0x0e) plen 5                       #61 60.067236
+      LE Read Number of Supported Advertising Sets (0x08|0x003b) ncmd 2
+        Status: Success (0x00)
+        Num supported adv sets: 10
+< HCI Command: Read Local Extended Features (0x04|0x0004) plen 1  #62 60.067418
+        Page: 2
+> HCI Event: Command Complete (0x0e) plen 14                      #63 60.068514
+      Read Local Extended Features (0x04|0x0004) ncmd 2
+        Status: Success (0x00)
+        Page: 2/2
+        Features: 0x00 0x03 0x00 0x00 0x00 0x00 0x00 0x00
+          Secure Connections (Controller Support)
+          Ping
+< HCI Command: Delete Stored Link Key (0x03|0x0012) plen 7        #64 60.068687
+        Address: 00:00:00:00:00:00 (OUI 00-00-00)
+        Delete all: 0x01
+> HCI Event: Command Complete (0x0e) plen 6                       #65 60.069776
+      Delete Stored Link Key (0x03|0x0012) ncmd 2
+        Status: Success (0x00)
+        Num keys: 0
+< HCI Command: Read Local Supported Codecs (0x04|0x000b) plen 0   #66 60.069895
+> HCI Event: Command Complete (0x0e) plen 10                      #67 60.070852
+      Read Local Supported Codecs (0x04|0x000b) ncmd 2
+        Status: Success (0x00)
+        Number of supported codecs: 4
+          Codec: u-law log (0x00)
+          Codec: A-law log (0x01)
+          Codec: CVSD (0x02)
+          Codec: Transparent (0x03)
+        Number of vendor codecs: 0
+< HCI Command: LE Write Suggested Default.. (0x08|0x0024) plen 4  #68 60.071033
+        TX octets: 251
+        TX time: 17040
+> HCI Event: Command Complete (0x0e) plen 4                       #69 60.071804
+      LE Write Suggested Default Data Length (0x08|0x0024) ncmd 2
+        Status: Success (0x00)
+< HCI Command: LE Set Default PHY (0x08|0x0031) plen 3            #70 60.071889
+        All PHYs preference: 0x00
+        TX PHYs preference: 0x01
+          LE 1M
+        RX PHYs preference: 0x01
+          LE 1M
+> HCI Event: Command Complete (0x0e) plen 4                       #71 60.072722
+      LE Set Default PHY (0x08|0x0031) ncmd 2
+        Status: Success (0x00)
+= Index Info: A7:81:2A:2B:22:22 (Realtek Semiconductor Corporation)   60.073216
+@ MGMT Event: Index Added (0x0004) plen 0                    {0x0001} 60.073247
+= Close Index: A7:81:2A:2B:22:22                                      61.374129
+@ MGMT Event: Index Removed (0x0005) plen 0                  {0x0001} 61.374197
+= Delete Index: A7:81:2A:2B:22:22                                     61.374228
