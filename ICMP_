@@ -11,7 +11,7 @@ setsockopt(15, SOL_SOCKET, SO_TIMESTAMPNS, [0], 4) = 0
 
 
 ^Cstrace: Process 751 detached
-root@ATK-DLRK3568:/data# ps -ef | grep ptp
+root@NYX:/data# ps -ef | grep ptp
 root       751     1  0 17:05 ?        00:00:11 /usr/sbin/ptp4l -f /etc/linuxptp.cfg
 root      1093   844  0 21:20 pts/2    00:00:00 grep ptp
-root@ATK-DLRK3568:/data# strace -p 751 -e setsockopt
+root@NYX:/data# strace -p 751 -e setsockopt
