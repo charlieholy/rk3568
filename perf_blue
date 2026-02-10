@@ -1,3 +1,10 @@
+(gdb) p *((struct hci_uart*)hdev->dev->driver_data)->proto
+$10 = {id = 2, name = 0xffffff8009207b64 "Three-wire (H5)", manufacturer = 0, init_speed = 0, oper_speed = 0,
+  open = 0xffffff8008a0fa74 <h5_open>, close = 0xffffff8008a0f0b8 <h5_close>, flush = 0xffffff8008a0f20c <h5_flush>,
+  setup = 0xffffff8008a0eba8 <h5_setup>, set_baudrate = 0x0, recv = 0xffffff8008a0ee78 <h5_recv>,
+  enqueue = 0xffffff8008a0f258 <h5_enqueue>, dequeue = 0xffffff8008a0fe3c <h5_dequeue>}
+(gdb)
+
 # 1. 核心控制：如果CONFIG_BT_HCIUART开启（y/m），则编译hci_uart.o模块
 obj-$(CONFIG_BT_HCIUART)	+= hci_uart.o
 
