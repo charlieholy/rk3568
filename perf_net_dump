@@ -1,0 +1,2 @@
+./perf record -g tcpdump -w b.pcap
+./perf report -n --stdio > perf_net_dump.txt
