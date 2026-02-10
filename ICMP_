@@ -1,0 +1,17 @@
+setsockopt(15, SOL_IP, IP_MULTICAST_TTL, [1], 4) = 0
+setsockopt(15, SOL_IP, IP_ADD_MEMBERSHIP, {imr_multiaddr=inet_addr("224.0.1.129"), imr_interface=inet_addr("0.0.0.0")}, 12) = 0
+setsockopt(15, SOL_IP, IP_MULTICAST_LOOP, [0], 4) = 0
+setsockopt(15, SOL_IP, IP_ADD_MEMBERSHIP, {imr_multiaddr=inet_addr("224.0.0.107"), imr_interface=inet_addr("0.0.0.0")}, 12) = 0
+setsockopt(15, SOL_IP, IP_MULTICAST_LOOP, [0], 4) = 0
+setsockopt(15, SOL_IP, IP_MULTICAST_IF, "\0\0\0\0\0\0\0\0\3\0\0\0", 12) = 0
+setsockopt(14, SOL_SOCKET, SO_TIMESTAMPING, [69], 4) = 0
+setsockopt(14, SOL_SOCKET, SO_SELECT_ERR_QUEUE, [1], 4) = 0
+setsockopt(14, SOL_SOCKET, SO_TIMESTAMPNS, [0], 4) = 0
+setsockopt(15, SOL_SOCKET, SO_TIMESTAMPNS, [0], 4) = 0
+
+
+^Cstrace: Process 751 detached
+root@ATK-DLRK3568:/data# ps -ef | grep ptp
+root       751     1  0 17:05 ?        00:00:11 /usr/sbin/ptp4l -f /etc/linuxptp.cfg
+root      1093   844  0 21:20 pts/2    00:00:00 grep ptp
+root@ATK-DLRK3568:/data# strace -p 751 -e setsockopt
