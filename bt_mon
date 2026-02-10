@@ -1,3 +1,28 @@
+read
+h5_recv (hu=0xffffffc0e58ada00, data=0xffffffc0e59ff922, count=16) at drivers/bluetooth/hci_h5.c:589
+#1  0xffffff8008a0c520 in hci_uart_tty_receive (tty=0xffffffc0e58a8400, data=0xffffffc0e59ff922 "\300", flags=<optimized out>, count=16) at drivers/bluetooth/hci_ldisc.c:629
+#2  0xffffff80085c5e1c in tty_ldisc_receive_buf (ld=<optimized out>, p=0xffffffc0e59ff922 "\300", f=0x0, count=16) at drivers/tty/tty_buffer.c:460
+#3  0xffffff80085c68d8 in tty_port_default_receive_buf (port=<optimized out>, p=0xffffffc0e59ff922 "\300", f=0x0, count=16) at drivers/tty/tty_port.c:38
+#4  0xffffff80085c6420 in receive_buf (count=<optimized out>, head=<optimized out>, port=<optimized out>) at drivers/tty/tty_buffer.c:476
+#5  flush_to_ldisc (work=0xffffffc0e7e151c8) at drivers/tty/tty_buffer.c:528
+#6  0xffffff80080cd104 in process_one_work (worker=0xffffffc0cdbdd700, work=0xffffffc0e7e151c8) at kernel/workqueue.c:2175
+#7  0xffffff80080ce0b0 in worker_thread (__worker=0xffffffc0cdbdd700) at kernel/workqueue.c:2321
+#8  0xffffff80080d3254 in kthread (_create=0xffffffc0e6b46380) at kernel/kthread.c:260
+#9  0xffffff8008085544 in ret_from_fork () at arch/arm64/kernel/entry.S:1103
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
+
+send
+#0  h5_enqueue (hu=0xffffffc0e58ada00, skb=0xffffffc0e5edba00) at drivers/bluetooth/hci_h5.c:626
+#1  0xffffff8008a0c414 in hci_uart_send_frame (hdev=<optimized out>, skb=0xffffffc0e5edba00) at drivers/bluetooth/hci_ldisc.c:302
+#2  0xffffff8008c77cb8 in hci_send_frame (hdev=0xffffffc0e7b64000, skb=0xffffffc0e5edba00) at net/bluetooth/hci_core.c:3497
+#3  0xffffff8008c77d9c in hci_cmd_work (work=0xffffffc0e7b64930) at net/bluetooth/hci_core.c:4422
+#4  0xffffff80080cd104 in process_one_work (worker=0xffffffc0cd0df400, work=0xffffffc0e7b64930) at kernel/workqueue.c:2175
+#5  0xffffff80080ce0b0 in worker_thread (__worker=0xffffffc0cd0df400) at kernel/workqueue.c:2321
+#6  0xffffff80080d3254 in kthread (_create=0xffffffc0cec08180) at kernel/kthread.c:260
+#7  0xffffff8008085544 in ret_from_fork () at arch/arm64/kernel/entry.S:1103
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
+
+
 root@ATK-DLRK3568:/data#  btmon -i hci0 -w bluetooth_dump.bts
 Bluetooth monitor ver 5.50
 = Note: Linux version 4.19.232 (aarch64)                               0.833498
