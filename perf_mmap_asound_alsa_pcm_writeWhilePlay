@@ -5,6 +5,17 @@
 //   -L ~/opt/linux_sdk//buildroot/output/rockchip_rk3568/host/aarch64-buildroot-linux-gnu/sysroot/usr/lib -lm -lasound \
 //   -I ~/opt/linux_sdk//buildroot/output/rockchip_rk3568/host/aarch64-buildroot-linux-gnu/sysroot/usr/include 
 
+src\pcm\pcm_params.c
+snd_pcm_hw_params
+    _snd_pcm_hw_params_internal
+        ioctl(pcm_hw->fd, SNDRV_PCM_IOCTL_HW_PARAMS, params);
+        snd_pcm_mmap(pcm);
+            pcm->running_areas = calloc(pcm->channels, sizeof(pcm->running_areas[0]));
+            ptr = mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, i->u.mmap.fd, i->u.mmap.offset);
+
+
+
+
 #include <alsa/asoundlib.h>
 #include <math.h> 
 #include <stdio.h>
