@@ -6,6 +6,7 @@
 //   -I ~/opt/linux_sdk//buildroot/output/rockchip_rk3568/host/aarch64-buildroot-linux-gnu/sysroot/usr/include 
 
 #include <alsa/asoundlib.h>
+#include <math.h> 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -40,7 +41,7 @@ int main() {
     int ret;
 
     // 1. 打开PCM设备（MMAP模式）
-    ret = snd_pcm_open(&pcm_handle, PCM_DEVICE, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK);
+    ret = snd_pcm_open(&pcm_handle, "hw:0,0", SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK);
     if (ret < 0) {
         fprintf(stderr, "打开设备失败: %s\n", snd_strerror(ret));
         return -1;
@@ -79,6 +80,57 @@ int main() {
         return -1;
     }
 
+    // ===================== 新增：打印 hw_params 核心参数 =====================
+    printf("\n===== 已生效的 PCM 硬件参数 (hw_params) =====\n");
+    
+    // 1. 访问模式（MMAP/读写）
+    snd_pcm_access_t access;
+    snd_pcm_hw_params_get_access(hw_params, &access);
+    printf("1. 访问模式: %s\n", 
+           access == SND_PCM_ACCESS_MMAP_INTERLEAVED ? "MMAP_INTERLEAVED (MMAP交错模式)" :
+           access == SND_PCM_ACCESS_RW_INTERLEAVED ? "RW_INTERLEAVED (读写交错模式)" : "其他模式");
+
+    // 2. 采样格式
+    snd_pcm_format_t format;
+    snd_pcm_hw_params_get_format(hw_params, &format);
+    printf("2. 采样格式: %s (位宽: %d bit)\n", 
+           snd_pcm_format_name(format), snd_pcm_format_width(format));
+
+    // 3. 声道数
+    unsigned int channels;
+    snd_pcm_hw_params_get_channels(hw_params, &channels);
+    printf("3. 声道数: %u\n", channels);
+
+    // 4. 采样率
+    unsigned int actual_rate;
+    snd_pcm_hw_params_get_rate(hw_params, &actual_rate, 0);
+    printf("4. 采样率: %u Hz (请求值: %u Hz)\n", actual_rate, SAMPLE_RATE);
+
+    // 5. 周期大小（每段帧数/字节数）
+    snd_pcm_uframes_t actual_period_frames;
+    snd_pcm_hw_params_get_period_size(hw_params, &actual_period_frames, 0);
+    printf("5. 周期大小: %lu 帧 | %lu 字节\n", 
+           (unsigned long)actual_period_frames, 
+           (unsigned long)actual_period_frames * CHANNELS * snd_pcm_format_width(FORMAT)/8);
+
+    // 6. 缓冲总大小（帧数/字节数）
+    snd_pcm_uframes_t actual_buffer_frames;
+    snd_pcm_hw_params_get_buffer_size(hw_params, &actual_buffer_frames);
+    printf("6. 缓冲总大小: %lu 帧 | %lu 字节 | 缓冲时长: %.2f ms\n", 
+           (unsigned long)actual_buffer_frames,
+           (unsigned long)actual_buffer_frames * CHANNELS * snd_pcm_format_width(FORMAT)/8,
+           (double)actual_buffer_frames / actual_rate * 1000);
+
+    // 7. 周期数（缓冲被分成的段数）
+    unsigned int periods;
+    snd_pcm_hw_params_get_periods(hw_params, &periods, 0);
+    printf("7. 周期数: %u\n", periods);
+
+
+    printf("=============================================\n\n");
+    // ===================== 直接打印 hw_params 原始字段（仅调试） =====================
+    // ===================== 打印结束 =====================
+
     // 3. 分配临时音频缓冲区（模拟实时数据来源）
     audio_buf = (short *)malloc(BUFFER_FRAMES * CHANNELS * sizeof(short));
     if (!audio_buf) {
@@ -89,6 +141,8 @@ int main() {
 
     // 标记：是否已启动播放
     int is_playing = 0;
+    // 标记：是否首次打印地址（避免重复输出）
+    int first_print = 1;
 
     // 4. 边写边播的核心循环
     while (frames_written < TOTAL_FRAMES) {
@@ -125,6 +179,17 @@ int main() {
             ret = snd_pcm_mmap_begin(pcm_handle, &areas, &offset, &write_frames);
             
             if (ret >= 0 && write_frames > 0) {
+                // 核心打印：输出MMAP缓冲区地址和偏移
+                if (first_print) {
+                    printf("\n===== MMAP 缓冲区地址信息 =====\n");
+                    printf("MMAP缓冲区基地址 (areas->addr): 0x%lx\n", (unsigned long)areas->addr);
+                    first_print = 0;
+                }
+                // 计算实际写入的字节地址：基地址 + 偏移帧数 * 每帧字节数
+                unsigned long write_addr = (unsigned long)areas->addr + (offset * FRAME_BYTES);
+                printf("📌 本次写入偏移帧数: %lu | 每帧字节数: %d | 实际写入地址: 0x%lx\n",
+                       (unsigned long)offset, FRAME_BYTES, write_addr);
+
                 // 拷贝实时生成的数据到MMAP缓冲区
                 short *dst = (short *)(areas->addr + offset * FRAME_BYTES);
                 memcpy(dst, audio_buf, write_frames * FRAME_BYTES);
@@ -168,3 +233,24 @@ int main() {
     printf("✅ 播放完成！\n");
     return 0;
 }
+
+
+////////////////
+===== 已生效的 PCM 硬件参数 (hw_params) =====
+1. 访问模式: MMAP_INTERLEAVED (MMAP交错模式)
+2. 采样格式: S16_LE (位宽: 16 bit)
+3. 声道数: 2
+4. 采样率: 44100 Hz (请求值: 44100 Hz)
+5. 周期大小: 1024 帧 | 4096 字节
+6. 缓冲总大小: 4096 帧 | 16384 字节 | 缓冲时长: 92.88 ms
+7. 周期数: 4
+=============================================
+
+
+===== MMAP 缓冲区地址信息 =====
+MMAP缓冲区基地址 (areas->addr): 0x7faa6f0000
+📌 本次写入偏移帧数: 0 | 每帧字节数: 4 | 实际写入地址: 0x7faa6f0000
+✅ 播放已启动，开始实时写入...
+📌 本次写入偏移帧数: 1024 | 每帧字节数: 4 | 实际写入地址: 0x7faa6f1000
+📌 本次写入偏移帧数: 2048 | 每帧字节数: 4 | 实际写入地址: 0x7faa6f2000
+📌 本次写入偏移帧数: 3072 | 每帧字节数: 4 | 实际写入地址: 0x7faa6f3000
