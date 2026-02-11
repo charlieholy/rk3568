@@ -1,3 +1,6 @@
+./perf record -g  ./pcm_mmap
+./perf report -n --stdio > pcm_mmap.txt
+
 // ~/opt/linux_sdk/buildroot/output/rockchip_rk3568/host/bin/aarch64-buildroot-linux-gnu-gcc pcm_mmap.c -o pcm_mmap \
 //   -L ~/opt/linux_sdk//buildroot/output/rockchip_rk3568/host/aarch64-buildroot-linux-gnu/sysroot/usr/lib -lm -lasound \
 //   -I ~/opt/linux_sdk//buildroot/output/rockchip_rk3568/host/aarch64-buildroot-linux-gnu/sysroot/usr/include 
