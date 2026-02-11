@@ -1,0 +1,167 @@
+// ~/opt/linux_sdk/buildroot/output/rockchip_rk3568/host/bin/aarch64-buildroot-linux-gnu-gcc pcm_mmap.c -o pcm_mmap \
+//   -L ~/opt/linux_sdk//buildroot/output/rockchip_rk3568/host/aarch64-buildroot-linux-gnu/sysroot/usr/lib -lm -lasound \
+//   -I ~/opt/linux_sdk//buildroot/output/rockchip_rk3568/host/aarch64-buildroot-linux-gnu/sysroot/usr/include 
+
+#include <alsa/asoundlib.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+// 配置参数（根据你的实际场景调整）
+#define PCM_DEVICE "hw:0,0"
+#define CHANNELS 2                // 声道数
+#define SAMPLE_RATE 44100         // 采样率
+#define FORMAT SND_PCM_FORMAT_S16_LE // 采样格式
+#define FRAME_BYTES (CHANNELS * snd_pcm_format_width(FORMAT) / 8) // 每帧字节数
+#define TOTAL_FRAMES (SAMPLE_RATE * 5) // 总播放时长5秒
+#define BUFFER_FRAMES 1024        // 每次写入的最小帧数
+
+// 生成实时测试数据（模拟动态音频源）
+void generate_realtime_audio(short *buf, snd_pcm_uframes_t frames, int channels, int sample_rate) {
+    static double phase = 0.0;
+    double step = 2 * 3.1415926 * 440.0 / sample_rate; // 440Hz正弦波
+    for (snd_pcm_uframes_t i = 0; i < frames; i++) {
+        short val = (short)(32767 * sin(phase));
+        buf[i * channels] = val;     // 左声道
+        buf[i * channels + 1] = val; // 右声道
+        phase += step;
+        if (phase > 2 * 3.1415926) phase -= 2 * 3.1415926;
+    }
+}
+
+int main() {
+    snd_pcm_t *pcm_handle = NULL;
+    short *audio_buf = NULL;
+    snd_pcm_uframes_t frames_written = 0;
+    int ret;
+
+    // 1. 打开PCM设备（MMAP模式）
+    ret = snd_pcm_open(&pcm_handle, PCM_DEVICE, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK);
+    if (ret < 0) {
+        fprintf(stderr, "打开设备失败: %s\n", snd_strerror(ret));
+        return -1;
+    }
+
+    // 2. 配置PCM参数（必须启用MMAP访问模式）
+    snd_pcm_hw_params_t *hw_params;
+    snd_pcm_hw_params_alloca(&hw_params);
+    snd_pcm_hw_params_any(pcm_handle, hw_params);
+    
+    // 关键：设置MMAP访问模式（流式传输的核心）
+    ret = snd_pcm_hw_params_set_access(pcm_handle, hw_params, SND_PCM_ACCESS_MMAP_INTERLEAVED);
+    if (ret < 0) {
+        fprintf(stderr, "设置MMAP模式失败: %s\n", snd_strerror(ret));
+        snd_pcm_close(pcm_handle);
+        return -1;
+    }
+
+    // 设置其他参数
+    snd_pcm_hw_params_set_format(pcm_handle, hw_params, FORMAT);
+    snd_pcm_hw_params_set_channels(pcm_handle, hw_params, CHANNELS);
+    unsigned int rate = SAMPLE_RATE;
+    snd_pcm_hw_params_set_rate_near(pcm_handle, hw_params, &rate, 0);
+    
+    // 设置缓冲区和周期大小（影响实时性）
+    snd_pcm_uframes_t period_frames = BUFFER_FRAMES;
+    snd_pcm_hw_params_set_period_size_near(pcm_handle, hw_params, &period_frames, 0);
+    snd_pcm_uframes_t buffer_frames = period_frames * 4;
+    snd_pcm_hw_params_set_buffer_size_near(pcm_handle, hw_params, &buffer_frames);
+
+    // 应用参数
+    ret = snd_pcm_hw_params(pcm_handle, hw_params);
+    if (ret < 0) {
+        fprintf(stderr, "应用参数失败: %s\n", snd_strerror(ret));
+        snd_pcm_close(pcm_handle);
+        return -1;
+    }
+
+    // 3. 分配临时音频缓冲区（模拟实时数据来源）
+    audio_buf = (short *)malloc(BUFFER_FRAMES * CHANNELS * sizeof(short));
+    if (!audio_buf) {
+        fprintf(stderr, "内存分配失败\n");
+        snd_pcm_close(pcm_handle);
+        return -1;
+    }
+
+    // 标记：是否已启动播放
+    int is_playing = 0;
+
+    // 4. 边写边播的核心循环
+    while (frames_written < TOTAL_FRAMES) {
+        // 获取可用写入帧数（MMAP缓冲区的空闲空间）
+        snd_pcm_uframes_t avail_frames = snd_pcm_avail_update(pcm_handle);
+        
+        // 处理设备错误或无可用空间
+        if (avail_frames <= 0) {
+            if (avail_frames < 0) {
+                ret = snd_pcm_recover(pcm_handle, avail_frames, 1);
+                if (ret < 0) {
+                    fprintf(stderr, "设备恢复失败: %s\n", snd_strerror(ret));
+                    break;
+                }
+            }
+            usleep(1000); // 1ms后重试，降低CPU占用
+            continue;
+        }
+
+        // 计算本次写入帧数（不超过剩余帧数，且不小于最小缓冲区）
+        snd_pcm_uframes_t write_frames = avail_frames;
+        if (write_frames > BUFFER_FRAMES) write_frames = BUFFER_FRAMES; // 每次写固定大小，更实时
+        if (frames_written + write_frames > TOTAL_FRAMES) {
+            write_frames = TOTAL_FRAMES - frames_written;
+        }
+
+        if (write_frames > 0) {
+            // 生成实时音频数据（模拟动态输入，比如麦克风、网络流等）
+            generate_realtime_audio(audio_buf, write_frames, CHANNELS, SAMPLE_RATE);
+
+            // MMAP方式写入数据
+            const snd_pcm_channel_area_t *areas;
+            snd_pcm_uframes_t offset;
+            ret = snd_pcm_mmap_begin(pcm_handle, &areas, &offset, &write_frames);
+            
+            if (ret >= 0 && write_frames > 0) {
+                // 拷贝实时生成的数据到MMAP缓冲区
+                short *dst = (short *)(areas->addr + offset * FRAME_BYTES);
+                memcpy(dst, audio_buf, write_frames * FRAME_BYTES);
+                
+                // 提交写入的数据（硬件可见）
+                ret = snd_pcm_mmap_commit(pcm_handle, offset, write_frames);
+                if (ret > 0) {
+                    frames_written += ret;
+
+                    // 关键：首次写入数据后，立即启动播放（只启动一次）
+                    if (!is_playing) {
+                        ret = snd_pcm_start(pcm_handle); // RK3568必须显式调用
+                        if (ret < 0) {
+                            fprintf(stderr, "启动播放失败: %s\n", snd_strerror(ret));
+                        } else {
+                            is_playing = 1;
+                            printf("✅ 播放已启动，开始实时写入...\n");
+                        }
+                    }
+                }
+            }
+        }
+
+        // 打印实时进度
+        printf("📝 实时写入进度: %lu/%d 帧 (%.1f%%) | 播放状态: %s\r", 
+               frames_written, TOTAL_FRAMES,
+               (float)frames_written / TOTAL_FRAMES * 100,
+               is_playing ? "运行中" : "未启动");
+        fflush(stdout);
+    }
+
+    // 5. 等待缓冲区剩余数据播放完毕
+    if (is_playing) {
+        printf("\n⏳ 等待剩余音频播放完毕...\n");
+        snd_pcm_drain(pcm_handle); // 阻塞直到缓冲区空
+    }
+
+    // 6. 释放资源
+    free(audio_buf);
+    snd_pcm_close(pcm_handle);
+    printf("✅ 播放完成！\n");
+    return 0;
+}
