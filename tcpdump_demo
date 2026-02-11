@@ -1,0 +1,134 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <sys/time.h>  // gettimeofday 所需头文件
+#include <net/if.h>
+#include <netinet/ether.h>
+#include <arpa/inet.h>
+#include <linux/if_packet.h>
+#include <net/ethernet.h>
+#include <linux/ip.h>   // struct iphdr 完整定义
+
+// 只定义工具链没有的宏（去掉重复的 IPPROTO_TCP/UDP、struct ether_arp/arphdr）
+#define ARPOP_REQUEST 1    // ARP 请求（工具链未定义）
+#define ARPOP_REPLY   2    // ARP 回复（工具链未定义）
+#define ETH_P_ARP     0x0806 // ARP 协议类型（工具链未定义）
+#define ETH_P_IP      0x0800 // IP 协议类型（工具链未定义）
+
+// 定义最大数据包长度（MTU 1500 + 以太网头部）
+#define MAX_PACKET_LEN 65535
+
+// 简易时间戳函数
+void print_time() {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    // 格式化时间戳，和 tcpdump 风格对齐
+    long sec = tv.tv_sec % 86400;
+    long h = sec / 3600;
+    long m = (sec % 3600) / 60;
+    long s = sec % 60;
+    printf("%02ld:%02ld:%02ld.%06ld ", h, m, s, tv.tv_usec);
+}
+
+int main(int argc, char *argv[]) {
+    // 1. 检查参数：指定网卡
+    if (argc < 2) {
+        fprintf(stderr, "用法: %s <网卡名>\n示例: %s eth0\n", argv[0], argv[0]);
+        exit(1);
+    }
+    char *ifname = argv[1];
+
+    // 2. 创建 PF_PACKET 套接字（核心抓包套接字）
+    int sock_fd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+    if (sock_fd < 0) {
+        perror("创建套接字失败（需要 root 权限）");
+        exit(1);
+    }
+
+    // 3. 绑定到指定网卡
+    struct ifreq ifr;
+    strncpy(ifr.ifr_name, ifname, IFNAMSIZ - 1);
+    if (ioctl(sock_fd, SIOCGIFINDEX, &ifr) < 0) {
+        perror("绑定网卡失败");
+        close(sock_fd);
+        exit(1);
+    }
+    struct sockaddr_ll sa;
+    memset(&sa, 0, sizeof(sa));
+    sa.sll_family = AF_PACKET;
+    sa.sll_ifindex = ifr.ifr_ifindex;
+    sa.sll_protocol = htons(ETH_P_ALL);
+    if (bind(sock_fd, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
+        perror("绑定失败");
+        close(sock_fd);
+        exit(1);
+    }
+
+    // 4. 循环抓包
+    printf("开始抓包（网卡：%s），按 Ctrl+C 退出...\n", ifname);
+    unsigned char buffer[MAX_PACKET_LEN];
+    while (1) {
+        // 接收数据包
+        ssize_t len = recvfrom(sock_fd, buffer, MAX_PACKET_LEN, 0, NULL, NULL);
+        if (len < 0) {
+            perror("接收数据包失败");
+            continue;
+        }
+
+        // 5. 解析以太网头部
+        struct ether_header *eth_hdr = (struct ether_header *)buffer;
+        print_time();
+
+        // 6. 识别数据包类型并打印
+        switch (ntohs(eth_hdr->ether_type)) {
+            case ETH_P_ARP: { // ARP 包
+                struct ether_arp *arp_hdr = (struct ether_arp *)(buffer + sizeof(struct ether_header));
+                printf("ARP ");
+                if (ntohs(arp_hdr->ea_hdr.ar_op) == ARPOP_REQUEST) {
+                    printf("Request who-has %s tell %s, length %zd\n",
+                           inet_ntoa(*(struct in_addr *)arp_hdr->arp_tpa),
+                           inet_ntoa(*(struct in_addr *)arp_hdr->arp_spa),
+                           len);
+                } else if (ntohs(arp_hdr->ea_hdr.ar_op) == ARPOP_REPLY) {
+                    // 直接格式化输出 MAC 地址，避免 ether_ntoa 依赖
+                    printf("Reply %s is-at %02x:%02x:%02x:%02x:%02x:%02x, length %zd\n",
+                           inet_ntoa(*(struct in_addr *)arp_hdr->arp_spa),
+                           arp_hdr->arp_sha[0], arp_hdr->arp_sha[1], arp_hdr->arp_sha[2],
+                           arp_hdr->arp_sha[3], arp_hdr->arp_sha[4], arp_hdr->arp_sha[5],
+                           len);
+                }
+                break;
+            }
+            case ETH_P_IP: { // IP 包
+                struct iphdr *ip_hdr = (struct iphdr *)(buffer + sizeof(struct ether_header));
+                // 正确转换 IP 地址（适配 __be32 类型）
+                struct in_addr src_ip, dst_ip;
+                src_ip.s_addr = ip_hdr->saddr;
+                dst_ip.s_addr = ip_hdr->daddr;
+                
+                printf("IP %s > %s ",
+                       inet_ntoa(src_ip),
+                       inet_ntoa(dst_ip));
+                // 识别 TCP/UDP（使用系统定义的宏）
+                if (ip_hdr->protocol == IPPROTO_TCP) {
+                    printf("TCP, length %zd\n", len);
+                } else if (ip_hdr->protocol == IPPROTO_UDP) {
+                    printf("UDP, length %zd\n", len);
+                } else {
+                    printf("Protocol %d, length %zd\n", ip_hdr->protocol, len);
+                }
+                break;
+            }
+            default:
+                printf("未知协议(0x%04x), length %zd\n", ntohs(eth_hdr->ether_type), len);
+                break;
+        }
+        fflush(stdout); // 立即刷新输出
+    }
+
+    close(sock_fd);
+    return 0;
+}
