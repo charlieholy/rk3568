@@ -1,3 +1,29 @@
+void snd_dmaengine_pcm_set_config_from_dai_data(
+	const struct snd_pcm_substream *substream,
+	const struct snd_dmaengine_dai_dma_data *dma_data,
+	struct dma_slave_config *slave_config)
+{
+	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
+		slave_config->dst_addr = dma_data->addr;   //I2S_ dst_phys I2S_TX_FIFO_PHYS_ADDR
+		slave_config->dst_maxburst = dma_data->maxburst;
+		if (dma_data->flags & SND_DMAENGINE_PCM_DAI_FLAG_PACK)
+			slave_config->dst_addr_width =
+				DMA_SLAVE_BUSWIDTH_UNDEFINED;
+		if (dma_data->addr_width != DMA_SLAVE_BUSWIDTH_UNDEFINED)
+			slave_config->dst_addr_width = dma_data->addr_width;
+	} else {
+		slave_config->src_addr = dma_data->addr;
+		slave_config->src_maxburst = dma_data->maxburst;
+		if (dma_data->flags & SND_DMAENGINE_PCM_DAI_FLAG_PACK)
+			slave_config->src_addr_width =
+				DMA_SLAVE_BUSWIDTH_UNDEFINED;
+		if (dma_data->addr_width != DMA_SLAVE_BUSWIDTH_UNDEFINED)
+			slave_config->src_addr_width = dma_data->addr_width;
+	}
+
+	slave_config->slave_id = dma_data->slave_id;
+}
+
 static int dmaengine_pcm_prepare_and_submit(struct snd_pcm_substream *substream)
 {
 	struct dmaengine_pcm_runtime_data *prtd = substream_to_prtd(substream);
