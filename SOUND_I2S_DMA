@@ -1,3 +1,50 @@
+/* I2S REGS */
+#define I2S_TXCR	(0x0000)
+#define I2S_RXCR	(0x0004)
+#define I2S_CKR		(0x0008)
+#define I2S_FIFOLR	(0x000c)
+#define I2S_DMACR	(0x0010)
+#define I2S_INTCR	(0x0014)
+#define I2S_INTSR	(0x0018)
+#define I2S_XFER	(0x001c)
+#define I2S_CLR		(0x0020)
+#define I2S_TXDR	(0x0024)
+#define I2S_RXDR	(0x0028)
+
+I2S_TDM_8CH_TXCR 0x0000 W 0x72000000 
+Transmit Operation Control 
+Register 
+I2S_TDM_8CH_RXCR 0x0004 W 0x01C80000 
+Receive Operation Control 
+Register 
+I2S_TDM_8CH_CKR 0x0008 W 0x00000000 Clock Generation Register 
+I2S_TDM_8CH_TXFIFOLR 0x000C W 0x00000000 TX FIFO Level Register 
+I2S_TDM_8CH_DMACR 0x0010 W 0x00000000 DMA Control Register 
+I2S_TDM_8CH_INTCR 0x0014 W 0x01F00000 Interrupt Control Register 
+I2S_TDM_8CH_INTSR 0x0018 W 0x00000000 Interrupt Status Register 
+I2S_TDM_8CH_XFER 0x001C W 0x00000000 Transfer Start Register 
+I2S_TDM_8CH_CLR 0x0020 W 0x00000000 Sclk Domain Logic Clear Register 
+I2S_TDM_8CH_TXDR 0x0024 W 0x00000000 Transmit FIFO Data Register 
+I2S_TDM_8CH_RXDR 0x0028 W 0x00000000 Receive FIFO Data Register 
+I2S_TDM_8CH_RXFIFOLR 0x002C W 0x00000000 RX FIFO Level Register 
+I2S_TDM_8CH_TDM_TXC
+TRL 
+0x0030 W 0x00000000 
+TDM Mode Transmit Operation 
+Control Register 
+I2S_TDM_8CH_TDM_RXC
+TRL 
+0x0034 W 0x00000000 
+TDM Mode Receive Operation 
+Control Register 
+I2S_TDM_8CH_CLKDIV 0x0038 W 0x00000000 Clock Divider Register 
+I2S_TDM_8CH_VERSION 0x003C W 0x013376F1 Version Register 
+
+i2s->playback_dma_data.addr = res->start + I2S_TXDR;
+	i2s->playback_dma_data.addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
+	i2s->playback_dma_data.maxburst = 8;
+
+
 root@NYX-RK3568:/#  aplay -D plughw:0,0 -f S16_LE -r 44100 -c 2 /usr/share/sounds/test.wav &
 [1] 1089
 root@NYX-RK3568:/# cat /proc/asound/card0/pcm0p/sub0/hw_paramstle Endian, Rate 16000 Hz, Mono
