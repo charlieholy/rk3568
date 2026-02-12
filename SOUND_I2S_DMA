@@ -44,6 +44,13 @@ i2s->playback_dma_data.addr = res->start + I2S_TXDR;
 	i2s->playback_dma_data.addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
 	i2s->playback_dma_data.maxburst = 8;
 
+sound/core/pcm_dmaengine.c
+更新hw.ptr
+static int dmaengine_pcm_prepare_and_submit(struct snd_pcm_substream *substream)
+		desc->callback = dmaengine_pcm_dma_complete;
+dmaengine_pcm_dma_complete
+		snd_pcm_period_elapsed(substream);
+			static int snd_pcm_update_hw_ptr0(struct snd_pcm_substream *substream, unsigned int in_interrupt)
 
 root@NYX-RK3568:/#  aplay -D plughw:0,0 -f S16_LE -r 44100 -c 2 /usr/share/sounds/test.wav &
 [1] 1089
