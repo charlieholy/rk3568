@@ -30,6 +30,16 @@ $32 = {name = 0xffffffc0e74f4e00 "fe410000.i2s", id = 0, name_prefix = 0x0, dev 
       prev = 0xffffffc0e7548988}, stream_event = 0x0, set_bias_level = 0x0, path_sink_cache = {widget = 0x0},
     path_source_cache = {widget = 0x0}, debugfs_dapm = 0xffffffc0e61f1488}, init = 0x0, debugfs_root = 0xffffffc0e61f13a0,
   debugfs_prefix = 0x0}
+(gdb) p *$rtdcom_list->component->driver
+$33 = {name = 0xffffff8009231a71 "rockchip-i2s-tdm", controls = 0x0, num_controls = 0, dapm_widgets = 0x0,
+  num_dapm_widgets = 0, dapm_routes = 0x0, num_dapm_routes = 0, probe = 0x0, remove = 0x0, suspend = 0x0, resume = 0x0,
+  read = 0x0, write = 0x0, pcm_new = 0x0, pcm_free = 0x0, set_sysclk = 0x0, set_pll = 0x0, set_jack = 0x0,
+  of_xlate_dai_name = 0x0, of_xlate_dai_id = 0x0, seq_notifier = 0x0, stream_event = 0x0, set_bias_level = 0x0,
+  delay_blk = 0x0, ops = 0x0, compr_ops = 0x0, probe_order = 0, remove_order = 0, idle_bias_on = 0, suspend_bias_off = 0,
+  use_pmdown_time = 0, endianness = 0, non_legacy_dai_naming = 0, ignore_machine = 0x0, topology_name_prefix = 0x0,
+  be_hw_params_fixup = 0x0, use_dai_pcm_id = false, be_pcm_base = 0}
+(gdb) p *$rtdcom_list->component->driver->ops
+Cannot access memory at address 0x0
 (gdb)
 
 /* I2S REGS */
