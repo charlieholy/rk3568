@@ -1,3 +1,37 @@
+
+(gdb) p ((struct snd_soc_pcm_runtime*)substream->private_data)->component_list->next
+$29 = (struct list_head *) 0xffffffc0e728d708
+(gdb) devmem 0xffffffc0e728d700
+Undefined command: "devmem".  Try "help".
+(gdb) p/2x 0xffffffc0e728d700
+Item count other than 1 is meaningless in "print" command.
+(gdb) x/2i 0xffffffc0e728d700
+   0xffffffc0e728d700:  .inst   0xe7549680 ; undefined
+   0xffffffc0e728d704:  .inst   0xffffffc0 ; undefined
+(gdb) p ((struct snd_soc_pcm_runtime*)substream->private_data)->component_list->next
+$30 = (struct list_head *) 0xffffffc0e728d708
+(gdb) set $rtdcom_list = (struct snd_soc_rtdcom_list*)(0xffffffc0e728d708 - 8)
+(gdb) p $rtdcom_list->component
+$31 = (struct snd_soc_component *) 0xffffffc0e7549680
+(gdb) $32 = (struct snd_soc_component *) 0xffffffc0e728d000
+Undefined command: "$32".  Try "help".
+(gdb) p *$rtdcom_list->component
+$32 = {name = 0xffffffc0e74f4e00 "fe410000.i2s", id = 0, name_prefix = 0x0, dev = 0xffffffc0e9b9c810,
+  card = 0xffffffc0e72c5880, active = 1, suspended = 0, list = {next = 0xffffffc0e7549048, prev = 0xffffffc0e7549848},
+  card_aux_list = {next = 0x0, prev = 0x0}, card_list = {next = 0xffffffc0e72c5b20, prev = 0xffffffc0e75488d0},
+  driver = 0xffffff8008fe8af8 <rockchip_i2s_tdm_component>, dai_list = {next = 0xffffffc0e74f4ef0,
+    prev = 0xffffffc0e74f4ef0}, num_dai = 1, regmap = 0xffffffc0e7ba7000, val_bytes = 4, io_mutex = {owner = {counter = 0},
+    wait_lock = {{rlock = {raw_lock = {{val = {counter = 0}, {locked = 0 '\000', pending = 0 '\000'}, {locked_pending = 0,
+                tail = 0}}}, magic = 3735899821, owner_cpu = 4294967295, owner = 0xffffffffffffffff}}}, osq = {tail = {
+        counter = 0}}, wait_list = {next = 0xffffffc0e7549738, prev = 0xffffffc0e7549738}}, dobj_list = {
+    next = 0xffffffc0e7549748, prev = 0xffffffc0e7549748}, dapm = {bias_level = SND_SOC_BIAS_OFF, idle_bias_off = 1,
+    suspend_bias_off = 0, seq_notifier = 0x0, dev = 0xffffffc0e9b9c810, component = 0xffffffc0e7549680,
+    card = 0xffffffc0e72c5880, target_bias_level = SND_SOC_BIAS_OFF, list = {next = 0xffffffc0e72c5bb0,
+      prev = 0xffffffc0e7548988}, stream_event = 0x0, set_bias_level = 0x0, path_sink_cache = {widget = 0x0},
+    path_source_cache = {widget = 0x0}, debugfs_dapm = 0xffffffc0e61f1488}, init = 0x0, debugfs_root = 0xffffffc0e61f13a0,
+  debugfs_prefix = 0x0}
+(gdb)
+
 /* I2S REGS */
 #define I2S_TXCR	(0x0000)
 #define I2S_RXCR	(0x0004)
