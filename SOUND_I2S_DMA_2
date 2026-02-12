@@ -1,0 +1,154 @@
+//not implament it. for ref.
+
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/dmaengine.h>
+#include <linux/dma-mapping.h>
+#include <linux/kernel.h>
+#include <linux/slab.h>
+#include <linux/platform_device.h>
+#include <linux/of_dma.h>
+#include <linux/dma-mapping.h>
+#include <linux/interrupt.h>
+
+// 配置项：根据你的硬件修改
+#define I2S_DMA_CHANNEL_NAME "i2s0-tx"  // I2S0 TX DMA通道名（从设备树获取）
+#define I2S_TX_FIFO_PHYS_ADDR 0xFE200000 // I2S0 TX FIFO物理地址（RK3568示例，需核对硬件手册）
+#define DMA_TRANSFER_LEN 4096            // 传输长度（按I2S帧对齐，如4K）
+#define DMA_CYCLIC_BLOCK_NUM 2           // 循环DMA的块数（双缓冲，避免音频断流）
+
+static struct dma_chan *dma_chan;        // I2S TX DMA通道句柄
+static dma_addr_t src_dma;               // 源缓冲区DMA物理地址
+static void *src_cpu;                    // 源缓冲区CPU虚拟地址
+static struct dma_cyclic_desc *cyclic_desc; // 循环DMA描述符
+
+/* DMA传输块完成回调：中断上下文（每传输一个block触发一次） */
+static void dma_i2s_tx_complete(void *data)
+{
+    static int block_cnt = 0;
+    pr_info("[I2S DMA] TX block %d completed!\n", block_cnt++);
+    
+    // 可选：双缓冲切换时填充下一个块的音频数据
+    // 注意：回调在中断上下文，需避免耗时操作
+}
+
+/* 匹配DMA通道的回调函数：根据通道名筛选I2S TX通道 */
+static bool filter_i2s_dma_chan(struct dma_chan *chan, void *param)
+{
+    const char *chan_name = param;
+    const char *curr_chan_name = dma_chan_name(chan);
+    
+    // 匹配指定的I2S TX DMA通道名
+    return curr_chan_name && !strcmp(curr_chan_name, chan_name);
+}
+
+static int __init dma_mem2i2s_init(void)
+{
+    dma_cap_mask_t mask;                // DMA能力掩码
+    dma_addr_t dst_phys = I2S_TX_FIFO_PHYS_ADDR; // 目的端：I2S TX FIFO物理地址
+    int ret;
+
+    // 1. 初始化DMA能力掩码：启用内存到外设传输
+    dma_cap_zero(mask);
+    dma_cap_set(DMA_SLAVE, mask);       // 外设DMA（区别于MEMCPY）
+    dma_cap_set(DMA_CYCLIC, mask);      // 启用循环DMA（流式传输必需）
+    dma_cap_set(DMA_MEM_TO_DEV, mask);  // 传输方向：内存→外设
+
+    // 2. 申请I2S TX专属DMA通道（按通道名匹配）
+    dma_chan = dma_request_channel(mask, filter_i2s_dma_chan, (void *)I2S_DMA_CHANNEL_NAME);
+    if (!dma_chan) {
+        pr_err("[I2S DMA] Failed to request I2S TX channel (%s)\n", I2S_DMA_CHANNEL_NAME);
+        return -ENODEV;
+    }
+    pr_info("[I2S DMA] Success to get I2S TX channel: %s\n", dma_chan_name(dma_chan));
+
+    // 3. 配置DMA slave参数（内存→外设）
+    struct dma_slave_config slave_cfg = {0};
+    slave_cfg.direction = DMA_MEM_TO_DEV;    // 传输方向：内存→I2S外设
+    slave_cfg.dst_addr = dst_phys;           // 目的地址：I2S TX FIFO物理地址
+    slave_cfg.dst_addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES; // I2S FIFO位宽（按硬件改）
+    slave_cfg.src_addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES; // 源缓冲区位宽
+    slave_cfg.src_maxburst = 16;             // 突发长度（按I2S/DMA硬件限制改）
+    slave_cfg.dst_maxburst = 16;
+
+    ret = dmaengine_slave_config(dma_chan, &slave_cfg);
+    if (ret) {
+        pr_err("[I2S DMA] Failed to config slave params (ret: %d)\n", ret);
+        goto err_release_chan;
+    }
+
+    // 4. 分配DMA非缓存缓冲区（仅源缓冲区，目的是I2S FIFO无需分配）
+    src_cpu = dma_alloc_coherent(dma_chan->device->dev, 
+                                 DMA_TRANSFER_LEN * DMA_CYCLIC_BLOCK_NUM, 
+                                 &src_dma, 
+                                 GFP_KERNEL);
+    if (!src_cpu) {
+        pr_err("[I2S DMA] Failed to allocate DMA source buffer (size: %d)\n", 
+                DMA_TRANSFER_LEN * DMA_CYCLIC_BLOCK_NUM);
+        goto err_release_chan;
+    }
+    pr_info("[I2S DMA] Source buffer alloc success: phys=0x%llx\n", 
+            (unsigned long long)src_dma);
+
+    // 5. 填充测试数据：源缓冲区填充固定值（模拟音频PCM数据）
+    memset(src_cpu, 0x5A, DMA_TRANSFER_LEN * DMA_CYCLIC_BLOCK_NUM);
+
+    // 6. 准备循环DMA传输（I2S流式传输核心）
+    cyclic_desc = dmaengine_prep_dma_cyclic(
+        dma_chan,                // I2S TX DMA通道
+        src_dma,                 // 源缓冲区物理地址
+        DMA_TRANSFER_LEN * DMA_CYCLIC_BLOCK_NUM, // 总缓冲区大小
+        DMA_TRANSFER_LEN,        // 单个block大小（每次中断的传输长度）
+        DMA_MEM_TO_DEV,          // 传输方向
+        DMA_PREP_INTERRUPT       // 每个block完成触发中断
+    );
+    if (!cyclic_desc) {
+        pr_err("[I2S DMA] Failed to create cyclic descriptor\n");
+        goto err_free_src;
+    }
+
+    // 7. 设置传输完成回调函数
+    dmaengine_set_callback(cyclic_desc->tx, dma_i2s_tx_complete, NULL);
+
+    // 8. 提交并启动循环DMA传输
+    dmaengine_submit(cyclic_desc->tx);
+    dma_async_issue_pending(dma_chan);
+    pr_info("[I2S DMA] Mem2I2S cyclic transfer started (block size: %d, total: %d)\n",
+            DMA_TRANSFER_LEN, DMA_TRANSFER_LEN * DMA_CYCLIC_BLOCK_NUM);
+
+    return 0;
+
+    // 异常处理：资源释放
+err_free_src:
+    dma_free_coherent(dma_chan->device->dev, 
+                      DMA_TRANSFER_LEN * DMA_CYCLIC_BLOCK_NUM, 
+                      src_cpu, src_dma);
+err_release_chan:
+    dma_release_channel(dma_chan);
+    return -ENOMEM;
+}
+
+static void __exit dma_mem2i2s_exit(void)
+{
+    // 终止循环DMA传输，释放资源
+    if (dma_chan) {
+        dmaengine_terminate_all(dma_chan);          // 终止所有传输
+        if (cyclic_desc) {
+            dmaengine_free_desc(cyclic_desc->tx);   // 释放描述符
+        }
+        dma_free_coherent(dma_chan->device->dev, 
+                          DMA_TRANSFER_LEN * DMA_CYCLIC_BLOCK_NUM, 
+                          src_cpu, src_dma);        // 释放源缓冲区
+        dma_release_channel(dma_chan);              // 释放DMA通道
+    }
+    pr_info("[I2S DMA] Mem2I2S module exit successfully\n");
+}
+
+// 内核模块入口/出口
+module_init(dma_mem2i2s_init);
+module_exit(dma_mem2i2s_exit);
+
+// 模块信息
+MODULE_LICENSE("GPL");
+MODULE_DESCRIPTION("DMA Engine MEM2I2S (RK3568 I2S TX, Linux 4.19)");
+MODULE_AUTHOR("Developer");
