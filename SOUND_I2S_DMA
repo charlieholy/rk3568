@@ -1,4 +1,14 @@
-    2.133268] rk817_probe
+static int dmaengine_pcm_hw_params(struct snd_pcm_substream *substream,
+	struct snd_pcm_hw_params *params)
+{
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_component *component =
+		snd_soc_rtdcom_lookup(rtd, SND_DMAENGINE_PCM_DRV_NAME);
+	struct dmaengine_pcm *pcm = soc_component_to_pcm(component);
+	struct dma_chan *chan = snd_dmaengine_pcm_get_chan(substream);
+
+
+2.133268] rk817_probe
 [    2.134218] rk817-codec rk817-codec: rk817_probe: chip_name:0x80, chip_ver:0x95
 [    2.138196] rk817_playback_path_config : set playback_path 7, pre_path 0
 [    2.138226] rk817_codec_power_up : power up playback
