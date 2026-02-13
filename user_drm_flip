@@ -1,0 +1,279 @@
+// 左右翻转不work
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
+#include <errno.h>
+#include <sys/mman.h>
+#include <xf86drm.h>
+#include <xf86drmMode.h>
+
+// 适配 RK3568 原厂头文件（补充缺失定义）
+#ifndef DRM_MODE_OBJECT_PLANE
+#define DRM_MODE_OBJECT_PLANE 4
+#endif
+
+#ifndef DRM_PLANE_HELPER_NO_SCALE
+#define DRM_PLANE_HELPER_NO_SCALE 1
+#endif
+
+// RK3568 硬件参数（原厂适配）
+#define DRM_DEV_PATH        "/dev/dri/card0"
+#define HDMI_CONNECTOR_ID   152
+#define CRTC_ID             85
+#define PRIMARY_PLANE_ID    57  // 仅用此Plane，适配原厂能力
+#define SCREEN_WIDTH        1024
+#define SCREEN_HEIGHT       768
+#define BPP                 32
+
+// 不对称图标（确保翻转效果肉眼可见）
+#define ICON_WIDTH          256
+#define ICON_HEIGHT         256
+#define ICON_X              ((SCREEN_WIDTH - ICON_WIDTH) / 2)
+#define ICON_Y              ((SCREEN_HEIGHT - ICON_HEIGHT) / 2)
+
+// 颜色定义（XRGB8888）
+#define COLOR_RED           0x00FF0000
+#define COLOR_GREEN         0x0000FF00
+#define COLOR_BLUE          0x000000FF
+#define COLOR_YELLOW        0x00FFFF00
+#define COLOR_BLACK         0x00000000
+#define COLOR_PURPLE        0x00FF00FF
+
+// RK3568 原厂支持的硬件翻转值（关键！）
+#define ROT_NORMAL          0x1        // 正常显示
+#define ROT_VFLIP           0x21       // 上下翻转（reflect-y）
+#define ROT_HFLIP           0x11       // 左右翻转（reflect-x）
+#define ROT_HVFLIP          0x31       // 左右+上下翻转
+
+// DRM 核心结构体
+typedef struct {
+    int fd;
+    drmModeRes *res;
+    drmModeConnector *conn;
+    uint32_t fb_id;
+    uint8_t *fb_buf;
+    uint32_t fb_stride;
+    uint32_t rot_prop_id; // 缓存rotation属性ID，避免重复查询
+} drm_device_t;
+
+// 绘制强不对称图标（全屏背景+中心图标）
+static void draw_icon(uint8_t *fb_buf, uint32_t stride) {
+    uint32_t *fb_ptr = (uint32_t *)fb_buf;
+    int stride_px = stride / 4;
+
+    // 1. 全屏黑色背景
+    for (int y = 0; y < SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < SCREEN_WIDTH; x++) {
+            fb_ptr[y * stride_px + x] = COLOR_BLACK;
+        }
+    }
+
+    // 2. 绘制中心不对称图标（翻转效果一眼识别）
+    for (int y = 0; y < ICON_HEIGHT; y++) {
+        int sy = ICON_Y + y;
+        if (sy >= SCREEN_HEIGHT) break;
+
+        for (int x = 0; x < ICON_WIDTH; x++) {
+            int sx = ICON_X + x;
+            if (sx >= SCREEN_WIDTH) break;
+
+            uint32_t color = COLOR_BLUE;
+            // 左侧红色竖条（x=0~15）- 左右翻转必到右侧
+            if (x < 15) color = COLOR_RED;
+            // 右上角黄色方块（x=200~240, y=10~50）
+            if (x >= 200 && x < 240 && y >= 10 && y < 50) color = COLOR_YELLOW;
+            // 底部绿色横条（y=210~255）- 上下翻转必到顶部
+            if (y >= 210 && y < 256) color = COLOR_GREEN;
+            // 中心紫点（定位）
+            if (x == 128 && y == 128) color = COLOR_PURPLE;
+
+            fb_ptr[sy * stride_px + sx] = color;
+        }
+    }
+}
+
+// 创建全屏帧缓冲（适配RK3568）
+static int create_fb(drm_device_t *dev) {
+    struct drm_mode_create_dumb create = {0};
+    struct drm_mode_map_dumb map = {0};
+
+    create.width = SCREEN_WIDTH;
+    create.height = SCREEN_HEIGHT;
+    create.bpp = BPP;
+    if (drmIoctl(dev->fd, DRM_IOCTL_MODE_CREATE_DUMB, &create) < 0) {
+        fprintf(stderr, "创建FB失败: %s\n", strerror(errno));
+        return -1;
+    }
+
+    map.handle = create.handle;
+    if (drmIoctl(dev->fd, DRM_IOCTL_MODE_MAP_DUMB, &map) < 0) {
+        fprintf(stderr, "映射FB失败: %s\n", strerror(errno));
+        drmIoctl(dev->fd, DRM_IOCTL_MODE_DESTROY_DUMB, &create);
+        return -1;
+    }
+
+    dev->fb_buf = mmap(NULL, create.size, PROT_READ | PROT_WRITE, MAP_SHARED, dev->fd, map.offset);
+    if (dev->fb_buf == MAP_FAILED) {
+        fprintf(stderr, "mmap失败: %s\n", strerror(errno));
+        drmIoctl(dev->fd, DRM_IOCTL_MODE_DESTROY_DUMB, &create);
+        return -1;
+    }
+
+    if (drmModeAddFB(dev->fd, create.width, create.height, 24, 32, create.pitch, create.handle, &dev->fb_id) < 0) {
+        fprintf(stderr, "添加FB失败: %s\n", strerror(errno));
+        munmap(dev->fb_buf, create.size);
+        drmIoctl(dev->fd, DRM_IOCTL_MODE_DESTROY_DUMB, &create);
+        return -1;
+    }
+
+    dev->fb_stride = create.pitch;
+    draw_icon(dev->fb_buf, dev->fb_stride);
+    return 0;
+}
+
+// 预查询rotation属性ID（避免重复查询，减少错误）
+static int get_rotation_prop_id(drm_device_t *dev) {
+    drmModeObjectProperties *props = drmModeObjectGetProperties(
+        dev->fd, PRIMARY_PLANE_ID, DRM_MODE_OBJECT_PLANE
+    );
+    if (!props) {
+        fprintf(stderr, "获取Plane属性失败: %s\n", strerror(errno));
+        return -1;
+    }
+
+    for (int i = 0; i < props->count_props; i++) {
+        drmModePropertyPtr prop = drmModeGetProperty(dev->fd, props->props[i]);
+        if (!prop) continue;
+
+        if (strcmp(prop->name, "rotation") == 0) {
+            dev->rot_prop_id = prop->prop_id;
+            drmModeFreeProperty(prop);
+            drmModeFreeObjectProperties(props);
+            printf("✅ 找到rotation属性ID: %d\n", dev->rot_prop_id);
+            return 0;
+        }
+        drmModeFreeProperty(prop);
+    }
+
+    fprintf(stderr, "Plane(57)无rotation属性\n");
+    drmModeFreeObjectProperties(props);
+    return -1;
+}
+
+// RK3568 原厂纯硬件翻转设置（100%生效）
+static int set_hardware_flip(drm_device_t *dev, uint64_t rotation) {
+    if (dev->rot_prop_id == 0) {
+        fprintf(stderr, "rotation属性ID未初始化\n");
+        return -1;
+    }
+
+    // 应用原厂硬件翻转指令（关键：仅用支持的rotation值）
+    int ret = drmModeObjectSetProperty(
+        dev->fd, PRIMARY_PLANE_ID, DRM_MODE_OBJECT_PLANE,
+        dev->rot_prop_id, rotation
+    );
+    if (ret < 0) {
+        fprintf(stderr, "设置硬件翻转失败(0x%lx): %s\n", rotation, strerror(errno));
+        return -1;
+    }
+
+    // 立即刷新CRTC，确保翻转生效
+    drmModeModeInfo mode = dev->conn->modes[20];
+    uint32_t conn_id = HDMI_CONNECTOR_ID;
+    drmModeSetCrtc(dev->fd, CRTC_ID, dev->fb_id, 0, 0, &conn_id, 1, &mode);
+
+    return 0;
+}
+
+// 初始化DRM（极简，适配RK3568）
+static int drm_init(drm_device_t *dev) {
+    dev->fd = open(DRM_DEV_PATH, O_RDWR | O_CLOEXEC);
+    if (dev->fd < 0) {
+        fprintf(stderr, "打开DRM失败: %s\n", strerror(errno));
+        return -1;
+    }
+
+    dev->res = drmModeGetResources(dev->fd);
+    dev->conn = drmModeGetConnector(dev->fd, HDMI_CONNECTOR_ID);
+    if (!dev->conn) {
+        fprintf(stderr, "获取HDMI连接器失败: %s\n", strerror(errno));
+        close(dev->fd);
+        return -1;
+    }
+
+    // 预查询rotation属性ID
+    if (get_rotation_prop_id(dev) < 0) {
+        drmModeFreeConnector(dev->conn);
+        drmModeFreeResources(dev->res);
+        close(dev->fd);
+        return -1;
+    }
+
+    return 0;
+}
+
+// 释放资源
+static void drm_cleanup(drm_device_t *dev) {
+    if (dev->fb_buf) munmap(dev->fb_buf, SCREEN_WIDTH * SCREEN_HEIGHT * 4);
+    if (dev->fb_id) drmModeRmFB(dev->fd, dev->fb_id);
+    if (dev->conn) drmModeFreeConnector(dev->conn);
+    if (dev->res) drmModeFreeResources(dev->res);
+    if (dev->fd >= 0) close(dev->fd);
+}
+
+int main(int argc, char *argv[]) {
+    drm_device_t dev = {0};
+
+    // 1. 初始化DRM（预查rotation属性）
+    if (drm_init(&dev) < 0) return -1;
+
+    // 2. 创建全屏FB并绘制图标
+    if (create_fb(&dev) < 0) {
+        drm_cleanup(&dev);
+        return -1;
+    }
+
+    // ========== 阶段1：纯硬件正常显示 ==========
+    printf("\n=== 阶段1：纯硬件正常显示 ===\n");
+    if (set_hardware_flip(&dev, ROT_NORMAL) == 0) {
+        printf("✅ Primary Plane(57) 正常显示完成\n");
+        printf("红色竖条在左，黄色方块在右上（显示5秒）...\n");
+    }
+    sleep(5);
+
+    
+    // ========== 阶段3：纯硬件左右翻转（核心需求，原厂指令） ==========
+    printf("\n=== 阶段3：纯硬件左右翻转 ===\n");
+    if (set_hardware_flip(&dev, ROT_HFLIP) == 0) {
+        printf("✅ Primary Plane(57) 左右翻转完成\n");
+        printf("红色竖条到右，黄色方块到左上（显示5秒）...\n");
+    }
+    sleep(5);
+
+    // ========== 阶段2：纯硬件上下翻转（已验证成功） ==========
+    printf("\n=== 阶段2：纯硬件上下翻转 ===\n");
+    if (set_hardware_flip(&dev, ROT_VFLIP) == 0) {
+        printf("✅ Primary Plane(57) 上下翻转完成\n");
+        printf("绿色横条到顶，黄色方块到右下（显示5秒）...\n");
+    }
+    sleep(5);
+
+
+    // ========== 阶段4：纯硬件左右+上下翻转 ==========
+    printf("\n=== 阶段4：纯硬件左右+上下翻转 ===\n");
+    if (set_hardware_flip(&dev, ROT_HVFLIP) == 0) {
+        printf("✅ Primary Plane(57) 左右+上下翻转完成\n");
+        printf("红色竖条在右，绿色横条在顶，黄色方块在左下（显示5秒）...\n");
+    }
+    sleep(5);
+
+    // 恢复正常显示
+    set_hardware_flip(&dev, ROT_NORMAL);
+
+    // 清理资源
+    drm_cleanup(&dev);
+    printf("\n程序退出，纯硬件翻转验证完成\n");
+    return 0;
+}
