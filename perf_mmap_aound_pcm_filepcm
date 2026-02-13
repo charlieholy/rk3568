@@ -1,0 +1,355 @@
+#include <alsa/asoundlib.h>
+#include <math.h> 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <time.h>  // 新增：时间控制头文件
+
+// WAV文件头结构体
+typedef struct {
+    char        riff_id[4];        
+    uint32_t    riff_size;         
+    char        riff_type[4];      
+    char        fmt_id[4];         
+    uint32_t    fmt_size;          
+    uint16_t    audio_format;      
+    uint16_t    channels;          
+    uint32_t    sample_rate;       
+    uint32_t    byte_rate;         
+    uint16_t    block_align;       
+    uint16_t    bits_per_sample;   
+    char        data_id[4];        
+    uint32_t    data_size;         
+} WavHeader;
+
+// 全局变量
+FILE *wav_file = NULL;
+WavHeader wav_header;
+snd_pcm_format_t wav_format;
+int wav_frame_bytes;          // WAV文件原始每帧字节数
+int playback_frame_bytes;     // 播放时（双声道）每帧字节数
+// 新增：WAV实际时长（秒）
+double wav_total_seconds;
+
+// 从WAV文件读取原始音频数据
+int read_wav_audio(void *buf, snd_pcm_uframes_t frames) {
+    if (!wav_file || feof(wav_file)) {
+        return 0;
+    }
+    size_t read_bytes = frames * wav_frame_bytes;
+    size_t ret = fread(buf, 1, read_bytes, wav_file);
+    if (ret < read_bytes) {
+        memset((char*)buf + ret, 0, read_bytes - ret);
+    }
+    return ret / wav_frame_bytes;
+}
+
+// 新增：单声道转双声道（核心）
+void mono_to_stereo(short *mono_buf, short *stereo_buf, snd_pcm_uframes_t frames) {
+    for (snd_pcm_uframes_t i = 0; i < frames; i++) {
+        stereo_buf[i * 2] = mono_buf[i];    // 左声道
+        stereo_buf[i * 2 + 1] = mono_buf[i];// 右声道（复制单声道数据）
+    }
+}
+
+// 解析WAV头（新增：计算实际时长 + 区分原始/播放帧字节数）
+int parse_wav_header(const char *wav_path) {
+    wav_file = fopen(wav_path, "rb");
+    if (!wav_file) {
+        fprintf(stderr, "打开WAV文件失败: %s\n", wav_path);
+        return -1;
+    }
+
+    size_t ret = fread(&wav_header, 1, sizeof(WavHeader), wav_file);
+    if (ret != sizeof(WavHeader)) {
+        fprintf(stderr, "读取WAV头失败\n");
+        fclose(wav_file);
+        return -1;
+    }
+
+    // 验证格式
+    if (memcmp(wav_header.riff_id, "RIFF", 4) != 0 ||
+        memcmp(wav_header.riff_type, "WAVE", 4) != 0 ||
+        memcmp(wav_header.fmt_id, "fmt ", 4) != 0 ||
+        memcmp(wav_header.data_id, "data", 4) != 0) {
+        fprintf(stderr, "不是标准WAV文件\n");
+        fclose(wav_file);
+        return -1;
+    }
+    if (wav_header.audio_format != 1) {
+        fprintf(stderr, "仅支持PCM非压缩格式\n");
+        fclose(wav_file);
+        return -1;
+    }
+    if (wav_header.bits_per_sample != 16) {
+        fprintf(stderr, "仅支持16位WAV\n");
+        fclose(wav_file);
+        return -1;
+    }
+
+    // 初始化参数
+    wav_format = SND_PCM_FORMAT_S16_LE;
+    // WAV原始帧字节数（单声道=2，双声道=4）
+    wav_frame_bytes = wav_header.channels * (wav_header.bits_per_sample / 8);
+    // 播放时强制双声道，帧字节数固定为4（2声道×16位/8）
+    playback_frame_bytes = 2 * (wav_header.bits_per_sample / 8);
+    // 核心：计算WAV实际时长 = 数据总字节数 / 字节率
+    wav_total_seconds = (double)wav_header.data_size / wav_header.byte_rate;
+
+    // 打印信息（新增声道转换提示）
+    printf("\n===== WAV文件信息 =====\n");
+    printf("原始声道数: %d\n", wav_header.channels);
+    printf("播放声道数: 2（强制双声道）\n");
+    printf("采样率: %d Hz\n", wav_header.sample_rate);
+    printf("位深: %d bit\n", wav_header.bits_per_sample);
+    printf("音频数据大小: %d 字节\n", wav_header.data_size);
+    printf("实际时长: %.2f 秒\n", wav_total_seconds);
+    printf("========================\n\n");
+
+    return 0;
+}
+
+#define PCM_DEVICE "hw:1,0"  // 修正为实际设备
+#define BUFFER_FRAMES 1024
+
+// 新增：获取当前时间（毫秒）
+uint64_t get_current_ms() {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (uint64_t)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
+}
+
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        fprintf(stderr, "用法: %s <WAV文件路径>\n", argv[0]);
+        return -1;
+    }
+
+    snd_pcm_t *pcm_handle = NULL;
+    void *wav_buf = NULL;       // 存储WAV原始数据（单/双声道）
+    void *playback_buf = NULL;  // 存储播放用数据（强制双声道）
+    snd_pcm_uframes_t frames_written = 0;
+    int ret;
+
+    // 1. 解析WAV
+    if (parse_wav_header(argv[1]) < 0) {
+        return -1;
+    }
+    // 总帧数按WAV原始格式计算
+    snd_pcm_uframes_t total_frames = wav_header.data_size / wav_frame_bytes;
+
+    // 2. 打开PCM设备（改为阻塞模式，更稳定）
+    ret = snd_pcm_open(&pcm_handle, PCM_DEVICE, SND_PCM_STREAM_PLAYBACK, 0);
+    if (ret < 0) {
+        fprintf(stderr, "打开设备失败: %s\n", snd_strerror(ret));
+        fclose(wav_file);
+        return -1;
+    }
+
+    // 3. 配置PCM参数（强制双声道）
+    snd_pcm_hw_params_t *hw_params;
+    snd_pcm_hw_params_alloca(&hw_params);
+    snd_pcm_hw_params_any(pcm_handle, hw_params);
+    
+    ret = snd_pcm_hw_params_set_access(pcm_handle, hw_params, SND_PCM_ACCESS_MMAP_INTERLEAVED);
+    if (ret < 0) {
+        fprintf(stderr, "设置MMAP模式失败: %s\n", snd_strerror(ret));
+        snd_pcm_close(pcm_handle);
+        fclose(wav_file);
+        return -1;
+    }
+
+    ret = snd_pcm_hw_params_set_format(pcm_handle, hw_params, wav_format);
+    if (ret < 0) {
+        fprintf(stderr, "设置格式失败: %s\n", snd_strerror(ret));
+        snd_pcm_close(pcm_handle);
+        fclose(wav_file);
+        return -1;
+    }
+
+    // 核心修改：强制设置为2声道（不管WAV是单/双声道）
+    ret = snd_pcm_hw_params_set_channels(pcm_handle, hw_params, 2);
+    if (ret < 0) {
+        fprintf(stderr, "设置双声道失败: %s\n", snd_strerror(ret));
+        snd_pcm_close(pcm_handle);
+        fclose(wav_file);
+        return -1;
+    }
+
+    unsigned int rate = wav_header.sample_rate;
+    ret = snd_pcm_hw_params_set_rate_near(pcm_handle, hw_params, &rate, 0);
+    if (ret < 0) {
+        fprintf(stderr, "设置采样率失败: %s\n", snd_strerror(ret));
+        snd_pcm_close(pcm_handle);
+        fclose(wav_file);
+        return -1;
+    }
+    if (rate != wav_header.sample_rate) {
+        printf("警告：采样率不匹配，使用 %d Hz 替代 %d Hz\n", rate, wav_header.sample_rate);
+    }
+    
+    // 优化缓冲区大小（减少延迟，提升时间精度）
+    snd_pcm_uframes_t period_frames = 512;  // 缩小周期帧，更精准
+    snd_pcm_hw_params_set_period_size_near(pcm_handle, hw_params, &period_frames, 0);
+    snd_pcm_uframes_t buffer_frames = period_frames * 2;  // 缓冲区=2个周期
+    snd_pcm_hw_params_set_buffer_size_near(pcm_handle, hw_params, &buffer_frames);
+
+    ret = snd_pcm_hw_params(pcm_handle, hw_params);
+    if (ret < 0) {
+        fprintf(stderr, "应用参数失败: %s\n", snd_strerror(ret));
+        snd_pcm_close(pcm_handle);
+        fclose(wav_file);
+        return -1;
+    }
+
+    // 打印PCM参数（确认双声道）
+    printf("\n===== PCM硬件参数 =====\n");
+    snd_pcm_access_t access;
+    snd_pcm_hw_params_get_access(hw_params, &access);
+    printf("1. 访问模式: %s\n", access == SND_PCM_ACCESS_MMAP_INTERLEAVED ? "MMAP_INTERLEAVED" : "其他");
+    snd_pcm_format_t format;
+    snd_pcm_hw_params_get_format(hw_params, &format);
+    printf("2. 采样格式: %s\n", snd_pcm_format_name(format));
+    unsigned int channels;
+    snd_pcm_hw_params_get_channels(hw_params, &channels);
+    printf("3. 声道数: %u（强制双声道）\n", channels);
+    unsigned int actual_rate;
+    snd_pcm_hw_params_get_rate(hw_params, &actual_rate, 0);
+    printf("4. 采样率: %u Hz\n", actual_rate);
+    snd_pcm_uframes_t actual_buffer_frames;
+    snd_pcm_hw_params_get_buffer_size(hw_params, &actual_buffer_frames);
+    printf("5. 缓冲时长: %.2f ms\n", (double)actual_buffer_frames / actual_rate * 1000);
+    printf("=======================\n\n");
+
+    // 4. 分配缓冲区（区分原始数据和播放数据）
+    wav_buf = malloc(BUFFER_FRAMES * wav_frame_bytes);       // 存储WAV原始数据
+    playback_buf = malloc(BUFFER_FRAMES * playback_frame_bytes); // 存储双声道播放数据
+    if (!wav_buf || !playback_buf) {
+        fprintf(stderr, "内存分配失败\n");
+        snd_pcm_close(pcm_handle);
+        fclose(wav_file);
+        free(wav_buf);
+        free(playback_buf);
+        return -1;
+    }
+
+    // 5. 初始化时间控制（核心！）
+    int is_playing = 0;
+    int first_print = 1;
+    uint64_t play_start_ms = 0;  // 播放开始时间（毫秒）
+    uint64_t max_play_ms = (uint64_t)(wav_total_seconds * 1000);  // 最大播放时长（毫秒）
+
+    // 6. 核心播放循环（结合时间控制 + 声道转换）
+    while (1) {
+        // 终止条件1：播放时长超过WAV实际时长（核心！）
+        if (is_playing) {
+            uint64_t current_ms = get_current_ms();
+            uint64_t elapsed_ms = current_ms - play_start_ms;
+            if (elapsed_ms >= max_play_ms) {
+                printf("\n⏰ 达到WAV实际时长（%.2f秒），停止播放\n", wav_total_seconds);
+                break;
+            }
+            // 实时打印“时间进度”（而非帧数）
+            printf("📝 播放进度: %.2f/%.2f 秒 (%.1f%%) | 状态: 运行中\r",
+                   (double)elapsed_ms / 1000, wav_total_seconds,
+                   (double)elapsed_ms / max_play_ms * 100);
+            fflush(stdout);
+        }
+
+        // 终止条件2：帧数已写完 且 缓冲区为空（防止残留数据播放）
+        if (frames_written >= total_frames) {
+            snd_pcm_sframes_t delay_frames = snd_pcm_delay(pcm_handle, NULL);
+            if (delay_frames <= 0) {
+                printf("\n📝 数据已播放完毕，缓冲区无残留\n");
+                break;
+            }
+        }
+
+        // 获取可用帧数
+        snd_pcm_uframes_t avail_frames = snd_pcm_avail_update(pcm_handle);
+        if (avail_frames <= 0) {
+            if (avail_frames < 0) {
+                ret = snd_pcm_recover(pcm_handle, avail_frames, 1);
+                if (ret < 0) {
+                    fprintf(stderr, "\n设备恢复失败: %s\n", snd_strerror(ret));
+                    break;
+                }
+            }
+            usleep(1000);
+            continue;
+        }
+
+        // 计算本次写入帧数
+        snd_pcm_uframes_t write_frames = avail_frames;
+        if (write_frames > BUFFER_FRAMES) write_frames = BUFFER_FRAMES;
+        if (frames_written + write_frames > total_frames) {
+            write_frames = total_frames - frames_written;
+        }
+
+        if (write_frames > 0) {
+            // 读取WAV原始数据
+            int read_frames = read_wav_audio(wav_buf, write_frames);
+            if (read_frames <= 0) {
+                write_frames = 0;
+                continue;
+            }
+
+            // 核心：声道转换
+            if (wav_header.channels == 1) {
+                // 单声道→双声道：复制数据到左右声道
+                mono_to_stereo((short*)wav_buf, (short*)playback_buf, read_frames);
+            } else {
+                // 双声道：直接拷贝
+                memcpy(playback_buf, wav_buf, read_frames * playback_frame_bytes);
+            }
+
+            // MMAP写入（使用双声道播放数据）
+            const snd_pcm_channel_area_t *areas;
+            snd_pcm_uframes_t offset;
+            ret = snd_pcm_mmap_begin(pcm_handle, &areas, &offset, &write_frames);
+            
+            if (ret >= 0 && write_frames > 0) {
+                if (first_print) {
+                    printf("\n===== MMAP缓冲区信息 =====\n");
+                    printf("基地址: 0x%lx\n", (unsigned long)areas->addr);
+                    first_print = 0;
+                }
+
+                char *dst = (char*)(areas->addr + offset * playback_frame_bytes);
+                memcpy(dst, playback_buf, write_frames * playback_frame_bytes);
+                
+                ret = snd_pcm_mmap_commit(pcm_handle, offset, write_frames);
+                if (ret > 0) {
+                    frames_written += ret;
+
+                    // 启动播放并记录开始时间（核心！）
+                    if (!is_playing) {
+                        ret = snd_pcm_start(pcm_handle);
+                        if (ret < 0) {
+                            fprintf(stderr, "启动播放失败: %s\n", snd_strerror(ret));
+                        } else {
+                            is_playing = 1;
+                            play_start_ms = get_current_ms();  // 记录播放开始时间
+                            printf("✅ 播放启动，开始计时...\n");
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 7. 强制停止播放（确保立即终止）
+    if (is_playing) {
+        snd_pcm_drop(pcm_handle);  // 清空缓冲区，立即停止
+        printf("✅ 已强制停止播放，缓冲区已清空\n");
+    }
+
+    // 8. 释放资源
+    free(wav_buf);
+    free(playback_buf);
+    snd_pcm_close(pcm_handle);
+    fclose(wav_file);
+    printf("\n🎵 播放完成！实际播放时长: %.2f 秒\n", wav_total_seconds);
+    return 0;
+}
