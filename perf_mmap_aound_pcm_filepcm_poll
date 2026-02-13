@@ -356,7 +356,9 @@ int main(int argc, char *argv[]) {
             const snd_pcm_channel_area_t *areas;
             snd_pcm_uframes_t offset;
             ret = snd_pcm_mmap_begin(pcm_handle, &areas, &offset, &write_frames);
-            
+
+            printf("offset %lu avail_frames %lu write_frames %lu\n", offset, avail_frames, write_frames);
+
             if (ret >= 0 && write_frames > 0) {
                 if (first_print) {
                     printf("\n===== MMAP缓冲区信息 =====\n");
@@ -439,3 +441,22 @@ poll事件: revents=0x0004 time 5375277 态: 运行中
 ✅ 已强制停止播放，缓冲区已清空
 
 🎵 播放完成！实际播放时长: 1.44 秒
+
+/////
+offset 0 avail_frames 1024 write_frames 1024
+
+===== MMAP缓冲区信息 =====
+基地址: 0x7f9b025000
+✅ 播放启动，开始计时...
+poll事件: revents=0x0004 time 6294064态: 运行中
+offset 0 avail_frames 512 write_frames 512 行中
+poll事件: revents=0x0004 time 6294096态: 运行中
+offset 512 avail_frames 512 write_frames 512 中
+poll事件: revents=0x0004 time 6294128态: 运行中
+offset 0 avail_frames 512 write_frames 512 行中
+poll事件: revents=0x0004 time 6294160态: 运行中
+offset 512 avail_frames 512 write_frames 512 中
+poll事件: revents=0x0004 time 6294192 态: 运行中
+offset 0 avail_frames 512 write_frames 512运行中
+
+从日志里的 offset 交替出现 0 和 512、avail_frames 固定为 512 可以明确看出，你的 ALSA 播放器正以乒乓（Ping-Pong）模式写入 1024 帧大小的缓冲区，这也是 ALSA 硬件缓冲的经典工作方式
