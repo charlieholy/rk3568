@@ -31,7 +31,9 @@ void my_mutex_lock(my_mutex_t *mutex) {
     while ((c = atomic_load(&mutex->futex_val)) != 0 ||
            !atomic_compare_exchange_strong(&mutex->futex_val, &c, 1)) {
         // 慢速路径：挂起等待（仅当值为1时）
-        futex((int*)&mutex->futex_val, FUTEX_WAIT, 1, NULL, NULL, 0);
+       // futex((int*)&mutex->futex_val, FUTEX_WAIT, 1, NULL, NULL, 0);
+       // sched_yield();
+        __asm__ __volatile__("pause" ::: "memory"); // x86架构专用
     }
 }
 
@@ -85,11 +87,3 @@ int main() {
 
     return 0;
 }
-
-ubuntu20@NYX:~/opt/linux_sdk/kernel/Linux_driver/INPUT_DEV$ ./a.out
-Thread 2 finished, counter = 485705
-Thread 0 finished, counter = 486386
-Thread 4 finished, counter = 495278
-Thread 1 finished, counter = 495426
-Thread 3 finished, counter = 500000
-Final counter value: 500000 (expected: 500000)
