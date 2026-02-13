@@ -1,0 +1,95 @@
+#define _GNU_SOURCE
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <sys/syscall.h>
+#include <linux/futex.h>
+#include <sys/time.h>
+#include <stdatomic.h>
+
+// 自定义 mutex 结构
+typedef struct {
+    _Atomic int futex_val; // 0=空闲, 1=锁定
+} my_mutex_t;
+
+// 封装 futex 系统调用
+static inline int futex(int *uaddr, int op, int val, const struct timespec *timeout, int *uaddr2, int val3) {
+    return syscall(SYS_futex, uaddr, op, val, timeout, uaddr2, val3);
+}
+
+// 初始化 mutex
+void my_mutex_init(my_mutex_t *mutex) {
+    atomic_store(&mutex->futex_val, 0);
+}
+
+// 加锁操作（极简且稳定的实现）
+void my_mutex_lock(my_mutex_t *mutex) {
+    int c;
+
+    // 快速路径：CAS 加锁（0→1）
+    while ((c = atomic_load(&mutex->futex_val)) != 0 ||
+           !atomic_compare_exchange_strong(&mutex->futex_val, &c, 1)) {
+        // 慢速路径：挂起等待（仅当值为1时）
+        futex((int*)&mutex->futex_val, FUTEX_WAIT, 1, NULL, NULL, 0);
+    }
+}
+
+// 解锁操作（极简且稳定的实现）
+void my_mutex_unlock(my_mutex_t *mutex) {
+    // 原子置0，并唤醒一个等待线程
+    atomic_store(&mutex->futex_val, 0);
+    futex((int*)&mutex->futex_val, FUTEX_WAKE, 1, NULL, NULL, 0);
+}
+
+// -------------------------- 测试代码 --------------------------
+#define THREAD_NUM 5
+#define LOOP_NUM 100000
+
+my_mutex_t g_mutex;
+long long g_counter = 0;
+
+// 线程函数
+void *thread_func(void *arg) {
+    long tid = (long)arg;
+    for (int i = 0; i < LOOP_NUM; i++) {
+        my_mutex_lock(&g_mutex);
+        g_counter++;
+        my_mutex_unlock(&g_mutex);
+    }
+    printf("Thread %ld finished, counter = %lld\n", tid, g_counter);
+    return NULL;
+}
+
+int main() {
+    pthread_t threads[THREAD_NUM];
+    long i;
+
+    my_mutex_init(&g_mutex);
+
+    // 创建线程
+    for (i = 0; i < THREAD_NUM; i++) {
+        if (pthread_create(&threads[i], NULL, thread_func, (void*)i) != 0) {
+            perror("pthread_create failed");
+            exit(1);
+        }
+    }
+
+    // 等待线程结束
+    for (i = 0; i < THREAD_NUM; i++) {
+        pthread_join(threads[i], NULL);
+    }
+
+    printf("Final counter value: %lld (expected: %d)\n",
+           g_counter, THREAD_NUM * LOOP_NUM);
+
+    return 0;
+}
+
+ubuntu20@NYX:~/opt/linux_sdk/kernel/Linux_driver/INPUT_DEV$ ./a.out
+Thread 2 finished, counter = 485705
+Thread 0 finished, counter = 486386
+Thread 4 finished, counter = 495278
+Thread 1 finished, counter = 495426
+Thread 3 finished, counter = 500000
+Final counter value: 500000 (expected: 500000)
