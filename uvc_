@@ -1,3 +1,5 @@
 ffmpeg -f v4l2 -pix_fmt yuyv422 -video_size 640x480 -i /dev/video9 -vframes 1 ok.jpg
 
 ffmpeg -f v4l2 -video_size 640x480 -pix_fmt yuyv422 -i /dev/video9  -c:v libx264 -preset ultrafast -crf 28 -f mp4 uvc_record.mp4
+
+ffmpeg -f v4l2 -video_size 1024x768 -input_format mjpeg -framerate 30 -i /dev/video9 -c:v copy uvc_mjpg_1024x768.avi
