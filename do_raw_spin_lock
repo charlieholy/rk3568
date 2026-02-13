@@ -1,0 +1,59 @@
+(gdb)  disassemble do_raw_spin_lock
+Dump of assembler code for function do_raw_spin_lock:
+   0xffffff8008107954 <+0>:     stp     x29, x30, [sp,#-32]!
+   0xffffff8008107958 <+4>:     mov     x29, sp
+   0xffffff800810795c <+8>:     stp     x19, x20, [sp,#16]
+   0xffffff8008107960 <+12>:    mov     x19, x0
+   0xffffff8008107964 <+16>:    mov     x0, x30
+   0xffffff8008107968 <+20>:    bl      0xffffff80080983a0 <_mcount>
+   0xffffff800810796c <+24>:    mov     w0, #0x4ead                     // #20141
+   0xffffff8008107970 <+28>:    ldr     w1, [x19,#4]
+   0xffffff8008107974 <+32>:    movk    w0, #0xdead, lsl #16
+   0xffffff8008107978 <+36>:    cmp     w1, w0
+   0xffffff800810797c <+40>:    b.eq    0xffffff8008107990 <do_raw_spin_lock+60>
+   0xffffff8008107980 <+44>:    adrp    x1, 0xffffff8009106000
+   0xffffff8008107984 <+48>:    mov     x0, x19
+   0xffffff8008107988 <+52>:    add     x1, x1, #0x6ab
+   0xffffff800810798c <+56>:    bl      0xffffff8008107848 <spin_bug>
+   0xffffff8008107990 <+60>:    ldr     x1, [x19,#16]
+   0xffffff8008107994 <+64>:    mrs     x0, sp_el0
+   0xffffff8008107998 <+68>:    cmp     x1, x0
+   0xffffff800810799c <+72>:    b.ne    0xffffff80081079b0 <do_raw_spin_lock+92>
+   0xffffff80081079a0 <+76>:    adrp    x1, 0xffffff8009106000
+   0xffffff80081079a4 <+80>:    mov     x0, x19
+   0xffffff80081079a8 <+84>:    add     x1, x1, #0x6b9
+   0xffffff80081079ac <+88>:    bl      0xffffff8008107848 <spin_bug>
+   0xffffff80081079b0 <+92>:    ldr     w2, [x19,#8]
+   0xffffff80081079b4 <+96>:    adrp    x0, 0xffffff8009434000 <bp_hardening_data>
+   0xffffff80081079b8 <+100>:   mrs     x3, tpidr_el1
+   0xffffff80081079bc <+104>:   add     x1, x0, #0x18
+   0xffffff80081079c0 <+108>:   mov     x20, x0
+   0xffffff80081079c4 <+112>:   ldr     w1, [x1,x3]
+   0xffffff80081079c8 <+116>:   cmp     w2, w1
+   0xffffff80081079cc <+120>:   b.ne    0xffffff80081079e0 <do_raw_spin_lock+140>
+   0xffffff80081079d0 <+124>:   adrp    x1, 0xffffff8009106000
+   0xffffff80081079d4 <+128>:   mov     x0, x19
+   0xffffff80081079d8 <+132>:   add     x1, x1, #0x6b5
+   0xffffff80081079dc <+136>:   bl      0xffffff8008107848 <spin_bug>
+   0xffffff80081079e0 <+140>:   mov     x0, x19
+   0xffffff80081079e4 <+144>:   mov     x1, #0x0                        // #0
+   0xffffff80081079e8 <+148>:   mov     x2, #0x1                        // #1
+   0xffffff80081079ec <+152>:   bl      0xffffff8008dacf94 <__ll_sc___cmpxchg_case_acq_4>
+---Type <return> to continue, or q <return> to quit---
+   0xffffff80081079f0 <+156>:   nop
+   0xffffff80081079f4 <+160>:   nop
+   0xffffff80081079f8 <+164>:   cbz     w0, 0xffffff8008107a08 <do_raw_spin_lock+180>
+   0xffffff80081079fc <+168>:   mov     w1, w0
+   0xffffff8008107a00 <+172>:   mov     x0, x19
+   0xffffff8008107a04 <+176>:   bl      0xffffff8008106594 <queued_spin_lock_slowpath>
+   0xffffff8008107a08 <+180>:   mrs     x1, tpidr_el1
+   0xffffff8008107a0c <+184>:   add     x0, x20, #0x18
+   0xffffff8008107a10 <+188>:   ldr     w0, [x0,x1]
+   0xffffff8008107a14 <+192>:   str     w0, [x19,#8]
+   0xffffff8008107a18 <+196>:   mrs     x0, sp_el0
+   0xffffff8008107a1c <+200>:   str     x0, [x19,#16]
+   0xffffff8008107a20 <+204>:   ldp     x19, x20, [sp,#16]
+   0xffffff8008107a24 <+208>:   ldp     x29, x30, [sp],#32
+   0xffffff8008107a28 <+212>:   ret
+End of assembler dump.
+(gdb)
