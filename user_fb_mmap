@@ -1,0 +1,44 @@
+#include <stdio.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <unistd.h>
+
+// 适配你的 fb0 参数
+#define WIDTH 800
+#define HEIGHT 1280
+#define BPP 32
+#define BYTES_PER_PIXEL (BPP/8)
+
+// 纯蓝色（BGRA）
+#define BLUE 0xFF0000FF
+
+int main() {
+    int fb_fd = open("/dev/fb0", O_RDWR);
+    if (fb_fd < 0) {
+        perror("打开 fb0 失败");
+        return 1;
+    }
+
+    // 计算缓冲区大小
+    int fb_size = WIDTH * HEIGHT * BYTES_PER_PIXEL;
+    // 映射内存
+    unsigned int *fb_buf = (unsigned int *)mmap(NULL, fb_size, PROT_READ | PROT_WRITE, MAP_SHARED, fb_fd, 0);
+    if (fb_buf == MAP_FAILED) {
+        perror("mmap 失败");
+        close(fb_fd);
+        return 1;
+    }
+
+    // 填充蓝色
+    for (int y = 0; y < HEIGHT; y++) {
+        for (int x = 0; x < WIDTH; x++) {
+            fb_buf[y * WIDTH + x] = BLUE;
+        }
+    }
+
+    // 释放资源
+    munmap(fb_buf, fb_size);
+    close(fb_fd);
+    printf("fb0 已全屏显示蓝色！\n");
+    return 0;
+}
