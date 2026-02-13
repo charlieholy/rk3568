@@ -1,0 +1,222 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
+#include <errno.h>
+#include <sys/mman.h>
+#include <xf86drm.h>
+#include <xf86drmMode.h>
+
+// RK3568 硬件参数（适配你的环境）
+#define DRM_DEV_PATH "/dev/dri/card0"
+#define HDMI_CONNECTOR_ID 152  // 你的 HDMI 连接器 ID
+#define TARGET_WIDTH 1024      // HDMI 支持的分辨率
+#define TARGET_HEIGHT 768
+#define BPP 32                 // 32位色深（XRGB8888）
+
+// 定义颜色（XRGB8888 格式，高位X忽略）
+#define COLOR_RED   0x00FF0000
+#define COLOR_GREEN 0x0000FF00
+#define COLOR_BLUE  0x000000FF
+#define COLOR_WHITE 0x00FFFFFF
+
+// DRM 核心结构体
+typedef struct {
+    int fd;                     // DRM 设备文件描述符
+    drmModeRes *res;            // 显示资源（连接器/CRTC/编码器）
+    drmModeConnector *conn;     // HDMI 连接器
+    drmModeCrtc *crtc;          // CRTC（显示控制器）
+    uint32_t crtc_id;           // CRTC ID
+    uint32_t fb_id;             // 帧缓冲 ID
+    uint8_t *fb_buf;            // 帧缓冲映射内存
+    uint32_t fb_stride;         // 行跨度
+    uint32_t fb_size;           // 帧缓冲大小
+} drm_device_t;
+
+// 初始化 DRM 设备
+static int drm_init(drm_device_t *dev) {
+    // 1. 打开 DRM 设备（RK3568 固定为 /dev/dri/card0）
+    dev->fd = open(DRM_DEV_PATH, O_RDWR | O_CLOEXEC);
+    if (dev->fd < 0) {
+        fprintf(stderr, "RK3568 DRM 打开失败: %s\n", strerror(errno));
+        return -1;
+    }
+
+    // 2. 获取显示资源
+    dev->res = drmModeGetResources(dev->fd);
+    if (!dev->res) {
+        fprintf(stderr, "获取 DRM 资源失败: %s\n", strerror(errno));
+        close(dev->fd);
+        return -1;
+    }
+
+    // 3. 获取 HDMI 连接器（152）
+    dev->conn = drmModeGetConnector(dev->fd, HDMI_CONNECTOR_ID);
+    if (!dev->conn) {
+        fprintf(stderr, "获取 HDMI 连接器(%d)失败: %s\n", HDMI_CONNECTOR_ID, strerror(errno));
+        drmModeFreeResources(dev->res);
+        close(dev->fd);
+        return -1;
+    }
+
+    // 4. 匹配 CRTC（RK3568 HDMI 对应 CRTC 85，也可自动匹配）
+    dev->crtc_id = 85;  // 固定适配你的硬件，也可遍历 dev->res->crtcs 自动找
+    dev->crtc = drmModeGetCrtc(dev->fd, dev->crtc_id);
+    if (!dev->crtc) {
+        fprintf(stderr, "获取 CRTC(%d)失败: %s\n", dev->crtc_id, strerror(errno));
+        drmModeFreeConnector(dev->conn);
+        drmModeFreeResources(dev->res);
+        close(dev->fd);
+        return -1;
+    }
+
+    printf("RK3568 DRM 初始化成功：\n");
+    printf("  - DRM 设备: %s\n", DRM_DEV_PATH);
+    printf("  - HDMI 连接器: %d\n", HDMI_CONNECTOR_ID);
+    printf("  - CRTC: %d\n", dev->crtc_id);
+    return 0;
+}
+
+// 创建 DRM 帧缓冲
+static int drm_create_fb(drm_device_t *dev) {
+    struct drm_mode_create_dumb create = {0};
+    struct drm_mode_map_dumb map = {0};
+
+    // 1. 设置帧缓冲参数（适配 1024x768@32bpp）
+    create.width = TARGET_WIDTH;
+    create.height = TARGET_HEIGHT;
+    create.bpp = BPP;
+    if (drmIoctl(dev->fd, DRM_IOCTL_MODE_CREATE_DUMB, &create) < 0) {
+        fprintf(stderr, "创建帧缓冲失败: %s\n", strerror(errno));
+        return -1;
+    }
+
+    // 2. 映射帧缓冲到用户空间
+    map.handle = create.handle;
+    if (drmIoctl(dev->fd, DRM_IOCTL_MODE_MAP_DUMB, &map) < 0) {
+        fprintf(stderr, "映射帧缓冲失败: %s\n", strerror(errno));
+        drmIoctl(dev->fd, DRM_IOCTL_MODE_DESTROY_DUMB, &create);
+        return -1;
+    }
+
+    // 3. mmap 获取可读写的内存地址
+    dev->fb_buf = mmap(NULL, create.size, PROT_READ | PROT_WRITE, MAP_SHARED, dev->fd, map.offset);
+    if (dev->fb_buf == MAP_FAILED) {
+        fprintf(stderr, "mmap 帧缓冲失败: %s\n", strerror(errno));
+        drmIoctl(dev->fd, DRM_IOCTL_MODE_DESTROY_DUMB, &create);
+        return -1;
+    }
+
+    // 4. 创建 DRM 帧缓冲对象
+    if (drmModeAddFB(dev->fd, create.width, create.height, 24, 32, create.pitch, create.handle, &dev->fb_id) < 0) {
+        fprintf(stderr, "添加 FB 失败: %s\n", strerror(errno));
+        munmap(dev->fb_buf, create.size);
+        drmIoctl(dev->fd, DRM_IOCTL_MODE_DESTROY_DUMB, &create);
+        return -1;
+    }
+
+    dev->fb_stride = create.pitch;
+    dev->fb_size = create.size;
+    printf("帧缓冲创建成功：\n");
+    printf("  - 分辨率: %dx%d\n", TARGET_WIDTH, TARGET_HEIGHT);
+    printf("  - 大小: %d 字节\n", create.size);
+    return 0;
+}
+
+// 填充纯色到帧缓冲（XRGB8888 格式）
+static void drm_fill_color(drm_device_t *dev, uint32_t color) {
+    uint32_t *buf = (uint32_t *)dev->fb_buf;
+    int pixels = TARGET_WIDTH * TARGET_HEIGHT;
+    for (int i = 0; i < pixels; i++) {
+        buf[i] = color;  // 直接填充颜色
+    }
+}
+
+// 显示帧缓冲到 HDMI
+static int drm_show_fb(drm_device_t *dev) {
+    // 使用 HDMI 连接器的第一个有效模式（1024x768@60）
+    drmModeModeInfo mode = dev->conn->modes[20];  // 对应你 modetest 中的 #20 模式
+
+    // 设置 CRTC，将帧缓冲输出到 HDMI
+    if (drmModeSetCrtc(dev->fd, dev->crtc_id, dev->fb_id, 0, 0,
+                       &dev->conn->connector_id, 1, &mode) < 0) {
+        fprintf(stderr, "显示到 HDMI 失败: %s\n", strerror(errno));
+        return -1;
+    }
+    printf("✅ 已将画面输出到 RK3568 HDMI（连接器 %d）\n", HDMI_CONNECTOR_ID);
+    return 0;
+}
+
+// 释放 DRM 资源
+static void drm_cleanup(drm_device_t *dev) {
+    if (dev->fb_buf) {
+        munmap(dev->fb_buf, dev->fb_size);
+    }
+    if (dev->fb_id) {
+        drmModeRmFB(dev->fd, dev->fb_id);
+    }
+    if (dev->crtc) {
+        drmModeFreeCrtc(dev->crtc);
+    }
+    if (dev->conn) {
+        drmModeFreeConnector(dev->conn);
+    }
+    if (dev->res) {
+        drmModeFreeResources(dev->res);
+    }
+    if (dev->fd >= 0) {
+        close(dev->fd);
+    }
+}
+
+int main(int argc, char *argv[]) {
+    drm_device_t dev = {0};
+
+    // 1. 初始化 DRM
+    if (drm_init(&dev) < 0) {
+        return -1;
+    }
+
+    // 2. 创建帧缓冲
+    if (drm_create_fb(&dev) < 0) {
+        drm_cleanup(&dev);
+        return -1;
+    }
+
+    // 3. 填充蓝色（可替换为 RED/GREEN/WHITE）
+    drm_fill_color(&dev, COLOR_BLUE);
+
+    // 4. 显示到 HDMI
+    if (drm_show_fb(&dev) < 0) {
+        drm_cleanup(&dev);
+        return -1;
+    }
+
+    // 5. 保持显示 10 秒
+    printf("显示蓝色 10 秒...\n");
+    sleep(10);
+
+    // 6. 清理资源
+    drm_cleanup(&dev);
+    printf("程序退出，资源已释放\n");
+    return 0;
+}
+
+~/opt/linux_sdk/buildroot/output/rockchip_rk3568/host/bin/aarch64-buildroot-linux-gnu-gcc drmDemo.c -o drmDemo \
+   -L ~/opt/linux_sdk//buildroot/output/rockchip_rk3568/host/aarch64-buildroot-linux-gnu/sysroot/usr/lib  \
+   -I ~/opt/linux_sdk//buildroot/output/rockchip_rk3568/host/aarch64-buildroot-linux-gnu/sysroot/usr/include \
+   -I ~/opt/linux_sdk//buildroot/output/rockchip_rk3568/host/aarch64-buildroot-linux-gnu/sysroot/usr/include/libdrm \
+   -ldrm -g -O0 
+
+root@NYX-RK3568:/data# ./drmDemo
+RK3568 DRM 初始化成功：
+  - DRM 设备: /dev/dri/card0
+  - HDMI 连接器: 152
+  - CRTC: 85
+帧缓冲创建成功：
+  - 分辨率: 1024x768
+  - 大小: 3145728 字节
+✅ 已将画面输出到 RK3568 HDMI（连接器 152）
+显示蓝色 10 秒...
+程序退出，资源已释放
