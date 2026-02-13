@@ -1,0 +1,186 @@
+#include <stdio.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdlib.h>
+#include <xf86drm.h>
+#include <xf86drmMode.h>
+#include <drm_fourcc.h>
+#include <sys/mman.h>
+
+// 硬件参数（从你的modetest输出提取）
+#define DRM_DEV_PATH    "/dev/dri/card0"
+// Primary图层（底层）
+#define PRIMARY_PLANE_ID   57
+// Overlay图层（上层，从modetest输出选ID=131，支持相同格式）
+#define OVERLAY_PLANE_ID   131
+#define CRTC_ID            85
+#define SCREEN_WIDTH       1920
+#define SCREEN_HEIGHT      1080
+#define PIXEL_FORMAT       DRM_FORMAT_XRGB8888
+
+// 兼容Ubuntu 20.04
+#ifndef DRM_MODE_FB_MODIFIER_NONE
+#define DRM_MODE_FB_MODIFIER_NONE 0ULL
+#endif
+
+// 查找属性ID
+uint32_t find_prop_id(int fd, uint32_t obj_id, uint32_t obj_type, const char *prop_name) {
+    drmModeObjectProperties *props = drmModeObjectGetProperties(fd, obj_id, obj_type);
+    if (!props) return 0;
+
+    uint32_t prop_id = 0;
+    for (int i = 0; i < props->count_props; i++) {
+        drmModePropertyPtr prop = drmModeGetProperty(fd, props->props[i]);
+        if (prop && strcmp(prop->name, prop_name) == 0) {
+            prop_id = prop->prop_id;
+            drmModeFreeProperty(prop);
+            break;
+        }
+        drmModeFreeProperty(prop);
+    }
+    drmModeFreeObjectProperties(props);
+    return prop_id;
+}
+
+// 创建FrameBuffer（通用函数，支持不同图形）
+uint32_t create_fb(int fd, uint32_t width, uint32_t height, uint32_t *pitch, int type) {
+    uint32_t fb_id;
+    uint32_t handle;
+    int ret;
+
+    // 1. 分配DRM内存
+    *pitch = width * 4;
+    struct drm_mode_create_dumb create_dumb = {
+        .width = width,
+        .height = height,
+        .bpp = 32,
+        .flags = 0,
+    };
+    ret = drmIoctl(fd, DRM_IOCTL_MODE_CREATE_DUMB, &create_dumb);
+    if (ret < 0) {
+        perror("DRM_IOCTL_MODE_CREATE_DUMB failed");
+        return 0;
+    }
+    handle = create_dumb.handle;
+
+    // 2. 创建FB
+    ret = drmModeAddFB2(fd, width, height, PIXEL_FORMAT,
+                        (uint32_t[]){handle},
+                        (uint32_t[]){*pitch},
+                        (uint32_t[]){0},
+                        &fb_id,
+                        0);
+    if (ret < 0) {
+        perror("drmModeAddFB2 failed");
+        struct drm_mode_destroy_dumb destroy_dumb = {.handle = handle};
+        drmIoctl(fd, DRM_IOCTL_MODE_DESTROY_DUMB, &destroy_dumb);
+        return 0;
+    }
+
+    // 3. 映射内存并填充图形
+    struct drm_mode_map_dumb map_dumb = {.handle = handle};
+    drmIoctl(fd, DRM_IOCTL_MODE_MAP_DUMB, &map_dumb);
+    uint8_t *fb_buf = mmap(NULL, (uint64_t)*pitch * height, PROT_READ | PROT_WRITE, MAP_SHARED, fd, map_dumb.offset);
+    if (fb_buf == MAP_FAILED) {
+        perror("mmap failed");
+        drmModeRmFB(fd, fb_id);
+        struct drm_mode_destroy_dumb destroy_dumb = {.handle = handle};
+        drmIoctl(fd, DRM_IOCTL_MODE_DESTROY_DUMB, &destroy_dumb);
+        return 0;
+    }
+
+    // 填充图形：type=1（底层Primary）- 红色背景+L型白块；type=2（上层Overlay）- 蓝色矩形
+    memset(fb_buf, 0, (uint64_t)*pitch * height);
+    uint32_t *pixels = (uint32_t *)fb_buf;
+    
+    if (type == 1) {
+        // 底层：红色背景（0x00FF0000） + L型白色块（非对称，翻转后明显）
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                pixels[y * width + x] = 0x00FF0000; // 红色背景
+            }
+        }
+        // L型白块：左列+下排（非对称）
+        for (int y = 0; y < height; y++) pixels[y * width + 100] = 0x00FFFFFF; // 左列（x=100，全高）
+        for (int x = 0; x < width; x++) pixels[(height-100)*width + x] = 0x00FFFFFF; // 下排（y=height-100，全宽）
+    } else if (type == 2) {
+        // 上层：全透明背景 + 蓝色半透矩形（0x000000FF）
+        for (int y = 300; y < 600; y++) { // 中间蓝色矩形
+            for (int x = 500; x < 1200; x++) {
+                pixels[y * width + x] = 0x000000FF; // 蓝色
+            }
+        }
+    }
+
+    munmap(fb_buf, (uint64_t)*pitch * height);
+    return fb_id;
+}
+
+// 释放FB资源
+void free_fb(int fd, uint32_t fb_id, uint32_t pitch, uint32_t width, uint32_t height) {
+    // 先获取handle（简化版，实际可保存handle）
+    struct drm_mode_create_dumb create_dumb = {
+        .width = width,
+        .height = height,
+        .bpp = 32,
+        .flags = 0,
+    };
+    drmIoctl(fd, DRM_IOCTL_MODE_CREATE_DUMB, &create_dumb);
+    struct drm_mode_destroy_dumb destroy_dumb = {.handle = create_dumb.handle};
+    drmIoctl(fd, DRM_IOCTL_MODE_DESTROY_DUMB, &destroy_dumb);
+    drmModeRmFB(fd, fb_id);
+}
+
+int main() {
+    int fd = open(DRM_DEV_PATH, O_RDWR);
+    if (fd < 0) { perror("open DRM"); return 1; }
+
+    // 1. 创建两个图层的FB
+    uint32_t primary_pitch, overlay_pitch;
+    uint32_t primary_fb = create_fb(fd, SCREEN_WIDTH, SCREEN_HEIGHT, &primary_pitch, 1); // 底层（红+L型）
+    uint32_t overlay_fb = create_fb(fd, SCREEN_WIDTH, SCREEN_HEIGHT, &overlay_pitch, 2); // 上层（蓝矩形）
+    if (!primary_fb || !overlay_fb) { close(fd); return 1; }
+
+    // 2. 查找属性ID
+    uint32_t primary_alpha = find_prop_id(fd, PRIMARY_PLANE_ID, DRM_MODE_OBJECT_PLANE, "alpha");
+    uint32_t primary_rot = find_prop_id(fd, PRIMARY_PLANE_ID, DRM_MODE_OBJECT_PLANE, "rotation");
+    uint32_t overlay_alpha = find_prop_id(fd, OVERLAY_PLANE_ID, DRM_MODE_OBJECT_PLANE, "alpha");
+    uint32_t overlay_zpos = find_prop_id(fd, OVERLAY_PLANE_ID, DRM_MODE_OBJECT_PLANE, "zpos");
+
+    // 3. 显示底层Primary图层（默认不透明）
+    drmModeSetPlane(fd, PRIMARY_PLANE_ID, CRTC_ID, primary_fb, 0,
+                    0, 0, SCREEN_WIDTH, SCREEN_HEIGHT,
+                    0 << 16, 0 << 16, SCREEN_WIDTH << 16, SCREEN_HEIGHT << 16);
+
+    // 4. 显示上层Overlay图层（默认50%透明，zpos=3确保在顶层）
+    drmModeObjectSetProperty(fd, OVERLAY_PLANE_ID, DRM_MODE_OBJECT_PLANE, overlay_zpos, 3);
+    drmModeObjectSetProperty(fd, OVERLAY_PLANE_ID, DRM_MODE_OBJECT_PLANE, overlay_alpha, 65535/2); // 50%透明
+    drmModeSetPlane(fd, OVERLAY_PLANE_ID, CRTC_ID, overlay_fb, 0,
+                    0, 0, SCREEN_WIDTH, SCREEN_HEIGHT,
+                    0 << 16, 0 << 16, SCREEN_WIDTH << 16, SCREEN_HEIGHT << 16);
+
+    printf("初始画面：底层红色L型 + 上层50%透明蓝色矩形（按回车演示上下翻转）\n");
+    getchar();
+
+    // ========== 特效1：底层上下翻转（L型非对称，翻转后明显） ==========
+    drmModeObjectSetProperty(fd, PRIMARY_PLANE_ID, DRM_MODE_OBJECT_PLANE, primary_rot, 0x21);
+    printf("已翻转底层图层：L型上下颠倒（按回车演示上层全透明）\n");
+    getchar();
+
+    // ========== 特效2：上层全透明（蓝色矩形消失，只看红色L型） ==========
+    drmModeObjectSetProperty(fd, OVERLAY_PLANE_ID, DRM_MODE_OBJECT_PLANE, overlay_alpha, 0);
+    printf("上层图层全透明：蓝色矩形消失（按回车演示上层不透明）\n");
+    getchar();
+
+    // ========== 特效3：上层不透明（覆盖底层红色） ==========
+    drmModeObjectSetProperty(fd, OVERLAY_PLANE_ID, DRM_MODE_OBJECT_PLANE, overlay_alpha, 65535);
+    printf("上层图层不透明：蓝色矩形完全覆盖底层（按回车结束）\n");
+    getchar();
+
+    // 清理资源
+    free_fb(fd, primary_fb, primary_pitch, SCREEN_WIDTH, SCREEN_HEIGHT);
+    free_fb(fd, overlay_fb, overlay_pitch, SCREEN_WIDTH, SCREEN_HEIGHT);
+    close(fd);
+    return 0;
+}
