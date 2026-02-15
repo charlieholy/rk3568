@@ -11,3 +11,5 @@ uvc 查看拓扑
   Bus 004 Device 001: ID 1d6b:0001
   Bus 004 Device 002: ID 17ef:6050   //hid mouse
   Bus 002 Device 001: ID 1d6b:0002
+echo 0 > authorized
+echo 1 > authorized
