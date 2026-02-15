@@ -1,0 +1,10 @@
+ls /sys/class/udc/ -l
+total 0
+lrwxrwxrwx 1 root root 0 Feb 15 14:20 fcc00000.dwc3 -> ../../devices/platform/usbdrd/fcc00000.dwc3/udc/fcc00000.dwc3
+
+root@NYX-RK3568:/proc/irq/85# grep -E "dwc3.*interrupt|interrupt.*dwc3" /proc/kallsyms
+ffffff8008875864 t dwc3_gadget_disconnect_interrupt
+ffffff8008875d88 t dwc3_interrupt
+ffffff8008877ec8 t dwc3_gadget_reset_interrupt
+ffffff8008878f28 t dwc3_thread_interrupt
+ffffff800887d040 T dwc3_ep0_interrupt
