@@ -1,0 +1,13 @@
+uvc 查看拓扑
+1. media-ctl -d /dev/media1 -p
+2. 触发重新枚举
+   lsusb
+  root@NYX-RK3568:/sys/bus/usb/devices/usb4# lsusb
+  Bus 005 Device 001: ID 1d6b:0002
+  Bus 003 Device 001: ID 1d6b:0001
+  Bus 001 Device 001: ID 1d6b:0002
+  Bus 006 Device 001: ID 1d6b:0003
+  Bus 001 Device 002: ID 046d:082b   // uvc cam
+  Bus 004 Device 001: ID 1d6b:0001
+  Bus 004 Device 002: ID 17ef:6050   //hid mouse
+  Bus 002 Device 001: ID 1d6b:0002
