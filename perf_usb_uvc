@@ -1,3 +1,44 @@
+(gdb) bt
+#0  usb_submit_urb (urb=0xffffffc0e5b10e00, mem_flags=6291456) at drivers/usb/core/urb.c:354
+#1  0xffffff800885b5d0 in usb_start_wait_urb (urb=0xffffffc0e5b10e00, timeout=1000, actual_length=0xffffff801344b804)
+    at drivers/usb/core/message.c:57
+#2  0xffffff800885b77c in usb_internal_control_msg (timeout=<optimized out>, len=<optimized out>,
+    data=<optimized out>, cmd=<optimized out>, pipe=<optimized out>, usb_dev=<optimized out>)
+    at drivers/usb/core/message.c:101
+#3  usb_control_msg (dev=0xffffffc0e78d2000, pipe=2147484032, request=0 '\000', requesttype=163 '\243', value=0,
+    index=1, data=0xffffffc0e7f91c80, size=4, timeout=1000) at drivers/usb/core/message.c:152
+#4  0xffffff800884f018 in get_port_status (hdev=0xffffffc0e78d2000, port1=1, data=0xffffffc0e7f91c80, value=0,
+    length=4) at drivers/usb/core/hub.c:578
+#5  0xffffff800884f848 in hub_ext_port_status (ext_status=<optimized out>, change=<optimized out>,
+    status=<optimized out>, type=<optimized out>, port1=<optimized out>, hub=<optimized out>)
+    at drivers/usb/core/hub.c:595
+#6  hub_port_status (hub=0xffffffc0e8e3b400, port1=1, status=0xffffff801344b934, change=0xffffff801344b936)
+    at drivers/usb/core/hub.c:617
+#7  0xffffff8008852ac0 in hub_activate (hub=0xffffffc0e8e3b400, type=HUB_RESUME) at drivers/usb/core/hub.c:1102
+#8  0xffffff8008852f40 in hub_resume (intf=0xffffffc0e78d2800) at drivers/usb/core/hub.c:3766
+#9  0xffffff800885ee80 in usb_resume_interface (udev=0xffffffc0e78d2000, intf=0xffffffc0e78d2800, reset_resume=0,
+    msg=...) at drivers/usb/core/driver.c:1255
+#10 0xffffff800885f1c4 in usb_resume_both (udev=0xffffffc0e78d2000, msg=...) at drivers/usb/core/driver.c:1415
+#11 0xffffff8008860034 in usb_runtime_resume (dev=0xffffffc0e78d20a0) at drivers/usb/core/driver.c:1884
+#12 0xffffff8008752b04 in __rpm_callback (cb=0xffffff8008860010 <usb_runtime_resume>, dev=0xffffffc0e78d20a0)
+    at drivers/base/power/runtime.c:354
+#13 0xffffff8008752cd0 in rpm_callback (cb=0xffffff8008860010 <usb_runtime_resume>, dev=0xffffffc0e78d20a0)
+    at drivers/base/power/runtime.c:484
+#14 0xffffff8008752924 in rpm_resume (dev=0xffffffc0e78d20a0, rpmflags=0) at drivers/base/power/runtime.c:849
+#15 0xffffff80087528dc in rpm_resume (dev=0xffffffc0e78668a0, rpmflags=4) at drivers/base/power/runtime.c:828
+#16 0xffffff8008752a44 in __pm_runtime_resume (dev=0xffffffc0e78668a0, rpmflags=4) at drivers/base/power/runtime.c:1070
+#17 0xffffff800885f644 in pm_runtime_get_sync (dev=<optimized out>) at ./include/linux/pm_runtime.h:225
+---Type <return> to continue, or q <return> to quit---
+#18 usb_autoresume_device (udev=<optimized out>) at drivers/usb/core/driver.c:1614
+#19 0xffffff8008853e90 in usb_authorize_device (usb_dev=0xffffffc0e7866800) at drivers/usb/core/hub.c:2606
+#20 0xffffff80088637a4 in authorized_store (dev=0xffffffc0e78668a0, attr=<optimized out>,
+    buf=0xffffffc0e120fc80 "1\n", size=2) at drivers/usb/core/sysfs.c:770
+#21 0xffffff800873d74c in dev_attr_store (kobj=0xffffffc0e78668b0, attr=0xffffff80095555a0 <dev_attr_authorized>,
+    buf=0xffffffc0e120fc80 "1\n", count=2) at drivers/base/core.c:1409
+#22 0xffffff800829a544 in sysfs_kf_write (of=0xffffffc0e5b10000, buf=0xffffffc0e120fc80 "1\n", count=2,
+    pos=<optimized out>) at fs/sysfs/file.c:142
+#23 0xffffff8008299104 in kernfs_fop_write (file=<optimized out>, user_buf=<optimize
+
 uvc 查看拓扑
 1. media-ctl -d /dev/media1 -p
 2. 触发重新枚举
