@@ -1,3 +1,15 @@
+# 进入 ftrace 目录
+cd /sys/kernel/debug/tracing
+
+# 1. 清空之前的跟踪配置
+echo > set_event
+# 2. 启用 dwc3_event 事件跟踪（核心）
+echo "dwc3:dwc3_event" > set_event
+# 3. 启用跟踪（开始记录事件）
+echo 1 > tracing_on
+cat trace
+///
+
 usb3otg_GEVNTCOUNT0 0xC40C W 0x00000000 
 Global Event Buffer Count 
 Register 0
