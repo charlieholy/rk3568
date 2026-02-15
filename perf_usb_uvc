@@ -1,3 +1,13 @@
+static inline void list_replace(struct list_head *old,
+				struct list_head *new)
+{
+	new->next = old->next;
+	new->next->prev = new;
+	new->prev = old->prev;
+	new->prev->next = new;
+}
+
+
 (gdb) bt
 #0  usb_submit_urb (urb=0xffffffc0e5b10e00, mem_flags=6291456) at drivers/usb/core/urb.c:354
 #1  0xffffff800885b5d0 in usb_start_wait_urb (urb=0xffffffc0e5b10e00, timeout=1000, actual_length=0xffffff801344b804)
