@@ -72,3 +72,8 @@ uvc 查看拓扑
   Bus 002 Device 001: ID 1d6b:0002
 echo 0 > authorized
 echo 1 > authorized
+
+ tcpdump -i usbmon1 -w uvc_capture.pcap -c 1000
+ffmpeg -f v4l2 -pix_fmt yuyv422 -video_size 640x480 -i /dev/video9 -vframes 1 ok.jpg
+
+
