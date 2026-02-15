@@ -8,3 +8,6 @@ ffffff8008875d88 t dwc3_interrupt
 ffffff8008877ec8 t dwc3_gadget_reset_interrupt
 ffffff8008878f28 t dwc3_thread_interrupt
 ffffff800887d040 T dwc3_ep0_interrupt
+
+	ret = request_threaded_irq(irq, dwc3_interrupt, dwc3_thread_interrupt,
+			IRQF_SHARED, "dwc3", dwc->ev_buf);
