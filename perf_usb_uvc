@@ -1,3 +1,11 @@
+(gdb) p urb->dev->devnum
+$14 = 1
+(gdb) p urb->dev->bus->busnum
+$15 = 1
+(gdb) p urb->dev->descriptor.idVendor
+$16 = 7531
+
+
 static inline void list_replace(struct list_head *old,
 				struct list_head *new)
 {
