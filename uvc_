@@ -1,3 +1,25 @@
+(gdb) bt
+#0  uvc_video_complete (urb=0xffffffc0e7fffc00) at drivers/media/usb/uvc/uvc_video.c:1531
+#1  0xffffff8008857d48 in __usb_hcd_giveback_urb (urb=0xffffffc0e7fffc00) at drivers/usb/core/hcd.c:1784
+#2  0xffffff8008858a14 in usb_giveback_urb_bh (param=18446743802716426672) at drivers/usb/core/hcd.c:1818
+#3  0xffffff80080b60e8 in tasklet_action_common (tl_head=0xffffffc0efea57d0, softirq_nr=0, a=<optimized out>)
+    at kernel/softirq.c:522
+#4  0xffffff80080b6170 in tasklet_hi_action (a=<optimized out>) at kernel/softirq.c:545
+#5  0xffffff8008081448 in __do_softirq () at kernel/softirq.c:292
+#6  0xffffff80080b5c2c in do_softirq_own_stack () at ./include/linux/interrupt.h:504
+#7  invoke_softirq () at kernel/softirq.c:379
+#8  irq_exit () at kernel/softirq.c:412
+#9  0xffffff800811197c in __handle_domain_irq (domain=0xffffffc000236200, hwirq=<optimized out>, lookup=true,
+    regs=0xffffff800fa9bec0) at kernel/irq/irqdesc.c:679
+#10 0xffffff8008081174 in handle_domain_irq (regs=<optimized out>, hwirq=<optimized out>, domain=<optimized out>)
+    at ./include/linux/irqdesc.h:173
+#11 gic_handle_irq (regs=0xffffff800fa9bec0) at drivers/irqchip/irq-gic-v3.c:373
+#12 0xffffff80080834fc in el0_irq () at arch/arm64/kernel/entry.S:878
+Backtrace stopped: Cannot access memory at address 0xffffff800fa9c0d8
+(gdb)
+
+12:       5231          0          0          0     GICv3 162 Level     ehci_hcd:usb1
+
 ffmpeg -f v4l2 -pix_fmt yuyv422 -video_size 640x480 -i /dev/video9 -vframes 1 ok.jpg
 
 ffmpeg -f v4l2 -video_size 640x480 -pix_fmt yuyv422 -i /dev/video9  -c:v libx264 -preset ultrafast -crf 28 -f mp4 uvc_record.mp4
