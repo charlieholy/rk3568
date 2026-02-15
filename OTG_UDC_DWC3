@@ -1,3 +1,7 @@
+usb3otg_GEVNTCOUNT0 0xC40C W 0x00000000 
+Global Event Buffer Count 
+Register 0
+
 1. OTG 事件发生 → DWC3 硬件把「事件描述符」写到 evt->buf 指向的 DMA 缓冲区（物理地址）；
 2. 触发中断 → 上半部读取 evt->buf（虚拟地址），通过 memcpy 拷贝到 evt->cache；
    - memcpy(evt->cache + evt->lpos, evt->buf + evt->lpos, amount);
