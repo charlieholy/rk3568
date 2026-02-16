@@ -1,3 +1,33 @@
+///=> 小主题
+DECLARE_COMPLETION_ONSTACK(done);  //栈上的 wait到之后释放 几乎是一次性
+
+	if (unlikely(wait_for_completion_killable(&done))) {
+		/*
+		 * If I was SIGKILLed before kthreadd (or new kernel thread)
+		 * calls complete(), leave the cleanup of this structure to
+		 * that thread.
+		 */
+		if (xchg(&create->done, NULL))
+			return ERR_PTR(-EINTR);
+		/*
+		 * kthreadd (or new kernel thread) will call complete()
+		 * shortly.
+		 */
+		wait_for_completion(&done);
+	}
+
+//获取到done 唤醒
+		struct completion *done = xchg(&create->done, NULL);
+
+		if (!done) {
+			kfree(create);
+			return;
+		}
+		create->result = ERR_PTR(pid);
+		complete(done);
+
+
+/// ==>大主题
 你想知道 log_wait 这个等待队列是如何和当前进程（current 任务）建立关联的
   —— 核心答案是：wait_event_interruptible(log_wait, ...) 宏内部会自动把当前进程（current）加入 log_wait 等待队列，无需手动调用 add_wait_queue。
 
