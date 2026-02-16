@@ -1,3 +1,7 @@
+root@NYX-RK3568:/data# cat /proc/interrupts
+           CPU0       CPU1       CPU2       CPU3
+  5:      98148      61882     174660      91318     GICv3  26 Level     arch_timer
+
 (gdb) bt
 #0  task_tick_fair (rq=0xffffffc0efec7080, curr=0xffffffc0e92863c0, queued=0) at kernel/sched/fair.c:10901
 #1  0xffffff80080e4304 in scheduler_tick () at kernel/sched/core.c:3668
