@@ -1,0 +1,6 @@
+cat /proc/kmsg
+
+fs/proc/kmsg.c
+
+klogd => 
+syslogd =>
