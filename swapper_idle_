@@ -1,0 +1,9 @@
+p init_task
+
+#2  __schedule (preempt=false) at kernel/sched/core.c:4133
+#3  0xffffff8008dcba90 in schedule_idle () at kernel/sched/core.c:4204
+#4  0xffffff80080e7440 in do_idle () at kernel/sched/idle.c:288
+#5  0xffffff80080e776c in cpu_startup_entry (state=CPUHP_AP_ONLINE_IDLE) at kernel/sched/idle.c:370
+#6  0xffffff8008094570 in secondary_start_kernel () at arch/arm64/kernel/smp.c:254
+#7  0x0000000000000000 in ?? ()
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
