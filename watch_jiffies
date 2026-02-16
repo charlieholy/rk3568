@@ -1,0 +1,2 @@
+(gdb) p &jiffies
+$5 = (volatile unsigned long *) 0xffffff8009457980 <jiffies_64>
