@@ -1,0 +1,20 @@
+(gdb) bt
+#0  task_tick_fair (rq=0xffffffc0efec7080, curr=0xffffffc0e92863c0, queued=0) at kernel/sched/fair.c:10901
+#1  0xffffff80080e4304 in scheduler_tick () at kernel/sched/core.c:3668
+#2  0xffffff8008133d28 in update_process_times (user_tick=0) at kernel/time/timer.c:1655
+#3  0xffffff8008144a84 in tick_sched_handle (ts=0xffffffc0efec3560, regs=<optimized out>) at kernel/time/tick-sched.c:169
+#4  0xffffff8008144ae8 in tick_sched_timer (timer=0xffffffc0efec3560) at kernel/time/tick-sched.c:1292
+#5  0xffffff8008134fb0 in __run_hrtimer (flags=<optimized out>, now=<optimized out>, timer=<optimized out>, base=<optimized out>, cpu_base=<optimized out>)
+    at kernel/time/hrtimer.c:1465
+#6  __hrtimer_run_queues (cpu_base=0xffffffc0efec2ec0, now=<optimized out>, flags=128, active_mask=<optimized out>) at kernel/time/hrtimer.c:1527
+#7  0xffffff8008135408 in hrtimer_interrupt (dev=<optimized out>) at kernel/time/hrtimer.c:1585
+#8  0xffffff8008a74ef8 in timer_handler (evt=<optimized out>, access=<optimized out>) at drivers/clocksource/arm_arch_timer.c:645
+#9  arch_timer_handler_phys (irq=<optimized out>, dev_id=0xffffffc0efecd900) at drivers/clocksource/arm_arch_timer.c:663
+#10 0xffffff800811723c in handle_percpu_devid_irq (desc=0xffffffc0e99ef400) at kernel/irq/chip.c:926
+#11 0xffffff8008111214 in generic_handle_irq_desc (desc=<optimized out>) at ./include/linux/irqdesc.h:155
+#12 generic_handle_irq (irq=5) at kernel/irq/irqdesc.c:639
+#13 0xffffff80081119ac in __handle_domain_irq (domain=0xffffffc000236200, hwirq=<optimized out>, lookup=true, regs=0xffffff80099fbc60)
+    at kernel/irq/irqdesc.c:676
+#14 0xffffff8008081174 in handle_domain_irq (regs=<optimized out>, hwirq=<optimized out>, domain=<optimized out>) at ./include/linux/irqdesc.h:173
+#15 gic_handle_irq (regs=0xffffff80099fbc60) at drivers/irqchip/irq-gic-v3.c:373
+#16 0xffffff8008082bf0 in el1_irq () at arch/arm64/kernel/entry.S:645
