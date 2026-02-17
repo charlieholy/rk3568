@@ -1,3 +1,6 @@
+	open_softirq(NET_TX_SOFTIRQ, net_tx_action);
+	open_softirq(NET_RX_SOFTIRQ, net_rx_action);
+
 root@NYX-RK3568:/# ps -ef | grep soft
 root         9     2  0 16:51 ?        00:00:00 [ksoftirqd/0]
 root        16     2  0 16:51 ?        00:00:00 [ksoftirqd/1]
