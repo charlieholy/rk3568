@@ -1,3 +1,9 @@
+root@NYX-RK3568:/# ps -ef | grep soft
+root         9     2  0 16:51 ?        00:00:00 [ksoftirqd/0]
+root        16     2  0 16:51 ?        00:00:00 [ksoftirqd/1]
+root        21     2  0 16:51 ?        00:00:00 [ksoftirqd/2]
+root        26     2  0 16:51 ?        00:00:00 [ksoftirqd/3]
+
 root@NYX-RK3568:/# cat /proc/softirqs
                     CPU0       CPU1       CPU2       CPU3
           HI:       5167          5          1          4
@@ -27,3 +33,106 @@ Thread 37 hit Breakpoint 2, invoke_softirq () at kernel/softirq.c:379
 #4  gic_handle_irq (regs=0xffffff8009aa36c0) at drivers/irqchip/irq-gic-v3.c:373
 #5  0xffffff8008082bf0 in el1_irq () at arch/arm64/kernel/entry.S:645
 Backtrace stopped: previous frame identical to this frame (corrupt stack?)
+
+///////////////////////////
+a.out 这类用户态进程在运行过程中，确实会 “顺手” 处理软中断 —— 但不是主动去处理，而是在它触发系统调用进入内核态后，内核借它的内核栈执行当前 CPU 待处理的软中断，处理完再继续执行进程本身的逻辑。
+我用最通俗的方式拆解这个过程，结合你之前的 ppoll() 场景（a.out 进程调用 ppoll() 就是典型例子）：
+一、a.out 进程处理软中断的完整过程（一步到位）
+假设 a.out 是一个普通用户态进程，流程如下：
+plaintext
+a.out（用户态）→ 调用 read()/ppoll()/sleep() 等系统调用 → 触发 el0_svc 进入内核态（进程上下文）
+↓
+内核处理系统调用时，执行到 local_bh_enable()（比如释放 spin_lock_bh 时）
+↓
+内核检查当前CPU有 pending 软中断 → 调用 do_softirq() → 执行 __do_softirq()
+↓
+__do_softirq() 遍历当前CPU的软中断位图，执行 NET_RX/TIMER 等软中断处理函数
+↓
+软中断处理完成 → 内核回到系统调用的处理逻辑，完成后返回 a.out 用户态
+↓
+a.out 继续执行自己的代码（完全感知不到内核借它的栈处理了软中断）
+二、核心关键点（为什么 a.out 会处理软中断？）
+不是 a.out 主动处理，是内核 “借道”a.out 本身的代码里没有任何处理软中断的逻辑，它只是触发了系统调用进入内核态；内核利用这个 “机会”，在 a.out 的内核栈上执行软中断，全程对 a.out 透明 —— a.out 只会感觉 “系统调用返回慢了一点点”，但不知道中间处理了软中断。
+只处理 “当前 CPU” 的软中断只有当 a.out 运行在某个 CPU（比如 CPU0）上，且该 CPU 有 pending 软中断时，才会触发处理；如果 CPU0 没有软中断要处理，a.out 的系统调用会直接执行，不会走 do_softirq () 逻辑。
+处理完软中断后，还会回到 a.out 的逻辑软中断处理是 “插在系统调用处理过程中” 的一段逻辑，处理完后内核会继续完成 a.out 的系统调用（比如 ppoll () 的等待逻辑），最后返回用户态，a.out 继续执行自己的代码。
+三、举个具体例子（a.out 调用 sleep (1)）
+假设 a.out 代码是：
+c
+运行
+// a.c
+#include <unistd.h>
+int main() {
+    sleep(1); // 触发 nanosleep() 系统调用
+    return 0;
+}
+编译为 a.out 后运行，流程：
+a.out 调用 sleep (1) → 进入内核态执行 nanosleep () 系统调用；
+内核处理 nanosleep () 时，可能会执行 local_bh_enable()（比如释放某个自旋锁）；
+此时 CPU0 有 pending 的 TIMER_SOFTIRQ（定时器软中断）；
+内核调用 do_softirq () → __do_softirq ()，处理 CPU0 的 TIMER_SOFTIRQ；
+软中断处理完成，内核继续处理 nanosleep ()，让 a.out 休眠 1 秒；
+1 秒后 a.out 被唤醒，返回用户态，执行 return 0 退出。
+整个过程中，a.out 完全不知道自己的内核栈被用来处理了定时器软中断 —— 这就是用户态进程 “顺手” 处理软中断的本质。
+四、补充：不是所有系统调用都会触发软中断
+只有满足两个条件才会触发：
+系统调用的内核处理流程中，调用了 local_bh_enable()（或 spin_unlock_bh/release_bh_lock 等隐含开启 BH 的函数）；
+当前 CPU 有 pending 的软中断，且 in_interrupt()=false（非中断上下文）。
+比如：
+调用 read()（读文件）：大概率会触发（文件系统会操作自旋锁，涉及 BH 开关）；
+调用 getpid()（获取进程 ID）：大概率不会触发（逻辑简单，无 BH 开关）。
+总结
+结论：a.out 这类用户态进程确实会处理软中断 —— 但不是主动处理，是内核在它的系统调用内核处理阶段，借它的栈处理当前 CPU 的软中断；
+透明性：对 a.out 来说完全透明，只是系统调用的执行时间可能稍长；
+核心规则：软中断按 CPU 绑定，谁在 CPU 上触发了 do_softirq ()（哪怕是用户进程的内核栈），谁就处理该 CPU 的软中断；
+设计目的：最大化利用 CPU 空闲时间，避免软中断积压，同时减少 ksoftirqd 线程的调度开销。
+简单说：a.out 就像去银行办业务（系统调用），柜员（内核）在给你办业务的间隙，顺手处理了旁边的小工单（软中断），办完工单再继续给你办业务 —— 你（a.out）只感觉等了一会儿，不知道柜员中间处理了其他活儿。4
+////////////////////////////
+
+如果4个cpu都在跑密集型计算任务 且没有系统调用 那么什么时机触发do_softirq
+你提的这个场景特别典型 ——4 个 CPU 都在跑无系统调用的密集型计算（纯用户态循环），此时不会通过用户进程的系统调用触发 do_softirq，但软中断依然会被处理，核心触发时机是「硬件中断返回时」和「ksoftirqd 内核线程被调度时」，我会把这个场景的软中断触发逻辑讲透：
+核心结论先明确
+纯用户态密集计算（无系统调用、无主动陷入内核）的场景下，do_softirq() 的触发完全依赖硬件中断的收尾阶段，如果软中断积压，会唤醒 ksoftirqd 内核线程兜底处理 —— 这是 Linux 保证软中断不会 “饿死” 的核心机制。
+一、最核心的触发时机：硬件中断返回时（哪怕 CPU 跑满计算）
+哪怕 4 个 CPU 都在跑纯用户态的密集计算，Linux 内核依然会收到周期性的硬件中断（最典型的是时钟中断），这是触发 do_softirq() 的核心入口：
+1. 时钟中断（HZ / 高精度定时器）是 “保底触发源”
+Linux 内核会配置时钟中断（比如 100Hz=10ms 一次，或高精度定时器 HPET），每个 CPU 都会周期性收到这个硬件中断：
+哪怕 CPU 在跑纯用户态计算，时钟中断也会打断用户态执行，进入内核的时钟中断处理函数；
+时钟中断处理函数（timer_interrupt()）会快速完成核心工作（更新 jiffies、检查进程调度），然后调用 irq_exit()；
+irq_exit() 会检查当前 CPU 的 __softirq_pending 位图，如果有待处理的软中断，且当前是「非中断上下文」，就调用 do_softirq() 执行软中断。
+2. 流程拆解（对应 4 核密集计算场景）
+plaintext
+CPU0跑a.out纯计算（无系统调用）→ 10ms一次的时钟中断触发 → CPU0切到内核态执行时钟中断处理函数
+↓
+时钟中断处理完成 → 执行irq_exit() → 检查CPU0的__softirq_pending位图
+↓
+如果有pending软中断（比如TIMER_SOFTIRQ）→ 调用do_softirq()处理
+↓
+软中断处理完成 → irq_exit()返回 → CPU0切回a.out的用户态计算
+这个过程中，用户态进程（a.out）会被时钟中断短暂打断（微秒级），内核借这个 “硬件中断返回” 的时机处理软中断，处理完再切回用户态 —— 对密集计算的影响几乎可以忽略，但保证了软中断不会被饿死。
+3. 其他硬件中断也会触发（如果有外设活动）
+除了时钟中断，只要有外设活动（比如网卡收包、磁盘 IO 完成），对应的硬件中断也会触发：
+比如网卡收到数据包 → 触发 NET_RX 硬件中断 → CPU（比如 CPU1）打断用户态计算，进入中断处理函数；
+中断处理函数快速把数据包放到内存，然后调用 raise_softirq(NET_RX_SOFTIRQ) 标记软中断 pending；
+中断处理完成后，irq_exit() 调用 do_softirq() 处理 NET_RX_SOFTIRQ；
+处理完切回 CPU1 的用户态计算。
+二、兜底触发时机：ksoftirqd 内核线程（软中断积压时）
+如果软中断产生速度超过 “硬件中断返回时的处理速度”（比如网卡高速收包），会触发第二个兜底机制 —— 唤醒 ksoftirqd 内核线程：
+1. ksoftirqd 的触发逻辑
+__do_softirq() 处理软中断时，如果发现：
+① 处理超时（超过 MAX_SOFTIRQ_TIME=2ms）；
+② 重启次数超过 MAX_SOFTIRQ_RESTART=10；
+③ 仍有 pending 软中断；
+会调用 wakeup_softirqd() 唤醒当前 CPU 的 ksoftirqd/n 线程（n 是 CPU 编号，比如 ksoftirqd/0 对应 CPU0）；
+ksoftirqd 是内核线程，优先级较低，但只要 CPU 有空闲（哪怕是密集计算，进程调度也会给内核线程调度机会），就会被调度执行；
+ksoftirqd 线程会循环调用 do_softirq()，直到当前 CPU 的软中断 pending 位图清空，然后休眠。
+2. 对密集计算场景的影响
+ksoftirqd 优先级低于用户态进程（默认 nice 值 19），所以只有当 CPU 的用户态进程被调度出去（比如时间片用完），ksoftirqd 才会被调度执行；
+比如 CPU0 的 a.out 时间片用完（默认 100ms），调度器会切换到 ksoftirqd/0，处理完软中断后，再切回 a.out；
+这保证了即使软中断大量积压，也不会影响用户态密集计算的核心执行，只是会占用少量 CPU 时间片。
+三、补充：纯用户态密集计算场景的软中断处理特点
+表格
+触发时机	触发条件	对用户态计算的影响
+时钟中断返回时	周期性（10ms / 次）+ 有 pending 软中断	微秒级打断，几乎无感知
+外设硬件中断返回时	有外设活动（网卡 / 磁盘）+ 有 pending	短暂打断，取决于外设频率
+ksoftirqd 内核线程	软中断积压 + CPU 有调度空闲	占用少量时间片，影响极小
+////////////////////////////////
