@@ -1,0 +1,28 @@
+(gdb) bt
+#0  do_softirq () at kernel/softirq.c:324
+#1  0xffffff80080b5b58 in __local_bh_enable_ip (ip=<optimized out>, cnt=512) at kernel/softirq.c:189
+#2  0xffffff8008dd0498 in __raw_spin_unlock_bh (lock=<optimized out>) at ./include/linux/spinlock_api_smp.h:176
+#3  _raw_spin_unlock_bh (lock=0xffffffc0e0e72120) at kernel/locking/spinlock.c:200
+#4  0xffffff8008c67908 in spin_unlock_bh (lock=<optimized out>) at ./include/linux/spinlock.h:374
+#5  packet_poll (file=<optimized out>, sock=<optimized out>, wait=0xffffff800d25bb68) at net/packet/af_packet.c:4181
+#6  0xffffff8008b4609c in sock_poll (file=0xffffffc0e6367a40, wait=0xffffff800d25bb68) at net/socket.c:1202
+#7  0xffffff8008233530 in vfs_poll (pt=<optimized out>, file=<optimized out>) at ./include/linux/poll.h:90
+#8  do_pollfd (busy_flag=<optimized out>, can_busy_poll=<optimized out>, pwait=<optimized out>, pollfd=<optimized out>)
+    at fs/select.c:828
+#9  do_poll (end_time=<optimized out>, wait=<optimized out>, list=<optimized out>) at fs/select.c:876
+#10 do_sys_poll (ufds=0xa0d8980, nfds=<optimized out>, end_time=0xffffff800d25be48) at fs/select.c:970
+#11 0xffffff8008234550 in __do_sys_ppoll (sigsetsize=<optimized out>, sigmask=<optimized out>, tsp=<optimized out>,
+    nfds=<optimized out>, ufds=<optimized out>) at fs/select.c:1076
+#12 __se_sys_ppoll (sigsetsize=<optimized out>, sigmask=<optimized out>, tsp=<optimized out>, nfds=<optimized out>,
+    ufds=<optimized out>) at fs/select.c:1048
+#13 __arm64_sys_ppoll (regs=<optimized out>) at fs/select.c:1048
+#14 0xffffff8008095610 in __invoke_syscall (syscall_fn=<optimized out>, regs=<optimized out>)
+    at arch/arm64/kernel/syscall.c:36
+#15 invoke_syscall (syscall_table=<optimized out>, sc_nr=<optimized out>, scno=<optimized out>, regs=<optimized out>)
+    at arch/arm64/kernel/syscall.c:48
+#16 el0_svc_common (regs=0xffffff800d25bec0, scno=<optimized out>, syscall_table=0xffffff8008de0870 <sys_call_table>,
+    sc_nr=<optimized out>) at arch/arm64/kernel/syscall.c:117
+#17 0xffffff8008095700 in el0_svc_handler (regs=0xffffff800d25bec0) at arch/arm64/kernel/syscall.c:163
+#18 0xffffff8008083848 in el0_svc () at arch/arm64/kernel/entry.S:940
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
+(gdb)
