@@ -1,0 +1,233 @@
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/rculist.h>  // RCU 链表头文件
+#include <linux/sched.h>
+#include <linux/delay.h>
+#include <linux/kthread.h>
+#include <linux/slab.h>      // kmalloc/kfree 必需头文件
+#include <linux/types.h>     // 基础类型定义
+
+// 模块许可证（必须）
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Demo");
+MODULE_DESCRIPTION("RCU Demo Driver (1-9 nodes, update 5th node id++)");
+
+// 定义 RCU 保护的链表节点结构
+struct rcu_node {
+    int id;
+    char name[32];
+    struct list_head list;  // 链表节点（RCU 保护）
+};
+
+// 全局 RCU 链表头
+static LIST_HEAD(rcu_demo_list);
+
+// 读写线程句柄
+static struct task_struct *reader_thread;
+static struct task_struct *writer_thread;
+
+// ==================== 辅助函数：初始化1-9节点（符合C90标准） ====================
+static int rcu_list_init_nodes(void) {
+    struct rcu_node *node;
+    int i;
+    // C90要求：所有变量声明放在代码块开头
+    struct rcu_node *tmp, *n;  // 提前声明清理用的变量
+
+    // 创建1-9共9个节点并加入链表（保证顺序1→2→3→4→5→6→7→8→9）
+    for (i = 1; i <= 9; i++) {
+        node = kmalloc(sizeof(struct rcu_node), GFP_KERNEL);
+        if (!node) {
+            pr_err("[RCU Init] 节点%d内存分配失败，清理已创建节点\n", i);
+            // 清理已创建的节点
+            list_for_each_entry_safe(n, tmp, &rcu_demo_list, list) {
+                list_del_rcu(&n->list);
+                kfree(n);
+            }
+            return -ENOMEM;
+        }
+        // 初始化节点数据：id=1-9，name简化（只保留id）
+        node->id = i;
+        snprintf(node->name, sizeof(node->name), "node_%d", i);
+        // 添加到链表尾部，保证顺序
+        list_add_tail_rcu(&node->list, &rcu_demo_list);
+    }
+
+    pr_info("[RCU Init] 链表初始化完成，共9个节点（1-9）\n");
+    return 0;
+}
+
+// ==================== 读线程（RCU 读端） ====================
+static int rcu_reader(void *data) {
+    struct rcu_node *node;
+    char read_buf[64] = {0}; // 存储一行打印的内容
+    // C90：所有声明放在开头
+
+    while (!kthread_should_stop()) {
+        rcu_read_lock(); // 进入 RCU 读临界区
+        
+        // 重置缓冲区
+        memset(read_buf, 0, sizeof(read_buf));
+        strcat(read_buf, "read: ");
+        
+        // 遍历链表，拼接所有节点的id到缓冲区
+        list_for_each_entry_rcu(node, &rcu_demo_list, list) {
+            char id_str[4] = {0}; // C90：声明放在代码块开头（这里是循环内的块）
+            snprintf(id_str, sizeof(id_str), "%d ", node->id);
+            strcat(read_buf, id_str);
+        }
+        
+        // 打印一行完整的read日志（去掉末尾多余的空格）
+        if (strlen(read_buf) > 0) {
+            read_buf[strlen(read_buf)-1] = '\0'; // 去掉最后一个空格
+        }
+        pr_info("%s\n", read_buf);
+        
+        rcu_read_unlock(); // 退出 RCU 读临界区
+        msleep(1000); // 每秒打印一次
+    }
+
+    pr_info("[RCU Reader] 读线程退出\n");
+    return 0;
+}
+
+// ==================== 写线程（RCU 写端，仅更新第五个节点id++） ====================
+static int rcu_writer(void *data) {
+    struct rcu_node *old_node = NULL;  // 旧的第五个节点
+    struct rcu_node *new_node = NULL;  // 新节点（复制后id++）
+    struct rcu_node *node = NULL;      // 遍历用节点
+    struct list_head *prev_pos = NULL; // 记录第五个节点的原位置（保证链表顺序）
+    int pos; // C90：提前声明循环计数变量
+    // C90：所有变量声明放在函数开头
+
+    while (!kthread_should_stop()) {
+        old_node = NULL;
+        prev_pos = NULL;
+
+        // 第一步：查找第五个节点（按顺序，不是按id），并记录其位置
+        rcu_read_lock();
+        pos = 0; // 重置计数
+        list_for_each_entry_rcu(node, &rcu_demo_list, list) {
+            pos++;
+            if (pos == 5) {
+                old_node = node;
+                prev_pos = node->list.prev; // 记录前一个节点的位置
+                break;
+            }
+        }
+        rcu_read_unlock();
+
+        if (!old_node) {
+            pr_warn("[RCU Writer] 未找到第五个节点，跳过本次更新\n");
+            msleep(3000);
+            continue;
+        }
+
+        // 第二步：Copy（复制旧节点数据到新节点）
+        new_node = kmalloc(sizeof(struct rcu_node), GFP_KERNEL);
+        if (!new_node) {
+            pr_err("[RCU Writer] 内存分配失败，跳过本次更新\n");
+            msleep(3000);
+            continue;
+        }
+        // 复制旧节点所有数据
+        *new_node = *old_node;
+        // 核心：第五个节点id++
+        new_node->id = old_node->id + 1;
+        // 更新name（可选，仅为了标识）
+        snprintf(new_node->name, sizeof(new_node->name), "node_%d", new_node->id);
+        pr_info("[RCU Writer] 第五个节点id从%d更新为%d\n", old_node->id, new_node->id);
+
+        // 第三步：Update（原子替换，保证链表顺序不变）
+        // 1. 原子移除旧的第五个节点
+        list_del_rcu(&old_node->list);
+        // 2. 插入新节点到原第五个位置（保证链表顺序1-4 → 新5 → 6-9）
+        list_add_rcu(&new_node->list, prev_pos);
+
+        // 第四步：等待宽限期（确保所有读端读完旧节点）
+        synchronize_rcu();
+
+        msleep(3000); // 每3秒更新一次第五个节点id
+
+        // 第五步：释放旧节点内存
+        kfree(old_node);
+    }
+
+    pr_info("[RCU Writer] 写线程退出\n");
+    return 0;
+}
+
+// ==================== 模块初始化（符合C90标准） ====================
+static int __init rcu_demo_init(void) {
+    int ret;
+    // C90：提前声明清理用的变量
+    struct rcu_node *node, *tmp;
+
+    pr_info("[RCU Demo] 模块加载\n");
+
+    // 初始化1-9节点
+    ret = rcu_list_init_nodes();
+    if (ret != 0) {
+        pr_err("[RCU Demo] 链表初始化失败\n");
+        return ret;
+    }
+
+    // 创建读线程
+    reader_thread = kthread_run(rcu_reader, NULL, "rcu_reader");
+    if (IS_ERR(reader_thread)) {
+        pr_err("[RCU Demo] 创建读线程失败\n");
+        ret = PTR_ERR(reader_thread);
+        goto cleanup_nodes;
+    }
+
+    // 创建写线程
+    writer_thread = kthread_run(rcu_writer, NULL, "rcu_writer");
+    if (IS_ERR(writer_thread)) {
+        pr_err("[RCU Demo] 创建写线程失败\n");
+        ret = PTR_ERR(writer_thread);
+        kthread_stop(reader_thread);
+        goto cleanup_nodes;
+    }
+
+    return 0;
+
+cleanup_nodes:
+    // C90：标签后先加空语句（分号），再执行逻辑
+    ;
+    // 清理节点
+    synchronize_rcu();
+    list_for_each_entry_safe(node, tmp, &rcu_demo_list, list) {
+        list_del_rcu(&node->list);
+        kfree(node);
+    }
+    return ret;
+}
+
+// ==================== 模块卸载 ====================
+static void __exit rcu_demo_exit(void) {
+    // C90：所有变量声明放在函数开头
+    struct rcu_node *node, *tmp;
+
+    pr_info("[RCU Demo] 模块卸载\n");
+
+    // 停止读写线程
+    if (!IS_ERR(reader_thread)) {
+        kthread_stop(reader_thread);
+    }
+    if (!IS_ERR(writer_thread)) {
+        kthread_stop(writer_thread);
+    }
+
+    // 清理所有节点
+    synchronize_rcu();
+    list_for_each_entry_safe(node, tmp, &rcu_demo_list, list) {
+        list_del_rcu(&node->list);
+        kfree(node);
+    }
+
+    pr_info("[RCU Demo] 模块卸载完成\n");
+}
+
+// 模块入口/出口
+module_init(rcu_demo_init);
+module_exit(rcu_demo_exit);
