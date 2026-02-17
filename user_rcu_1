@@ -1,0 +1,136 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <stdatomic.h>
+#include <time.h>
+
+// 定义 RCU 保护的数据结构
+typedef struct rcu_data {
+    int value;
+} rcu_data_t;
+
+// 全局原子指针
+_Atomic rcu_data_t *g_rcu_ptr;
+
+// 模拟 RCU 读端引用计数
+static volatile int rcu_readers = 0;
+static pthread_mutex_t rcu_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t rcu_cond = PTHREAD_COND_INITIALIZER;
+
+// 进入 RCU 读临界区
+static inline void rcu_read_lock(void) {
+    pthread_mutex_lock(&rcu_mutex);
+    rcu_readers++;
+    pthread_mutex_unlock(&rcu_mutex);
+}
+
+// 退出 RCU 读临界区
+static inline void rcu_read_unlock(void) {
+    pthread_mutex_lock(&rcu_mutex);
+    rcu_readers--;
+    if (rcu_readers == 0) {
+        pthread_cond_signal(&rcu_cond);
+    }
+    pthread_mutex_unlock(&rcu_mutex);
+}
+
+// 等待所有读端退出临界区
+static inline void synchronize_rcu(void) {
+    pthread_mutex_lock(&rcu_mutex);
+    while (rcu_readers > 0) {
+        pthread_cond_wait(&rcu_cond, &rcu_mutex);
+    }
+    pthread_mutex_unlock(&rcu_mutex);
+}
+
+// 读线程函数（增加随机延迟，确保写指针时仍有读线程在旧临界区）
+void *rcu_reader_thread(void *arg) {
+    long tid = (long)arg;
+    srand((unsigned int)time(NULL) + tid); // 每个线程不同随机种子
+    while (1) {
+        // 1. 进入 RCU 读临界区
+        rcu_read_lock();
+        
+        // 2. 读取数据（先打印“开始读”，标记进入临界区）
+        rcu_data_t *ptr = atomic_load(&g_rcu_ptr);
+        printf("读线程 %ld: 进入临界区，当前读取值 = %d\n", tid, ptr->value);
+        
+        // 关键修改：延长读操作耗时，且加随机延迟（500ms-1000ms）
+        int sleep_ms = 500 + rand() % 500;
+        usleep(sleep_ms * 1000); // 睡眠500-1000ms
+        
+        // 3. 读完后打印，再退出临界区
+        printf("读线程 %ld: 完成读取，值 = %d，退出临界区\n", tid, ptr->value);
+        rcu_read_unlock();
+        
+        // 读线程休息时间缩短，更快进入下一轮读
+        usleep(100000); // 100ms
+    }
+    return NULL;
+}
+
+// 写线程函数（缩短更新间隔，确保读线程还在临界区时触发写）
+void *rcu_writer_thread(void *arg) {
+    int new_value = 10;
+    while (1) {
+        // 1. 复制旧数据
+        rcu_data_t *old_ptr = atomic_load(&g_rcu_ptr);
+        rcu_data_t *new_ptr = malloc(sizeof(rcu_data_t));
+        *new_ptr = *old_ptr;
+        new_ptr->value = new_value;
+        printf("\n===== 写线程: 准备更新数据，新值 = %d（旧值 = %d）=====\n", new_value, old_ptr->value);
+        
+        // 2. 原子替换指针（关键节点）
+        atomic_store(&g_rcu_ptr, new_ptr);
+        printf("===== 写线程: 指针已替换！新数据（%d）生效 =====\n", new_value);
+        
+        // 3. 等待所有读端读完旧数据
+        printf("===== 写线程: 等待所有读端完成旧数据（%d）读取... =====\n", old_ptr->value);
+        synchronize_rcu();
+        
+        // 4. 释放旧数据
+        free(old_ptr);
+        printf("===== 写线程: 旧数据（%d）已释放，本次更新完成 =====\n\n", new_value - 10);
+        
+        // 关键修改：缩短写间隔，1秒更新一次（刚好卡在读线程的临界区里）
+        new_value += 10;
+        sleep(1);
+    }
+    return NULL;
+}
+
+// 主函数
+int main() {
+    // 初始化
+    rcu_data_t *init_ptr = malloc(sizeof(rcu_data_t));
+    init_ptr->value = 0;
+    atomic_init(&g_rcu_ptr, init_ptr);
+    
+    pthread_mutex_init(&rcu_mutex, NULL);
+    pthread_cond_init(&rcu_cond, NULL);
+    
+    // 创建3个读线程
+    pthread_t reader1, reader2, reader3;
+    pthread_create(&reader1, NULL, rcu_reader_thread, (void *)1);
+    pthread_create(&reader2, NULL, rcu_reader_thread, (void *)2);
+    pthread_create(&reader3, NULL, rcu_reader_thread, (void *)3);
+    
+    // 延迟1秒启动写线程，让读线程先进入临界区
+    sleep(1);
+    pthread_t writer;
+    pthread_create(&writer, NULL, rcu_writer_thread, NULL);
+    
+    // 等待线程
+    pthread_join(writer, NULL);
+    pthread_join(reader1, NULL);
+    pthread_join(reader2, NULL);
+    pthread_join(reader3, NULL);
+    
+    // 清理
+    free(atomic_load(&g_rcu_ptr));
+    pthread_mutex_destroy(&rcu_mutex);
+    pthread_cond_destroy(&rcu_cond);
+    
+    return 0;
+}
