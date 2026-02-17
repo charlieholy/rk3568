@@ -1,0 +1,129 @@
+*rcp->curtail = head;  // rcp->curtail 是指向链表尾 next 指针的地址，赋值为新节点
+	// 5. 更新 curtail 到新节点的 next 指针，始终指向链表最后一个节点的 next
+	rcp->curtail = &head->next;
+
+这个可以画图表示吗 看不懂
+当然可以！我用分步流程图 + 内存指针示意图，把 *rcp->curtail = head 和 rcp->curtail = &head->next 这两步的指针操作拆解得明明白白 —— 核心是理解 curtail 不是指向链表节点，而是指向链表节点的 next 指针的地址，这是最容易绕晕的点。
+先明确基础前提
+我们基于你之前的 rcu_ctrlblk 初始化状态：
+c
+运行
+struct rcu_ctrlblk rcp = {
+    .rcucblist = NULL,       // 链表头（初始空）
+    .donetail = &rcp.rcucblist,  // 指向 rcucblist 的地址
+    .curtail = &rcp.rcucblist,   // 初始和 donetail 一致，指向 rcucblist 的地址
+};
+struct rcu_head {
+    void (*func)(struct rcu_head *);  // 回调函数
+    struct rcu_head *next;            // 链表节点的 next 指针
+};
+我们分「第一次调用 __call_rcu」和「第二次调用 __call_rcu」两个场景画图，覆盖 “空链表→加第一个节点→加第二个节点” 的完整过程。
+场景 1：第一次调用 __call_rcu（空链表加第一个节点）
+假设用户注册第一个 RCU 回调，传入的 head 是 head1（地址 0x1000）：
+步骤 0：初始状态（调用 __call_rcu 前）
+plaintext
+rcp 结构体（地址 0x2000）：
++----------------+------------------------+
+| 字段           | 值（地址/指针）        |
++----------------+------------------------+
+| rcucblist      | NULL（0x0）            |
+| donetail       | &rcp.rcucblist（0x2000）|
+| curtail        | &rcp.rcucblist（0x2000）|
++----------------+------------------------+
+
+head1 节点（地址 0x1000）：
++----------------+------------------------+
+| func           | my_free_func（回调函数）|
+| next           | NULL（0x0）            |
++----------------+------------------------+
+
+内存可视化：
+0x2000 (rcp.rcucblist) → 0x0（NULL）
+0x2008 (rcp.donetail)  → 0x2000（指向 rcucblist 的地址）
+0x2010 (rcp.curtail)   → 0x2000（指向 rcucblist 的地址）
+
+0x1000 (head1.func)    → my_free_func
+0x1008 (head1.next)    → 0x0（NULL）
+步骤 1：执行 *rcp->curtail = head
+rcp->curtail 的值是 0x2000（指向 rcp.rcucblist 的地址），所以 *rcp->curtail 就是「对 0x2000 地址解引用」，等价于 rcp.rcucblist = head1。
+plaintext
+操作后：
+rcp.rcucblist = 0x1000（指向 head1 节点）
+
+内存可视化：
+0x2000 (rcp.rcucblist) → 0x1000（head1 的地址）
+↑
+0x2010 (rcp.curtail)   → 0x2000（仍指向 rcucblist 的地址）
+一句话解释：把空链表的头指向第一个节点 head1。
+步骤 2：执行 rcp->curtail = &head->next
+&head1->next 是 head1.next 指针的地址（0x1008），所以 rcp.curtail 的值从 0x2000 改成 0x1008。
+plaintext
+操作后：
+rcp.curtail = 0x1008（指向 head1.next 的地址）
+
+最终内存状态：
+rcp 结构体：
++----------------+------------------------+
+| rcucblist      | 0x1000（head1）        |
+| donetail       | 0x2000（&rcp.rcucblist）|
+| curtail        | 0x1008（&head1.next）  |
++----------------+------------------------+
+
+head1 节点：
++----------------+------------------------+
+| func           | my_free_func           |
+| next           | NULL（0x0）            |
++----------------+------------------------+
+
+可视化示意图：
+rcp.rcucblist → head1 (0x1000) → [func:my_free_func, next:NULL]
+rcp.curtail → &head1.next (0x1008)
+场景 2：第二次调用 __call_rcu（加第二个节点）
+用户注册第二个回调，传入 head2（地址 0x1010）：
+步骤 0：调用前状态（继承场景 1 的结果）
+plaintext
+rcp.curtail = 0x1008（指向 head1.next 的地址）
+head1.next = 0x0（NULL）
+head2 节点（0x1010）：
++----------------+------------------------+
+| func           | my_free_func2          |
+| next           | NULL（0x0）            |
++----------------+------------------------+
+步骤 1：执行 *rcp->curtail = head2
+rcp->curtail 的值是 0x1008（指向 head1.next 的地址），*rcp->curtail 等价于 head1.next = head2。
+plaintext
+操作后：
+head1.next = 0x1010（指向 head2 节点）
+
+内存可视化：
+0x1008 (head1.next) → 0x1010（head2 的地址）
+↑
+0x2010 (rcp.curtail) → 0x1008（仍指向 head1.next 的地址）
+一句话解释：把第二个节点 head2 追加到第一个节点 head1 的 next 位置。
+步骤 2：执行 rcp->curtail = &head2->next
+&head2->next 是 0x1018（head2.next 的地址），所以 rcp.curtail 改成 0x1018。
+plaintext
+最终内存状态：
+rcp 结构体：
++----------------+------------------------+
+| rcucblist      | 0x1000（head1）        |
+| donetail       | 0x2000（&rcp.rcucblist）|
+| curtail        | 0x1018（&head2.next）  |
++----------------+------------------------+
+
+链表结构：
+rcp.rcucblist → head1 (0x1000) → [func:my_free_func, next:0x1010] → head2 (0x1010) → [func:my_free_func2, next:NULL]
+rcp.curtail → &head2.next (0x1018)
+核心逻辑总结（可视化简化版）
+表格
+操作阶段	指针关系示意图
+初始空链表	rcp.curtail → &rcp.rcucblist（0x2000）→ NULL
+加第一个节点	rcp.curtail → &head1.next（0x1008）
+rcp.rcucblist → head1 → next:NULL
+加第二个节点	rcp.curtail → &head2.next（0x1018）
+rcp.rcucblist → head1 → head2 → next:NULL
+关键理解点
+curtail 不是指向 “链表节点”，而是指向 “链表节点的 next 指针的地址”—— 这是实现「O (1) 尾追加」的核心；
+*rcp->curtail = head：把新节点的地址赋值给「当前尾节点的 next 指针」（初始时是 rcucblist）；
+rcp->curtail = &head->next：把 curtail 移动到新节点的 next 指针地址，为下一次追加做准备；
+整个过程不需要遍历链表，不管加多少节点，都是两步操作，效率极高。
