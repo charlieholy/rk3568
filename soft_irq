@@ -1,2 +1,15 @@
 open_softirq
     	open_softirq(BLOCK_SOFTIRQ, blk_done_softirq);
+
+Thread 37 hit Breakpoint 2, invoke_softirq () at kernel/softirq.c:379
+379                     do_softirq_own_stack();
+(gdb) bt
+#0  invoke_softirq () at kernel/softirq.c:379
+#1  irq_exit () at kernel/softirq.c:412
+#2  0xffffff800811197c in __handle_domain_irq (domain=0xffffffc000236200, hwirq=<optimized out>, lookup=true,
+    regs=0xffffff8009aa36c0) at kernel/irq/irqdesc.c:679
+#3  0xffffff8008081174 in handle_domain_irq (regs=<optimized out>, hwirq=<optimized out>, domain=<optimized out>)
+    at ./include/linux/irqdesc.h:173
+#4  gic_handle_irq (regs=0xffffff8009aa36c0) at drivers/irqchip/irq-gic-v3.c:373
+#5  0xffffff8008082bf0 in el1_irq () at arch/arm64/kernel/entry.S:645
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
