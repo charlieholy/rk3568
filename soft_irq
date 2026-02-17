@@ -1,3 +1,17 @@
+root@NYX-RK3568:/# cat /proc/softirqs
+                    CPU0       CPU1       CPU2       CPU3
+          HI:       5167          5          1          4
+       TIMER:       2847       2231       2071       2012
+      NET_TX:          5          0          1          1
+      NET_RX:         28         40         47         80
+       BLOCK:          0          0          0          0
+    IRQ_POLL:          0          0          0          0
+     TASKLET:      64368         11         77          3
+       SCHED:       1301       1186       1138       1101
+     HRTIMER:          0          0          0          0
+         RCU:       1770       1649       1855       1597
+root@NYX-RK3568:/#
+
 open_softirq
     	open_softirq(BLOCK_SOFTIRQ, blk_done_softirq);
 
