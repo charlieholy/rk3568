@@ -1,0 +1,52 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <string.h>
+#include <errno.h>
+
+// 定义和内核一致的 IOCTL 命令（必须和驱动里的 0x601b 匹配）
+#define RGA2_GET_VERSION 0x601b
+
+// 定义版本号缓冲区大小（根据 RGA 驱动实际情况，通常 32/64 字节足够）
+#define RGA_VERSION_BUF_SIZE 64
+
+int main(int argc, char *argv[]) {
+    int fd;
+    char version[RGA_VERSION_BUF_SIZE] = {0}; // 存储版本号的缓冲区
+    int ret;
+
+    // 1. 打开 RGA 设备节点
+    fd = open("/dev/rga", O_RDWR);
+    if (fd < 0) {
+        fprintf(stderr, "打开 /dev/rga 失败: %s (errno=%d)\n", strerror(errno), errno);
+        // 常见错误：设备节点不存在/权限不足
+        if (errno == ENOENT) {
+            fprintf(stderr, "提示：请检查 /dev/rga 是否存在，或是否加载了 rga 驱动\n");
+        } else if (errno == EACCES) {
+            fprintf(stderr, "提示：请用 root 权限运行（sudo ./rga_get_version）\n");
+        }
+        return -1;
+    }
+    printf("成功打开 /dev/rga (fd=%d)\n", fd);
+
+    // 2. 调用 IOCTL 获取版本号
+    ret = ioctl(fd, RGA2_GET_VERSION, version);
+    if (ret < 0) {
+        fprintf(stderr, "IOCTL RGA2_GET_VERSION 失败: %s (errno=%d)\n", strerror(errno), errno);
+        // 常见错误：IOCTL 命令不匹配/驱动未实现该命令
+        if (errno == ENOTTY) {
+            fprintf(stderr, "提示：驱动未实现 RGA2_GET_VERSION (0x%x) 命令\n", RGA2_GET_VERSION);
+        }
+        close(fd);
+        return -1;
+    }
+
+    // 3. 打印版本号
+    printf("RGA 版本号: %s\n", version);
+
+    // 4. 关闭设备
+    close(fd);
+    return 0;
+}
