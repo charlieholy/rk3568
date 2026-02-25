@@ -1,0 +1,12 @@
+(gdb) bt
+#0  cpu_do_switch_mm () at arch/arm64/mm/proc.S:213
+#1  0xffffff80080a2554 in cpu_switch_mm (mm=<optimized out>, pgd=<optimized out>) at ./arch/arm64/include/asm/mmu_context.h:62
+#2  check_and_switch_context (mm=0xffffffc0e5cdbc00, cpu=3) at arch/arm64/mm/context.c:245
+#3  0xffffff8008dca71c in __switch_mm (next=<optimized out>) at ./arch/arm64/include/asm/mmu_context.h:219
+#4  switch_mm (tsk=<optimized out>, next=<optimized out>, prev=<optimized out>) at ./arch/arm64/include/asm/mmu_context.h:227
+#5  context_switch (rf=<optimized out>, next=<optimized out>, prev=<optimized out>, rq=<optimized out>) at kernel/sched/core.c:3431
+#6  __schedule (preempt=false) at kernel/sched/core.c:4133
+#7  0xffffff8008dcaaf8 in schedule () at kernel/sched/core.c:4177
+#8  0xffffff800808d870 in do_notify_resume (regs=0xffffff8012433ec0, thread_flags=34) at arch/arm64/kernel/signal.c:926
+#9  0xffffff8008083738 in work_pending () at arch/arm64/kernel/entry.S:912
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
