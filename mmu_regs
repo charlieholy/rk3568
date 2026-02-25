@@ -1,0 +1,63 @@
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/types.h>  // 新增：定义uint64_t
+// 移除错误的 #include <asm/assembler.h> —— 这是汇编专用头文件
+
+// 读取 MMU 核心寄存器的函数
+static void read_mmu_regs(void) {
+    uint64_t sctlr_el1, ttbr0_el1, ttbr1_el1, tcr_el1, mair_el1, par_el1;
+
+    // 1. 读取 SCTLR_EL1（MMU 总开关）
+    asm volatile("mrs %0, sctlr_el1" : "=r"(sctlr_el1));
+    // 2. 读取 TTBR0_EL1（用户空间页表基址）
+    asm volatile("mrs %0, ttbr0_el1" : "=r"(ttbr0_el1));
+    // 3. 读取 TTBR1_EL1（内核空间页表基址）
+    asm volatile("mrs %0, ttbr1_el1" : "=r"(ttbr1_el1));
+    // 4. 读取 TCR_EL1（MMU 配置）
+    asm volatile("mrs %0, tcr_el1" : "=r"(tcr_el1));
+    // 5. 读取 MAIR_EL1（内存属性）
+    asm volatile("mrs %0, mair_el1" : "=r"(mair_el1));
+    // 6. 读取 PAR_EL1（物理地址查询）
+    asm volatile("mrs %0, par_el1" : "=r"(par_el1));
+
+    // 打印寄存器值（内核日志，用 dmesg 查看）
+    pr_info("===== ARM64 MMU Registers =====\n");
+    pr_info("SCTLR_EL1:  0x%016llx\n", sctlr_el1);
+    pr_info("TTBR0_EL1:  0x%016llx\n", ttbr0_el1);
+    pr_info("TTBR1_EL1:  0x%016llx\n", ttbr1_el1);
+    pr_info("TCR_EL1:    0x%016llx\n", tcr_el1);
+    pr_info("MAIR_EL1:   0x%016llx\n", mair_el1);
+    pr_info("PAR_EL1:    0x%016llx\n", par_el1);
+
+    // 解析 SCTLR_EL1 的关键位（MMU 是否开启）
+    pr_info("MMU Enable (SCTLR_EL1.M): %s\n", (sctlr_el1 & (1ULL << 0)) ? "ON" : "OFF");
+    pr_info("I-Cache Enable (SCTLR_EL1.I): %s\n", (sctlr_el1 & (1ULL << 12)) ? "ON" : "OFF");
+    pr_info("D-Cache Enable (SCTLR_EL1.C): %s\n", (sctlr_el1 & (1ULL << 2)) ? "ON" : "OFF");
+
+    {
+        uint64_t va = 0x7f000000, par;
+        asm volatile(
+            "at s1e1r, %0\n"    // 执行EL1->EL1的读地址转换
+            "isb\n"             // 指令同步，确保转换完成
+            "mrs %1, par_el1"   // 读取转换结果到PAR_EL1
+            : "=r"(va), "=r"(par)
+            : "0"(va)
+        );
+        pr_info("VA 0x%016llx → PAR_EL1 0x%016llx\n", va, par); 
+    }
+}
+
+static int __init mmu_regs_init(void) {
+    read_mmu_regs();
+    return 0;
+}
+
+static void __exit mmu_regs_exit(void) {
+    pr_info("MMU regs module exit\n");
+}
+
+module_init(mmu_regs_init);
+module_exit(mmu_regs_exit);
+MODULE_LICENSE("GPL");  // 必须是GPL，否则内核拒绝加载
+MODULE_DESCRIPTION("Read ARM64 MMU Registers");
+MODULE_AUTHOR("Your Name");  // 可选：添加作者信息
