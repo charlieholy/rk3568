@@ -1,0 +1,186 @@
+//kernel
+#include <linux/module.h>
+#include <linux/fs.h>
+#include <linux/cdev.h>
+#include <linux/mm.h>
+#include <linux/slab.h>
+#include <linux/device.h>
+#include <linux/uaccess.h>
+
+#define DEV_NAME     "nyx_mmap_dev"
+#define DEV_MAJOR    0
+#define BUF_SIZE     20               // 实际缓冲区大小
+#define MAP_SIZE     PAGE_SIZE        // 映射大小（unsigned long类型）
+
+static dev_t dev_num;
+static struct cdev nyx_cdev;
+static struct class *nyx_class;
+static struct device *nyx_device;
+static char *nyxbuff;
+static unsigned long nyxbuff_phys;
+
+// -------------- 核心：修复mmap函数（格式符+类型匹配） --------------
+static int nyx_mmap(struct file *filp, struct vm_area_struct *vma)
+{
+    unsigned long pfn;
+    unsigned long size = vma->vm_end - vma->vm_start;
+
+    // 修复1：格式符%d → %lu（匹配unsigned long类型的MAP_SIZE）
+    if (size != MAP_SIZE) {
+        printk(KERN_ERR "nyx_mmap: 映射大小必须为%lu字节（1页）\n", MAP_SIZE);
+        return -EINVAL;
+    }
+
+    // 获取PFN
+    pfn = nyxbuff_phys >> PAGE_SHIFT;
+
+    // 映射整个物理页到用户态
+    if (remap_pfn_range(vma, vma->vm_start, pfn, size, vma->vm_page_prot)) {
+        printk(KERN_ERR "nyx_mmap: remap_pfn_range 失败\n");
+        return -EAGAIN;
+    }
+
+    // 修复2：size是unsigned long，用%lu输出（原本没问题，统一规范）
+    printk(KERN_INFO "nyx_mmap: 映射成功！映射大小=%lu字节（仅前%d字节有效）\n",
+           size, BUF_SIZE);
+    printk(KERN_INFO "nyx_mmap: 内核缓冲区物理地址=0x%lx, PFN=0x%lx\n",
+           nyxbuff_phys, pfn);
+    return 0;
+}
+
+static const struct file_operations nyx_fops = {
+    .owner  = THIS_MODULE,
+    .mmap   = nyx_mmap,
+    .open   = NULL,
+    .release= NULL,
+};
+
+static int __init nyx_mmap_init(void)
+{
+    int ret;
+
+    ret = alloc_chrdev_region(&dev_num, 0, 1, DEV_NAME);
+    if (ret < 0) {
+        printk(KERN_ERR "nyx_mmap: 分配设备号失败\n");
+        return ret;
+    }
+
+    cdev_init(&nyx_cdev, &nyx_fops);
+    nyx_cdev.owner = THIS_MODULE;
+    ret = cdev_add(&nyx_cdev, dev_num, 1);
+    if (ret < 0) {
+        unregister_chrdev_region(dev_num, 1);
+        printk(KERN_ERR "nyx_mmap: 注册字符设备失败\n");
+        return ret;
+    }
+
+    nyx_class = class_create(THIS_MODULE, DEV_NAME);
+    if (IS_ERR(nyx_class)) {
+        cdev_del(&nyx_cdev);
+        unregister_chrdev_region(dev_num, 1);
+        printk(KERN_ERR "nyx_mmap: 创建设备类失败\n");
+        return PTR_ERR(nyx_class);
+    }
+
+    nyx_device = device_create(nyx_class, NULL, dev_num, NULL, DEV_NAME);
+    if (IS_ERR(nyx_device)) {
+        class_destroy(nyx_class);
+        cdev_del(&nyx_cdev);
+        unregister_chrdev_region(dev_num, 1);
+        printk(KERN_ERR "nyx_mmap: 创建设备节点失败\n");
+        return PTR_ERR(nyx_device);
+    }
+
+    // 分配1个物理页（4096字节），确保物理连续
+    nyxbuff = kmalloc(MAP_SIZE, GFP_KERNEL);
+    if (!nyxbuff) {
+        device_destroy(nyx_class, dev_num);
+        class_destroy(nyx_class);
+        cdev_del(&nyx_cdev);
+        unregister_chrdev_region(dev_num, 1);
+        printk(KERN_ERR "nyx_mmap: 分配内核缓冲区失败\n");
+        return -ENOMEM;
+    }
+
+    nyxbuff_phys = virt_to_phys((void *)nyxbuff);
+
+    // 初始化前20字节
+    memset(nyxbuff, 0, MAP_SIZE);
+    strncpy(nyxbuff, "Hello NYX mmap!", BUF_SIZE-1);
+    printk(KERN_INFO "nyx_mmap: 驱动加载成功！\n");
+    printk(KERN_INFO "nyx_mmap: 内核缓冲区虚拟地址=0x%lx, 物理地址=0x%lx\n",
+           (unsigned long)nyxbuff, nyxbuff_phys);
+    return 0;
+}
+
+static void __exit nyx_mmap_exit(void)
+{
+    kfree(nyxbuff);
+    device_destroy(nyx_class, dev_num);
+    class_destroy(nyx_class);
+    cdev_del(&nyx_cdev);
+    unregister_chrdev_region(dev_num, 1);
+    printk(KERN_INFO "nyx_mmap: 驱动卸载成功！\n");
+}
+
+module_init(nyx_mmap_init);
+module_exit(nyx_mmap_exit);
+
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("NYX");
+MODULE_DESCRIPTION("MMAP映射内核缓冲区到用户态的驱动（RK3568 ARM64）");
+
+
+// user
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <unistd.h>
+#include <string.h>
+
+#define DEV_PATH    "/dev/nyx_mmap_dev"
+#define BUF_SIZE    20               // 实际操作的缓冲区大小
+#define MAP_SIZE    4096             // 映射大小（页大小）
+
+int main()
+{
+    int fd;
+    char *user_buff;
+
+    fd = open(DEV_PATH, O_RDWR);
+    if (fd < 0) {
+        perror("open /dev/nyx_mmap_dev failed");
+        return -1;
+    }
+
+    // 修复：映射大小改为4096字节（页大小）
+    user_buff = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (user_buff == MAP_FAILED) {
+        perror("mmap failed");
+        close(fd);
+        return -1;
+    }
+
+    // 仅访问前20字节
+    printf("用户态读取内核缓冲区：%s\n", user_buff);
+
+    // 修改前20字节
+    memset(user_buff, 0, BUF_SIZE);
+    strncpy(user_buff, "Hello UserSpace!", BUF_SIZE-1);
+    printf("用户态修改缓冲区为：%s\n", user_buff);
+
+    // 解除映射
+    munmap(user_buff, MAP_SIZE);
+    close(fd);
+    return 0;
+}
+
+
+
+root@ATK-DLRK3568:/data# ./test_nyxmmap
+用户态读取内核缓冲区：Hello NYX mmap!
+用户态修改缓冲区为：Hello UserSpace!
+root@ATK-DLRK3568:/data# ./test_nyxmmap
+用户态读取内核缓冲区：Hello UserSpace!
+用户态修改缓冲区为：Hello UserSpace!
