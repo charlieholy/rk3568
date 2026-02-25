@@ -1,0 +1,6 @@
+全局 vs 专属：
+内核全局页表（init_mm.pgd）：所有进程共享的内核空间映射；
+进程专属页表（mm->pgd）：每个进程独有的用户空间映射；
+
+init_task
+video_devices
