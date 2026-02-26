@@ -1,0 +1,23 @@
+(gdb) bt
+#0  icmp_unreach (skb=0xffffffc0e5fa3a00) at net/ipv4/icmp.c:856
+#1  0xffffff8008bea7ac in icmp_rcv (skb=0xffffffc0e5fa3a00) at net/ipv4/icmp.c:1136
+#2  0xffffff8008bb32cc in ip_local_deliver_finish (net=0xffffff80095c4100 <init_net>, sk=<optimized out>, skb=0xffffffc0e5fa3a00)
+    at net/ipv4/ip_input.c:215
+#3  0xffffff8008bb3c48 in NF_HOOK (okfn=<optimized out>, out=<optimized out>, in=<optimized out>, skb=<optimized out>, sk=<optimized out>,
+    net=<optimized out>, hook=<optimized out>, pf=<optimized out>) at ./include/linux/netfilter.h:289
+#4  ip_local_deliver (skb=0xffffffc0e5fa3a00) at net/ipv4/ip_input.c:256
+#5  0xffffff8008bb35fc in dst_input (skb=<optimized out>) at ./include/net/dst.h:461
+#6  ip_rcv_finish (net=0xffffff80095c4100 <init_net>, sk=<optimized out>, skb=0xffffffc0e5fa3a00) at net/ipv4/ip_input.c:414
+#7  0xffffff8008bb3d58 in NF_HOOK (okfn=<optimized out>, out=<optimized out>, in=<optimized out>, skb=<optimized out>, sk=<optimized out>,
+    net=<optimized out>, hook=<optimized out>, pf=<optimized out>) at ./include/linux/netfilter.h:289
+#8  ip_rcv (skb=0xffffffc0e5fa3a00, dev=0xffffffc0e8d19000, pt=<optimized out>, orig_dev=<optimized out>) at net/ipv4/ip_input.c:524
+#9  0xffffff8008b69774 in __netif_receive_skb_one_core (skb=0xffffff8008b6a9e8 <process_backlog+164>, pfmemalloc=false) at net/core/dev.c:4963
+#10 0xffffff8008b6984c in __netif_receive_skb (skb=0xffffffc0e5fa3a00) at net/core/dev.c:5075
+#11 0xffffff8008b6a9e8 in process_backlog (napi=0xffffffc0efedf1e8, quota=64) at net/core/dev.c:5858
+#12 0xffffff8008b69dc4 in napi_poll (repoll=<optimized out>, n=<optimized out>) at net/core/dev.c:6306
+#13 net_rx_action (h=<optimized out>) at net/core/dev.c:6372
+#14 0xffffff8008081448 in __do_softirq () at kernel/softirq.c:292
+#15 0xffffff80080b5a74 in run_ksoftirqd (cpu=<optimized out>) at kernel/softirq.c:653
+#16 0xffffff80080d9568 in smpboot_thread_fn (data=0xffffffc0e9aa2980) at kernel/smpboot.c:164
+#17 0xffffff80080d3254 in kthread (_create=0xffffffc0e9aa2c00) at kernel/kthread.c:260
+#18 0xffffff8008085544 in ret_from_fork () at arch/arm64/kernel/entry.S:1103
