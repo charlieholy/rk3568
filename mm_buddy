@@ -68,7 +68,7 @@ PING                   0      0   1152   28    8 : tunables    0    0    0 : sla
 ping 127.0.0.1
 PING                  28     28   1152   28    8 : tunables    0    0    0 : slabdata      1      1      0
 
-////////////////////  
+////////////////////  list
 (gdb) p slab_caches.next.next.next
 $47 = (struct list_head *) 0xffffffc0e7e22360
 (gdb) p /x 0xffffffc0e7e22360 - 0x60
@@ -84,3 +84,36 @@ $49 = {cpu_slab = 0xffffff7dd9526ae0, flags = 1073872896, min_partial = 5, size 
       next = 0xffffffc0e7e223d8, prev = 0xffffffc0e7e223d8}, func = 0xffffff800820b9a4 <sysfs_slab_remove_workfn>, android_kabi_reserved1 = 0,
     android_kabi_reserved2 = 0}, useroffset = 0, usersize = 0, node = {0xffffffc0e7e01600}}
 (gdb)
+
+///////////  add 
+
+static struct kmem_cache *create_cache(const char *name,
+		unsigned int object_size, unsigned int align,
+		slab_flags_t flags, unsigned int useroffset,
+		unsigned int usersize, void (*ctor)(void *),
+		struct kmem_cache *root_cache)
+{
+	struct kmem_cache *s;
+	int err;
+
+	if (WARN_ON(useroffset + usersize > object_size))
+		useroffset = usersize = 0;
+
+	err = -ENOMEM;
+	s = kmem_cache_zalloc(kmem_cache, GFP_KERNEL);
+	if (!s)
+		goto out;
+
+	s->name = name;
+	s->size = s->object_size = object_size;
+	s->align = align;
+	s->ctor = ctor;
+	s->useroffset = useroffset;
+	s->usersize = usersize;
+
+	err = __kmem_cache_create(s, flags);
+	if (err)
+		goto out_free_cache;
+
+	s->refcount = 1;
+	list_add(&s->list, &slab_caches);
