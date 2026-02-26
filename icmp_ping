@@ -24,3 +24,19 @@
 
 
 * 25   Thread 21 (ksoftirqd/2) icmp_unreach (skb=0xffffffc0e5fa3a00) at net/ipv4/icmp.c:856
+
+(gdb)  p skb->transport_header
+$60 = 36
+(gdb) p skb->head
+$61 = (unsigned char *) 0xffffffc0cdb97c00 ""
+(gdb) set $icmp_hdr_addr = (unsigned long)skb->head + skb->transport_header
+(gdb)  p $icmp_hdr_addr
+$62 = 18446743802283129892
+(gdb)  p $icmp_hdr_addr /x
+No symbol "x" in current context.
+(gdb)  p /x $icmp_hdr_addr
+$63 = 0xffffffc0cdb97c24
+(gdb) set $icmph = (struct icmphdr *) $icmp_hdr_addr
+(gdb) p *$icmph
+$64 = {type = 3 '\003', code = 1 '\001', checksum = 65276, un = {echo = {id = 0, sequence = 0}, gateway = 0, frag = {__unused = 0, mtu = 0},
+    reserved = "\000\000\000"}}
