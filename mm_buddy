@@ -61,3 +61,9 @@ $8 = {_watermark = {0, 0, 0}, watermark_boost = 0, nr_reserved_highatomic = 0, l
   contiguous = false, _pad3_ = {x = 0xffff000007fb41c0 "\325;"}, vm_stat = 0xffff000007fb41c0,
   vm_numa_event = 0xffff000007fb4210}
 
+
+root@ATK-DLRK3568:/data# cat /proc/slabinfo
+# name            <active_objs> <num_objs> <objsize> <objperslab> <pagesperslab> : tunables <limit> <batchcount> <sharedfactor> : slabdata <active_slabs> <num_slabs> <sharedavail>
+PING                   0      0   1152   28    8 : tunables    0    0    0 : slabdata      0      0      0
+ping 127.0.0.1
+PING                  28     28   1152   28    8 : tunables    0    0    0 : slabdata      1      1      0
