@@ -8,3 +8,6 @@ jiffies
 
 node_data
 contig_page_data
+
+slab_caches
+ping_table
