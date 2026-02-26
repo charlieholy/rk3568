@@ -67,3 +67,20 @@ root@ATK-DLRK3568:/data# cat /proc/slabinfo
 PING                   0      0   1152   28    8 : tunables    0    0    0 : slabdata      0      0      0
 ping 127.0.0.1
 PING                  28     28   1152   28    8 : tunables    0    0    0 : slabdata      1      1      0
+
+////////////////////  
+(gdb) p slab_caches.next.next.next
+$47 = (struct list_head *) 0xffffffc0e7e22360
+(gdb) p /x 0xffffffc0e7e22360 - 0x60
+$48 = 0xffffffc0e7e22300
+(gdb) p *(struct kmem_cache *)0xffffffc0e7e22300
+$49 = {cpu_slab = 0xffffff7dd9526ae0, flags = 1073872896, min_partial = 5, size = 928, object_size = 920, offset = 920, cpu_partial = 13, oo = {
+    x = 131089}, max = {x = 131089}, min = {x = 4}, allocflags = 16400, refcount = 1, ctor = 0xffffff80083899d4 <inode_slab_ctor>, inuse = 920, align = 8,
+  red_left_pad = 0, name = 0xffffff8009135ab1 "ubifs_inode_slab", list = {next = 0xffffffc0e75b8660, prev = 0xffffffc0e7ad61e0}, kobj = {
+    name = 0xffffff8009135ab1 "ubifs_inode_slab", entry = {next = 0xffffffc0e7ad61f8, prev = 0xffffffc0e75b8678}, parent = 0xffffffc0e8e45828,
+    kset = 0xffffffc0e8e45800, ktype = 0xffffff80094a3340 <slab_ktype>, sd = 0xffffffc0e755fa18, kref = {refcount = {refs = {counter = 1}}},
+    state_initialized = 1, state_in_sysfs = 1, state_add_uevent_sent = 1, state_remove_uevent_sent = 0, uevent_suppress = 0, android_kabi_reserved1 = 0,
+    android_kabi_reserved2 = 0, android_kabi_reserved3 = 0, android_kabi_reserved4 = 0}, kobj_remove_work = {data = {counter = 68719476704}, entry = {
+      next = 0xffffffc0e7e223d8, prev = 0xffffffc0e7e223d8}, func = 0xffffff800820b9a4 <sysfs_slab_remove_workfn>, android_kabi_reserved1 = 0,
+    android_kabi_reserved2 = 0}, useroffset = 0, usersize = 0, node = {0xffffffc0e7e01600}}
+(gdb)
