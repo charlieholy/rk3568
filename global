@@ -6,4 +6,5 @@ init_task
 video_devices
 jiffies
 
+node_data
 contig_page_data
