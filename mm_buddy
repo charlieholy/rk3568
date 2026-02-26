@@ -23,3 +23,41 @@
 初始化内存回收机制：关联 kswapd 进程、页回收策略，保证内存不足时能回收页补充到伙伴系统；
 对外暴露分配接口：alloc_pages()、__get_free_pages() 等函数指向伙伴系统的分配逻辑；
 4.2 可用标志：page_alloc_ready
+
+
+定位第3阶段
+b  memblock_free_all
+p &(node_data[0].node_zones)[0].free_area[0].nr_free
+watch *$5
+c
+
+(gdb) c
+Continuing.
+
+Hardware watchpoint 2: *$5
+
+Old value = 0
+New value = 1
+__free_one_page (page=0xfffffc000008a180, pfn=270982, zone=0xffff000007fb3c00, order=0, migratetype=1, fpi_flags=6) at mm/page_alloc.c:1148
+1148            if (!(fpi_flags & FPI_SKIP_REPORT_NOTIFY))
+
+extern struct memblock memblock;
+
+(gdb) p (node_data[0].node_zones)[0]
+$8 = {_watermark = {0, 0, 0}, watermark_boost = 0, nr_reserved_highatomic = 0, lowmem_reserve = {0, 0, 0, 0},
+  node = 0, zone_pgdat = 0xffff000007fb3c00, per_cpu_pageset = 0xffff800009839718 <boot_pageset>,
+  per_cpu_zonestats = 0xffff800009839818 <boot_zonestats>, pageset_high = 0, pageset_batch = 1,
+  zone_start_pfn = 262144, managed_pages = <incomplete type>, spanned_pages = 32768, present_pages = 32768,
+  cma_pages = 0, name = 0xffff8000095a2ca0 "DMA", nr_isolate_pageblock = 0, initialized = 1, _pad1_ = {
+    x = 0xffff000007fb3cc0 "\310\002\t"}, free_area = {{free_list = 0xffff000007fb3cc0, nr_free = 2}, {
+      free_list = 0xffff000007fb3d28, nr_free = 5}, {free_list = 0xffff000007fb3d90, nr_free = 2}, {
+      free_list = 0xffff000007fb3df8, nr_free = 2}, {free_list = 0xffff000007fb3e60, nr_free = 5}, {
+      free_list = 0xffff000007fb3ec8, nr_free = 3}, {free_list = 0xffff000007fb3f30, nr_free = 4}, {
+      free_list = 0xffff000007fb3f98, nr_free = 2}, {free_list = 0xffff000007fb4000, nr_free = 5}, {
+      free_list = 0xffff000007fb4068, nr_free = 4}, {free_list = 0xffff000007fb40d0, nr_free = 11}}, flags = 0,
+  lock = <incomplete type>, _pad2_ = {x = 0xffff000007fb4180 ""}, percpu_drift_mark = 0, compact_cached_free_pfn = 0,
+  compact_cached_migrate_pfn = {0, 0}, compact_init_migrate_pfn = 0, compact_init_free_pfn = 0,
+  compact_considered = 0, compact_defer_shift = 0, compact_order_failed = 0, compact_blockskip_flush = false,
+  contiguous = false, _pad3_ = {x = 0xffff000007fb41c0 "\325;"}, vm_stat = 0xffff000007fb41c0,
+  vm_numa_event = 0xffff000007fb4210}
+
