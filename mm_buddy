@@ -1,0 +1,25 @@
+阶段 1：内存描述符初始化（搭好 “骨架”）
+核心目标：创建物理页的描述符（struct page）、内存节点（pg_data_t）、内存域（zone）等基础结构，为伙伴系统提供 “管理载体”。
+1.1 初始化 struct page 数组（页描述符）
+
+1.2 初始化内存节点（pg_data_t）和内存域（zone）
+核心函数：free_area_init_nodes() → free_area_init_node() → pgdat_init()（mm/page_alloc.c）
+作用
+
+阶段 2：free_area 管理结构初始化（建好 “货架”）
+核心目标：初始化 free_area 的核心成员（空闲链表、计数），为存放空闲页搭好 “货架”。
+2.1 核心函数：free_area_init_core()（mm/page_alloc.c）
+
+阶段 3：空闲页填充到伙伴链表（摆满 “商品”）
+核心目标：把系统中未被保留的空闲物理页，逐个释放到伙伴系统的 free_list 中，让伙伴系统真正具备 “分配能力”。
+3.1 核心函数：memblock_free_all()（mm/memblock.c）
+作用：遍历 memblock 管理的所有空闲物理内存，把这些页释放到伙伴系统中；
+底层调用链：memblock_free_all() → __free_pages_core() → free_one_page() → add_to_free_list()。
+
+阶段 4：伙伴系统进入可用状态（开放 “仓库”）
+核心目标：完成最后的初始化收尾，让伙伴系统对外提供分配接口。
+4.1 核心动作
+初始化每 CPU 页缓存（PCP）：为每个 CPU 创建小批量页缓存，减少伙伴系统的锁竞争；
+初始化内存回收机制：关联 kswapd 进程、页回收策略，保证内存不足时能回收页补充到伙伴系统；
+对外暴露分配接口：alloc_pages()、__get_free_pages() 等函数指向伙伴系统的分配逻辑；
+4.2 可用标志：page_alloc_ready
