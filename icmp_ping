@@ -21,3 +21,6 @@
 #16 0xffffff80080d9568 in smpboot_thread_fn (data=0xffffffc0e9aa2980) at kernel/smpboot.c:164
 #17 0xffffff80080d3254 in kthread (_create=0xffffffc0e9aa2c00) at kernel/kthread.c:260
 #18 0xffffff8008085544 in ret_from_fork () at arch/arm64/kernel/entry.S:1103
+
+
+* 25   Thread 21 (ksoftirqd/2) icmp_unreach (skb=0xffffffc0e5fa3a00) at net/ipv4/icmp.c:856
