@@ -1,0 +1,358 @@
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/rcupdate.h>
+#include <linux/ip.h>
+#include <linux/netdevice.h>
+#include <net/net_namespace.h>
+#include <net/route.h>
+#include <net/ip_fib.h>
+#include <linux/fib_rules.h>
+#include <linux/hash.h>
+#include <linux/list.h>
+#include <linux/rtnetlink.h>
+
+/* ==================== 适配4.19内核的核心定义 ==================== */
+typedef unsigned int t_key;
+#define KEYLENGTH	(8*sizeof(t_key))
+#define IS_TRIE(n)	((n)->pos >= KEYLENGTH)
+#define IS_TNODE(n)	((n)->bits)
+#define IS_LEAF(n)	(!(n)->bits)
+
+/* 仅定义key_vector/tnode/trie（无冲突） */
+struct key_vector {
+	t_key key;
+	unsigned char pos;
+	unsigned char bits;
+	unsigned char slen;
+	union {
+		struct hlist_head leaf;
+		struct key_vector __rcu *tnode[0];
+	};
+};
+
+struct tnode {
+	struct rcu_head rcu;
+	struct key_vector __rcu *parent;
+	struct key_vector kv[1];
+#define tn_bits kv[0].bits
+};
+
+struct trie {
+	struct key_vector kv[1];
+};
+
+/* 4.19内核fib_alias定义（不重定义fib_info） */
+struct fib_alias {
+	struct hlist_node fa_list;
+	struct fib_info __rcu *fa_info;
+	u8 fa_tos;
+	u8 fa_type;
+	u8 fa_scope;
+	u8 fa_state;
+	u32 fa_slen;
+	u32 tb_id;
+};
+
+/* ==================== 辅助函数（适配4.19内核） ==================== */
+#ifndef rcu_dereference_rtnl
+#define rcu_dereference_rtnl(p) rcu_dereference(p)
+#endif
+
+#ifndef FIB_TABLE_HASHSZ
+#define FIB_TABLE_HASHSZ	256
+#endif
+
+static inline struct tnode *tn_info(struct key_vector *kv)
+{
+	return container_of(kv, struct tnode, kv[0]);
+}
+
+#define get_child_rcu(tn, i) rcu_dereference_rtnl((tn)->tnode[i])
+#define node_parent_rcu(tn) rcu_dereference_rtnl(tn_info(tn)->parent)
+
+static inline unsigned long child_length(const struct key_vector *tn)
+{
+	return (1ul << tn->bits) & ~(1ul);
+}
+
+static inline unsigned long get_index(t_key key, struct key_vector *kv)
+{
+	unsigned long index = key ^ kv->key;
+	if ((BITS_PER_LONG <= KEYLENGTH) && (KEYLENGTH == kv->pos))
+		return 0;
+	return index >> kv->pos;
+}
+
+/* ==================== Trie遍历逻辑 ==================== */
+struct fib_trie_iter {
+	struct fib_table *tb;
+	struct key_vector *tnode;
+	unsigned int index;
+	unsigned int depth;
+};
+
+static struct key_vector *fib_trie_get_next(struct fib_trie_iter *iter)
+{
+	unsigned long cindex = iter->index;
+	struct key_vector *pn = iter->tnode;
+	t_key pkey;
+
+	while (!IS_TRIE(pn)) {
+		while (cindex < child_length(pn)) {
+			struct key_vector *n = get_child_rcu(pn, cindex++);
+			if (!n) continue;
+
+			if (IS_LEAF(n)) {
+				iter->tnode = pn;
+				iter->index = cindex;
+			} else {
+				iter->tnode = n;
+				iter->index = 0;
+				iter->depth++;
+			}
+			return n;
+		}
+
+		pkey = pn->key;
+		pn = node_parent_rcu(pn);
+		cindex = get_index(pkey, pn) + 1;
+		iter->depth--;
+	}
+
+	iter->tnode = pn;
+	iter->index = 0;
+	return NULL;
+}
+
+static struct key_vector *fib_trie_get_first(struct fib_trie_iter *iter, struct trie *t)
+{
+	struct key_vector *n, *pn;
+	if (!t) return NULL;
+
+	pn = t->kv;
+	n = rcu_dereference(pn->tnode[0]);
+	if (!n) return NULL;
+
+	if (IS_TNODE(n)) {
+		iter->tnode = n;
+		iter->index = 0;
+		iter->depth = 1;
+	} else {
+		iter->tnode = pn;
+		iter->index = 0;
+		iter->depth = 0;
+	}
+	return n;
+}
+
+/* ==================== 路由scope转换（仅保留必需函数） ==================== */
+static const char *fib_scope_str(u8 scope)
+{
+	switch (scope) {
+	case RT_SCOPE_UNIVERSE: return "global";
+	case RT_SCOPE_SITE: return "site";
+	case RT_SCOPE_LINK: return "link";
+	case RT_SCOPE_HOST: return "host";
+	default: return "unknown";
+	}
+}
+
+/* ==================== 核心打印函数（适配4.19内核，无冗余） ==================== */
+static void print_route_entry(struct fib_table *tb, struct key_vector *n)
+{
+	struct fib_alias *fa;
+	u32 ip = n->key;
+	u8 prefix_len = 32 - n->slen;
+	struct fib_info *fi;
+	struct net_device *dev;
+	u32 src_ip = 0;
+
+	/* 只处理LEAF节点，过滤TNODE */
+	if (!IS_LEAF(n)) return;
+
+	hlist_for_each_entry_rcu(fa, &n->leaf, fa_list) {
+		/* 跳过空的fib_info */
+		if (!fa || !rcu_access_pointer(fa->fa_info)) continue;
+		fi = rcu_dereference(fa->fa_info);
+		if (!fi) continue;
+
+		/* 4.19内核通过fib_nh[0].nh_dev获取出接口 */
+		dev = fi->fib_nh[0].nh_dev;
+		/* 4.19内核获取源IP */
+		src_ip = fi->fib_prefsrc;
+
+		/* 按表过滤：main表(254)跳过local/broadcast路由 */
+		if (tb->tb_id == 254) {
+			if (fa->fa_type == RTN_LOCAL || fa->fa_type == RTN_BROADCAST) {
+				continue;
+			}
+		}
+
+		/* 打印格式和ip route show完全对齐 */
+		if (ip == 0 && prefix_len == 0) {
+			pr_info("default ");  // 直接判断默认路由，不靠RTN_DEFAULT
+		} else {
+			pr_info("%u.%u.%u.%u/%u ", 
+				(ip>>24)&0xff, (ip>>16)&0xff, (ip>>8)&0xff, ip&0xff, 
+				prefix_len);
+		}
+
+		/* 打印出接口 */
+		pr_info("dev %s ", dev ? dev->name : "unknown");
+
+		/* 打印proto kernel（local/broadcast路由） */
+		if (fa->fa_type == RTN_LOCAL || fa->fa_type == RTN_BROADCAST) {
+			pr_info("proto kernel ");
+		}
+
+		/* 打印scope（调用fib_scope_str，无未使用警告） */
+		pr_info("scope %s ", fib_scope_str(fa->fa_scope));
+
+		/* 打印源IP */
+		if (src_ip) {
+			pr_info("src %u.%u.%u.%u ", 
+				(src_ip>>24)&0xff, (src_ip>>16)&0xff, (src_ip>>8)&0xff, src_ip&0xff);
+		}
+
+		pr_info("\n");
+	}
+}
+
+/* ==================== 遍历FIB表（只打印有效路由） ==================== */
+static void traverse_fib_table(struct fib_table *tb)
+{
+	struct trie *t = (struct trie *)tb->tb_data;
+	struct fib_trie_iter iter = {0};
+	struct key_vector *n;
+
+	/* 只处理main(254)和local(255)表 */
+	if (tb->tb_id != 254 && tb->tb_id != 255) return;
+
+	/* 打印表名称（和ip命令对齐） */
+	if (tb->tb_id == 254) {
+		pr_info("\n===== Table main (ID: %u) =====\n", tb->tb_id);
+	} else {
+		pr_info("\n===== Table local (ID: %u) =====\n", tb->tb_id);
+	}
+
+	rcu_read_lock();
+	n = fib_trie_get_first(&iter, t);
+	while (n) {
+		print_route_entry(tb, n);
+		n = fib_trie_get_next(&iter);
+	}
+	rcu_read_unlock();
+}
+
+/* ==================== 遍历核心路由表 ==================== */
+static void traverse_route_tables(void)
+{
+	struct net *net = &init_net;
+	unsigned int h;
+
+	pr_info("=== Route Table (Match ip route show) ===\n");
+
+	rcu_read_lock();
+	for (h = 0; h < FIB_TABLE_HASHSZ; h++) {
+		struct hlist_head *head = &net->ipv4.fib_table_hash[h];
+		struct fib_table *tb;
+		hlist_for_each_entry_rcu(tb, head, tb_hlist) {
+			traverse_fib_table(tb);
+		}
+	}
+	rcu_read_unlock();
+
+	pr_info("=== Route Table Traversal Done ===\n");
+}
+
+/* ==================== 模块入口/出口 ==================== */
+static int __init fib_route_init(void)
+{
+	pr_info("FIB Route Module Loaded (4.19 arm64)\n");
+	traverse_route_tables();
+	return 0;
+}
+
+static void __exit fib_route_exit(void)
+{
+	pr_info("FIB Route Module Unloaded\n");
+}
+
+module_init(fib_route_init);
+module_exit(fib_route_exit);
+
+MODULE_LICENSE("GPL");
+MODULE_DESCRIPTION("FIB Route Traversal (4.19 arm64, Match ip route show)");
+MODULE_AUTHOR("Custom");
+MODULE_VERSION("5.0");
+
+/////////////
+[21970.030491] FIB Route Module Loaded (4.19 arm64)
+[21970.030528] === Route Table (Match ip route show) ===
+[21970.030536]
+[21970.030536] ===== Table main (ID: 254) =====
+[21970.030544] default
+[21970.030546] dev eth0
+[21970.030552] scope unknown
+[21970.030557]
+[21970.030569] 169.254.0.0/16
+[21970.030570] dev eth0
+[21970.030577] scope global
+[21970.030593] src 18.29.254.169
+[21970.030603]
+[21970.030618]
+[21970.030618] ===== Table local (ID: 255) =====
+[21970.030629] default
+[21970.030630] dev eth0
+[21970.030640] scope unknown
+[21970.030649]
+[21970.030664] 127.0.0.0/8
+[21970.030666] dev lo
+[21970.030674] proto kernel
+[21970.030686] scope global
+[21970.030696] src 1.0.0.127
+[21970.030704]
+[21970.030719] 127.0.0.0/8
+[21970.030720] dev lo
+[21970.030730] proto kernel
+[21970.030740] scope global
+[21970.030751] src 1.0.0.127
+[21970.030759]
+[21970.030780] 127.0.0.1/32
+[21970.030782] dev lo
+[21970.030790] proto kernel
+[21970.030796] scope unknown
+[21970.030802] src 1.0.0.127
+[21970.030807]
+[21970.030817] 127.255.255.255/32
+[21970.030818] dev lo
+[21970.030827] proto kernel
+[21970.030834] scope global
+[21970.030844] src 1.0.0.127
+[21970.030853]
+[21970.030869] 169.254.0.0/16
+[21970.030871] dev eth0
+[21970.030880] proto kernel
+[21970.030891] scope global
+[21970.030902] src 18.29.254.169
+[21970.030911]
+[21970.030924] 169.254.0.0/16
+[21970.030926] dev eth0
+[21970.030935] scope global
+[21970.030946] src 18.29.254.169
+[21970.030955]
+[21970.030972] 169.254.29.18/32
+[21970.030973] dev eth0
+[21970.030983] proto kernel
+[21970.030994] scope unknown
+[21970.031004] src 18.29.254.169
+[21970.031012]
+[21970.031027] 169.254.255.255/32
+[21970.031029] dev eth0
+[21970.031034] proto kernel
+[21970.031039] scope global
+[21970.031045] src 18.29.254.169
+[21970.031051]
+[21970.031063] === Route Table Traversal Done ===
+
