@@ -12,6 +12,9 @@ Unicast reply from 192.168.2.100 [C8:53:09:CD:D6:1F]  2.637ms
 Sent 1 probes (1 broadcast(s))
 Received 1 response(s)
 
+20:04:53.319557 ARP, Request who-has 192.168.2.100 (Broadcast) tell 169.254.29.18, length 28
+20:04:53.321619 ARP, Reply 192.168.2.100 is-at c8:53:09:cd:d6:1f (oui Unknown), length 46
+
 //
 root@ATK-DLRK3568:/# arping -c 1 -I eth0 192.168.2.101
 ARPING 192.168.2.101 from 169.254.29.18 eth0
