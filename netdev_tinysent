@@ -1,0 +1,112 @@
+14:23:51.606984 20:52:61:77:20:45 (oui Unknown) > 48:65:6c:6c:6f:2c (oui Unknown), ethertype Unknown (0x7468), length 26:
+        0x0000:  6572 6e65 7420 4672 616d 6521            ernet.Frame!
+
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/netdevice.h>
+#include <linux/skbuff.h>
+#include <linux/etherdevice.h>
+#include <linux/ip.h>
+#include <linux/types.h>
+#include <linux/string.h>
+#include <linux/compiler.h>
+
+// 配置项：修改为你的实际网卡和目标MAC
+#define DEV_NAME    "eth0"       // 你的网卡名（ip link查看）
+#define DST_MAC     {0x00,0x11,0x22,0x33,0x44,0x55}  // 目标MAC
+#define DATA_STR    "Hello, Raw Ethernet Frame!"     // 载荷数据
+
+// 核心函数：发送原始以太网帧（完全适配低版本内核，无tail/end手动赋值）
+static int send_raw_ether_frame(void)
+{
+    struct net_device *dev = NULL;          
+    struct sk_buff *skb = NULL;
+    const unsigned char dst_mac[6] = DST_MAC;
+    unsigned char *eth_header = NULL;
+    const int data_len = strlen(DATA_STR);
+    int ret = -1;               
+
+    // 1. 获取网卡设备
+    dev = dev_get_by_name(&init_net, DEV_NAME);
+    if (!dev) {
+        pr_err("[RAW_ETHER] 找不到网卡: %s\n", DEV_NAME);
+        return -ENODEV;
+    }
+    pr_info("[RAW_ETHER] 成功获取网卡: %s, 源MAC: %pM\n", DEV_NAME, dev->dev_addr);
+
+    // 2. 分配skb缓冲区（包含以太网头+数据，内核自动维护tail/end）
+    // 关键：ETH_HLEN(14) + data_len，skb_reserve后数据区自动对齐
+    skb = dev_alloc_skb(ETH_HLEN + data_len);
+    if (!skb) {
+        pr_err("[RAW_ETHER] 分配skb缓冲区失败\n");
+        ret = -ENOMEM;
+        goto dev_put;
+    }
+
+    // 3. 预留14字节以太网头空间（核心：先reserve，再填充数据）
+    skb_reserve(skb, ETH_HLEN);
+
+    // 4. 填充载荷数据（skb_put会自动更新tail/len/end，无需手动设置）
+    skb_put_data(skb, DATA_STR, data_len);
+
+    // 5. 回退指针到以太网头起始位置，填充MAC和类型
+    eth_header = (unsigned char *)(skb->data - ETH_HLEN);
+    if (eth_header) {
+        // 5.1 目的MAC（6字节）
+        memcpy(eth_header, dst_mac, 6);
+        // 5.2 源MAC（6字节）
+        memcpy(eth_header + 6, dev->dev_addr, 6);
+        // 5.3 以太网类型（2字节，0x0888）
+        *((__be16 *)(eth_header + 12)) = htons(0x0888);
+    }
+
+    // 6. 设置skb核心属性（仅保留必需项，无tail/end手动赋值）
+    skb->dev = dev;
+    skb->pkt_type = PACKET_OUTGOING;
+    skb->protocol = htons(0x0888);
+    skb->ip_summed = CHECKSUM_NONE;
+
+    // 7. 发送数据包（内核自动处理tail/len/end）
+    ret = dev_queue_xmit(skb);
+    if (ret == 0) {  // 0 = 发送成功
+        pr_info("[RAW_ETHER] 原始以太网帧发送成功！\n");
+        pr_info("[RAW_ETHER] 帧信息：\n");
+        pr_info("[RAW_ETHER]   目的MAC: %pM\n", dst_mac);
+        pr_info("[RAW_ETHER]   源MAC: %pM\n", (void *)dev->dev_addr);
+        pr_info("[RAW_ETHER]   帧类型: 0x0888\n");
+        pr_info("[RAW_ETHER]   载荷数据: %s (长度: %d字节)\n", DATA_STR, data_len);
+        pr_info("[RAW_ETHER]   总帧长度: %u字节\n", (unsigned int)(ETH_HLEN + data_len));
+    } else {
+        pr_err("[RAW_ETHER] 发送失败，错误码: %d\n", ret);
+        kfree_skb(skb);
+    }
+
+dev_put:
+    if (dev) {
+        dev_put(dev);
+    }
+    return ret;
+}
+
+// 驱动初始化
+static int __init ether_raw_send_init(void)
+{
+    int ret = 0;
+    pr_info("[RAW_ETHER] ==== 原始以太网发包驱动加载 ====\n");
+    ret = send_raw_ether_frame();
+    return ret;
+}
+
+// 驱动卸载
+static void __exit ether_raw_send_exit(void)
+{
+    pr_info("[RAW_ETHER] ==== 原始以太网发包驱动卸载 ====\n");
+}
+
+module_init(ether_raw_send_init);
+module_exit(ether_raw_send_exit);
+
+MODULE_LICENSE("GPL v2");
+MODULE_AUTHOR("Custom");
+MODULE_DESCRIPTION("Final: Send raw Ethernet frame (ARM64 4.x/5.4)");
+MODULE_VERSION("6.0");
