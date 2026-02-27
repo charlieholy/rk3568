@@ -11,3 +11,9 @@ ARPING 192.168.2.100 from 169.254.29.18 eth0
 Unicast reply from 192.168.2.100 [C8:53:09:CD:D6:1F]  2.637ms
 Sent 1 probes (1 broadcast(s))
 Received 1 response(s)
+
+//
+root@ATK-DLRK3568:/# arping -c 1 -I eth0 192.168.2.101
+ARPING 192.168.2.101 from 169.254.29.18 eth0
+Sent 1 probes (1 broadcast(s))
+Received 0 response(s)
