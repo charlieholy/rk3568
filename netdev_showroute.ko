@@ -1,73 +1,308 @@
 #include <linux/module.h>
-#include <linux/netdevice.h>
-#include <linux/inetdevice.h>
+#include <linux/kernel.h>
 #include <linux/init.h>
-#include <linux/printk.h>
+#include <linux/rcupdate.h>
+#include <linux/ip.h>
+#include <linux/netdevice.h>
 #include <net/net_namespace.h>
-#include <net/ip.h>
 #include <net/route.h>
-#include <linux/rtnetlink.h>
+#include <net/ip_fib.h>       // 仅保留绝对核心的FIB头文件
+#include <linux/fib_rules.h>
+#include <linux/hash.h>
+#include <linux/list.h>       // 核心链表头文件（包含hlist定义）
+
+/* ==================== 完全内联所有缺失定义（极简版） ==================== */
+typedef unsigned int t_key;
+#define KEYLENGTH	(8*sizeof(t_key))
+#define IS_TRIE(n)	((n)->pos >= KEYLENGTH)
+#define IS_TNODE(n)	((n)->bits)
+#define IS_LEAF(n)	(!(n)->bits)
+
+/* 1. 核心Trie结构体（仅保留遍历必需字段） */
+struct key_vector {
+	t_key key;
+	unsigned char pos;
+	unsigned char bits;
+	unsigned char slen;
+	union {
+		struct hlist_head leaf;  // hlist定义在linux/list.h中
+		struct key_vector __rcu *tnode[0];
+	};
+};
+
+struct tnode {
+	struct rcu_head rcu;
+	struct key_vector __rcu *parent;
+	struct key_vector kv[1];
+#define tn_bits kv[0].bits
+};
+
+struct trie {
+	struct key_vector kv[1];
+};
+
+/* 2. 极简辅助宏（仅保留遍历必需） */
+#ifndef rcu_dereference_rtnl
+#define rcu_dereference_rtnl(p) rcu_dereference(p)
+#endif
+
+#ifndef FIB_TABLE_HASHSZ
+#define FIB_TABLE_HASHSZ	256
+#endif
+
+static inline struct tnode *tn_info(struct key_vector *kv)
+{
+	return container_of(kv, struct tnode, kv[0]);
+}
+
+#define get_child_rcu(tn, i) rcu_dereference_rtnl((tn)->tnode[i])
+#define node_parent_rcu(tn) rcu_dereference_rtnl(tn_info(tn)->parent)
+
+static inline unsigned long child_length(const struct key_vector *tn)
+{
+	return (1ul << tn->bits) & ~(1ul);
+}
+
+static inline unsigned long get_index(t_key key, struct key_vector *kv)
+{
+	unsigned long index = key ^ kv->key;
+	if ((BITS_PER_LONG <= KEYLENGTH) && (KEYLENGTH == kv->pos))
+		return 0;
+	return index >> kv->pos;
+}
+
+/* ==================== 极简遍历逻辑（仅保留核心） ==================== */
+struct fib_trie_iter {
+	struct fib_table *tb;
+	struct key_vector *tnode;
+	unsigned int index;
+	unsigned int depth;
+};
+
+static struct key_vector *fib_trie_get_next(struct fib_trie_iter *iter)
+{
+	unsigned long cindex = iter->index;
+	struct key_vector *pn = iter->tnode;
+	t_key pkey;
+
+	while (!IS_TRIE(pn)) {
+		while (cindex < child_length(pn)) {
+			struct key_vector *n = get_child_rcu(pn, cindex++);
+			if (!n) continue;
+
+			if (IS_LEAF(n)) {
+				iter->tnode = pn;
+				iter->index = cindex;
+			} else {
+				iter->tnode = n;
+				iter->index = 0;
+				iter->depth++;
+			}
+			return n;
+		}
+
+		// 回溯到父节点
+		pkey = pn->key;
+		pn = node_parent_rcu(pn);
+		cindex = get_index(pkey, pn) + 1;
+		iter->depth--;
+	}
+
+	iter->tnode = pn;
+	iter->index = 0;
+	return NULL;
+}
+
+static struct key_vector *fib_trie_get_first(struct fib_trie_iter *iter, struct trie *t)
+{
+	struct key_vector *n, *pn;
+	if (!t) return NULL;
+
+	pn = t->kv;
+	n = rcu_dereference(pn->tnode[0]);
+	if (!n) return NULL;
+
+	if (IS_TNODE(n)) {
+		iter->tnode = n;
+		iter->index = 0;
+		iter->depth = 1;
+	} else {
+		iter->tnode = pn;
+		iter->index = 0;
+		iter->depth = 0;
+	}
+	return n;
+}
+
+/* ==================== 极简打印（避免hlist遍历编译错误） ==================== */
+static void print_trie_node(struct key_vector *n, unsigned int depth)
+{
+	int i;
+	__be32 ip = htonl(n->key);
+
+	// 缩进展示层级
+	for (i = 0; i < depth; i++)
+		pr_info("  ");
+
+	if (IS_TNODE(n)) {
+		pr_info("[TNODE] ip=%pI4, pos=%d, bits=%d, depth=%d\n",
+			&ip, n->pos, n->bits, depth);
+	} else if (IS_LEAF(n)) {
+		pr_info("[LEAF]  ip=%pI4, slen=%d, depth=%d\n",
+			&ip, n->slen, depth);
+		// 暂时注释hlist遍历（避免SDK内核hlist宏缺失）
+		// 如需打印路由别名，后续可根据内核实际定义适配
+	}
+}
+
+/* 遍历单个FIB表 */
+static void traverse_fib_trie(struct fib_table *tb)
+{
+	struct trie *t = (struct trie *)tb->tb_data;
+	struct fib_trie_iter iter = {0};
+	struct key_vector *n;
+
+	pr_info("\n===== FIB Table ID: %u =====\n", tb->tb_id);
+
+	rcu_read_lock();
+	n = fib_trie_get_first(&iter, t);
+	while (n) {
+		print_trie_node(n, iter.depth);
+		n = fib_trie_get_next(&iter);
+	}
+	rcu_read_unlock();
+}
+
+/* 遍历所有FIB表 */
+static void traverse_all_fib_tables(void)
+{
+	struct net *net = &init_net;
+	unsigned int h;
+
+	pr_info("=== Start FIB Trie Traversal (Minimal Version) ===\n");
+
+	rcu_read_lock();
+	for (h = 0; h < FIB_TABLE_HASHSZ; h++) {
+		struct hlist_head *head = &net->ipv4.fib_table_hash[h];
+		struct fib_table *tb;
+		hlist_for_each_entry_rcu(tb, head, tb_hlist) {
+			traverse_fib_trie(tb);
+		}
+	}
+	rcu_read_unlock();
+
+	pr_info("=== FIB Trie Traversal Done ===\n");
+}
+
+/* ==================== 模块入口/出口 ==================== */
+static int __init fib_trie_traverse_init(void)
+{
+	pr_info("FIB Trie Minimal Module Loaded (arm64 SDK)\n");
+	traverse_all_fib_tables();
+	return 0;
+}
+
+static void __exit fib_trie_traverse_exit(void)
+{
+	pr_info("FIB Trie Minimal Module Unloaded\n");
+}
+
+module_init(fib_trie_traverse_init);
+module_exit(fib_trie_traverse_exit);
 
 MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("Print routing table - based on kernel route.c");
+MODULE_DESCRIPTION("Minimal FIB Trie Traversal (No Extra Headers)");
+MODULE_AUTHOR("Custom");
+MODULE_VERSION("2.0");
 
-/*
- *  最简单、最稳定、内核任意版本都能跑：
- *  直接读取并打印 /proc/net/route 内核原生接口
- *  （ip route show 就是读这里）
- */
-static void print_kernel_routes(void)
-{
-    struct net *net = &init_net;
-    struct net_device *dev;
-    //__be32 daddr, saddr;
-    struct flowi4 fl4;
-    struct rtable *rt;
 
-    printk(KERN_INFO "===== 内核路由表（来自 route.c 逻辑）=====\n");
-
-    /* 读取本机网卡信息，模拟路由输出 */
-    for_each_netdev(net, dev) {
-        if (strcmp(dev->name, "eth0") != 0)
-            continue;
-
-        /* 构造默认路由：0.0.0.0/0 */
-        memset(&fl4, 0, sizeof(fl4));
-        fl4.daddr = 0;
-        fl4.flowi4_oif = dev->ifindex;
-
-        rcu_read_lock();
-        rt = __ip_route_output_key(net, &fl4);
-        if (!IS_ERR(rt)) {
-            printk(KERN_INFO "default dev %s scope link\n", dev->name);
-            ip_rt_put(rt);
-        }
-        rcu_read_unlock();
-
-        /* 打印 169.254.0.0/16 网段 */
-        printk(KERN_INFO "169.254.0.0/16 dev %s proto kernel scope link src 169.254.29.18\n",
-               dev->name);
-    }
-
-    printk(KERN_INFO "=========================================\n");
-}
-
-static int __init route_print_init(void)
-{
-    print_kernel_routes();
-    return 0;
-}
-
-static void __exit route_print_exit(void)
-{
-    printk(KERN_INFO "route_print: exit\n");
-}
-
-module_init(route_print_init);
-module_exit(route_print_exit);
-
-//////////////////////////
-[14092.701018] ===== 内核路由表（来自 route.c 逻辑）=====
-[14092.701083] default dev eth0 scope link
-[14092.701093] 169.254.0.0/16 dev eth0 proto kernel scope link src 169.254.29.18
-[14092.701101] =========================================
+////////////////////////
+[20664.339128] === Start FIB Trie Traversal (Minimal Version) ===
+[20664.339137]
+[20664.339137] ===== FIB Table ID: 254 =====
+[20664.339144]
+[20664.339149] [TNODE] ip=0.0.0.0, pos=29, bits=3, depth=1
+[20664.339159]
+[20664.339161] [LEAF]  ip=0.0.0.0, slen=32, depth=1
+[20664.339169]
+[20664.339170]
+[20664.339177] [TNODE] ip=127.0.0.0, pos=22, bits=2, depth=2
+[20664.339184]
+[20664.339185]
+[20664.339190]
+[20664.339196] [TNODE] ip=127.0.0.0, pos=0, bits=1, depth=3
+[20664.339204]
+[20664.339205]
+[20664.339210]
+[20664.339216] [LEAF]  ip=127.0.0.0, slen=24, depth=3
+[20664.339244]
+[20664.339245]
+[20664.339256]
+[20664.339264] [LEAF]  ip=127.0.0.1, slen=0, depth=3
+[20664.339284]
+[20664.339285]
+[20664.339296] [LEAF]  ip=127.255.255.255, slen=0, depth=2
+[20664.339314]
+[20664.339315]
+[20664.339326] [TNODE] ip=169.254.0.0, pos=14, bits=2, depth=2
+[20664.339339]
+[20664.339340]
+[20664.339349]
+[20664.339362] [TNODE] ip=169.254.0.0, pos=11, bits=2, depth=3
+[20664.339373]
+[20664.339374]
+[20664.339383]
+[20664.339395] [LEAF]  ip=169.254.0.0, slen=16, depth=3
+[20664.339407]
+[20664.339408]
+[20664.339416]
+[20664.339428] [LEAF]  ip=169.254.29.18, slen=0, depth=3
+[20664.339437]
+[20664.339438]
+[20664.339444] [LEAF]  ip=169.254.255.255, slen=0, depth=2
+[20664.339454]
+[20664.339454] ===== FIB Table ID: 255 =====
+[20664.339463]
+[20664.339465] [TNODE] ip=0.0.0.0, pos=29, bits=3, depth=1
+[20664.339478]
+[20664.339481] [LEAF]  ip=0.0.0.0, slen=32, depth=1
+[20664.339494]
+[20664.339495]
+[20664.339506] [TNODE] ip=127.0.0.0, pos=22, bits=2, depth=2
+[20664.339519]
+[20664.339520]
+[20664.339528]
+[20664.339591] [TNODE] ip=127.0.0.0, pos=0, bits=1, depth=3
+[20664.339616]
+[20664.339627]
+[20664.339644]
+[20664.339661] [LEAF]  ip=127.0.0.0, slen=24, depth=3
+[20664.339676]
+[20664.339677]
+[20664.339682]
+[20664.339688] [LEAF]  ip=127.0.0.1, slen=0, depth=3
+[20664.339696]
+[20664.339697]
+[20664.339707] [LEAF]  ip=127.255.255.255, slen=0, depth=2
+[20664.339721]
+[20664.339722]
+[20664.339733] [TNODE] ip=169.254.0.0, pos=14, bits=2, depth=2
+[20664.339745]
+[20664.339746]
+[20664.339754]
+[20664.339767] [TNODE] ip=169.254.0.0, pos=11, bits=2, depth=3
+[20664.339778]
+[20664.339779]
+[20664.339787]
+[20664.339800] [LEAF]  ip=169.254.0.0, slen=16, depth=3
+[20664.339812]
+[20664.339812]
+[20664.339821]
+[20664.339828] [LEAF]  ip=169.254.29.18, slen=0, depth=3
+[20664.339840]
+[20664.339841]
+[20664.339851] [LEAF]  ip=169.254.255.255, slen=0, depth=2
+[20664.339863] === FIB Trie Traversal Done ===
+root@ATK-DLRK3568:/data# ip route show
+default dev eth0 scope link
+169.254.0.0/16 dev eth0 proto kernel scope link src 169.254.29.18
