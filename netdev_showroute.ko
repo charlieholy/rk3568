@@ -217,6 +217,9 @@ MODULE_VERSION("2.0");
 
 
 ////////////////////////
+root@ATK-DLRK3568:/data# uname -a
+Linux NYX-RK3568 4.19.232 #47 SMP Tue Feb 24 17:47:25 CST 2026 aarch64 GNU/Linux
+
 遍历了FIB 表 ID 254（Linux 默认主路由表 RT_TABLE_MAIN）和255（本地路由表 RT_TABLE_LOCAL
 [20664.339128] === Start FIB Trie Traversal (Minimal Version) ===
 [20664.339137]
