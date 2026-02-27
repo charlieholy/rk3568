@@ -7,6 +7,13 @@ video_devices
 jiffies
 
 cdev_map
+(gdb) p /x cdev_map.probes[5].next.next.dev
+$58 = 0x500000
+(gdb) p /x cdev_map.probes[5].next.dev
+$59 = 0x500001
+(gdb) p /x cdev_map.probes[5].dev
+$60 = 0x500002
+////////////////////////////
 
 node_data
 contig_page_data
