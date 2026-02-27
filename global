@@ -13,6 +13,15 @@ $58 = 0x500000
 $59 = 0x500001
 (gdb) p /x cdev_map.probes[5].dev
 $60 = 0x500002
+(gdb) p  *cdev_map.probes[5]
+$63 = {next = 0xffffffc0e8d86e00, dev = 5242882, range = 1, owner = 0x0, get = 0xffffff800821ff48 <exact_match>, lock = 0xffffff8008220520 <exact_lock>,
+  data = 0xffffff8009713c90 <ptmx_cdev>}
+(gdb) p  *cdev_map.probes[5].next
+$64 = {next = 0xffffffc0e8d86c00, dev = 5242881, range = 1, owner = 0x0, get = 0xffffff800821ff48 <exact_match>, lock = 0xffffff8008220520 <exact_lock>,
+  data = 0xffffff8009713af0 <console_cdev>}
+(gdb) p  *cdev_map.probes[5].next.next
+$65 = {next = 0xffffffc0e99f8380, dev = 5242880, range = 1, owner = 0x0, get = 0xffffff800821ff48 <exact_match>, lock = 0xffffff8008220520 <exact_lock>,
+  data = 0xffffff8009713a68 <tty_cdev>}
 ////////////////////////////
 
 node_data
