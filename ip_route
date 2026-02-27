@@ -14,3 +14,50 @@ Thread 4 hit Breakpoint 2, ip_route_output_key_hash (net=0xffffff80095c4100 <ini
 
 
 net is init_net
+
+
+root@ATK-DLRK3568:/proc/net# cat fib_trie
+Main:
+  +-- 0.0.0.0/0 3 0 5
+     |-- 0.0.0.0
+        /0 link UNICAST
+     +-- 127.0.0.0/8 2 0 2
+        +-- 127.0.0.0/31 1 0 0
+           |-- 127.0.0.0
+              /32 link BROADCAST
+              /8 host LOCAL
+           |-- 127.0.0.1
+              /32 host LOCAL
+        |-- 127.255.255.255
+           /32 link BROADCAST
+     +-- 169.254.0.0/16 2 0 2
+        +-- 169.254.0.0/19 2 0 2
+           |-- 169.254.0.0
+              /32 link BROADCAST
+              /16 link UNICAST
+           |-- 169.254.29.18
+              /32 host LOCAL
+        |-- 169.254.255.255
+           /32 link BROADCAST
+Local:
+  +-- 0.0.0.0/0 3 0 5
+     |-- 0.0.0.0
+        /0 link UNICAST
+     +-- 127.0.0.0/8 2 0 2
+        +-- 127.0.0.0/31 1 0 0
+           |-- 127.0.0.0
+              /32 link BROADCAST
+              /8 host LOCAL
+           |-- 127.0.0.1
+              /32 host LOCAL
+        |-- 127.255.255.255
+           /32 link BROADCAST
+     +-- 169.254.0.0/16 2 0 2
+        +-- 169.254.0.0/19 2 0 2
+           |-- 169.254.0.0
+              /32 link BROADCAST
+              /16 link UNICAST
+           |-- 169.254.29.18
+              /32 host LOCAL
+        |-- 169.254.255.255
+           /32 link BROADCAST
