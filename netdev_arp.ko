@@ -1,0 +1,141 @@
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/netdevice.h>
+#include <linux/etherdevice.h>
+#include <linux/skbuff.h>
+#include <linux/inet.h>
+#include <linux/types.h>
+#include <linux/net.h>
+
+// ==================== 配置项（根据你的环境修改）====================
+#define ETH_DEV_NAME    "eth0"       // 发送ARP的网卡名
+#define SRC_IP_STR      "169.254.29.18" // 本机源IP
+#define DST_IP_STR      "192.168.2.100"   // 目标ARP解析的IP
+// 本机网卡MAC（用ip link show eth0查看）
+#define SRC_MAC_ADDR    {0x46, 0x6A, 0x97, 0xD7, 0x16, 0x68}
+
+// ==================== 手动定义ARP相关常量（适配裁剪内核）====================
+#define ETH_P_ARP       0x0806      // ARP协议类型
+#define ARPHRD_ETHER    1           // 以太网硬件类型
+#define ETH_P_IP        0x0800      // IP协议类型
+#define ARPOP_REQUEST   1           // ARP请求操作码
+#define ETH_ALEN        6           // MAC地址长度
+#define NET_IP_ALIGN    2           // IP对齐偏移
+
+// ==================== ARP数据包结构体（紧凑对齐）====================
+struct arp_packet {
+    struct ethhdr eth;          // 以太网头（14字节）
+    struct arphdr {
+        __be16 ar_hrd;          // 硬件类型
+        __be16 ar_pro;          // 协议类型
+        unsigned char ar_hln;   // 硬件地址长度
+        unsigned char ar_pln;   // 协议地址长度
+        __be16 ar_op;           // 操作码
+    } arp;
+    unsigned char arp_sha[ETH_ALEN]; // 发送方MAC
+    unsigned char arp_spa[4];   // 发送方IP
+    unsigned char arp_tha[ETH_ALEN]; // 目标MAC（广播）
+    unsigned char arp_tpa[4];   // 目标IP
+} __packed;
+
+// ==================== 核心：发送ARP请求函数（适配C90标准）====================
+static int __send_arp_request(void) {
+    // 所有变量声明放在函数开头（符合ISO C90标准）
+    struct net_device *dev = NULL;
+    struct sk_buff *skb = NULL;
+    struct arp_packet *arp_pkt = NULL;
+    unsigned char src_mac[] = SRC_MAC_ADDR;
+    unsigned char dst_mac[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff}; // 广播MAC
+    __be32 src_ip, dst_ip;
+    int ret = 0; // 提前声明变量，避免C90警告
+
+    // 1. 解析IP地址（字符串转网络序）
+    src_ip = in_aton(SRC_IP_STR);
+    dst_ip = in_aton(DST_IP_STR);
+    if (!src_ip || !dst_ip) {
+        printk(KERN_ERR "ARP: IP地址解析失败！\n");
+        return -EINVAL;
+    }
+
+    // 2. 获取网卡设备
+    dev = dev_get_by_name(&init_net, ETH_DEV_NAME);
+    if (!dev) {
+        printk(KERN_ERR "ARP: 找不到网卡%s！\n", ETH_DEV_NAME);
+        return -ENODEV;
+    }
+
+    // 3. 分配skb缓冲区（预留对齐空间）
+    skb = dev_alloc_skb(sizeof(struct arp_packet) + NET_IP_ALIGN);
+    if (!skb) {
+        printk(KERN_ERR "ARP: 分配skb缓冲区失败！\n");
+        dev_put(dev);
+        return -ENOMEM;
+    }
+
+    // 4. 初始化skb和ARP数据包
+    skb_reserve(skb, NET_IP_ALIGN);          // 内存对齐
+    arp_pkt = (struct arp_packet *)skb_put(skb, sizeof(struct arp_packet));
+    memset(arp_pkt, 0, sizeof(struct arp_packet)); // 清空数据
+
+    // 5. 填充以太网头
+    memcpy(arp_pkt->eth.h_dest, dst_mac, ETH_ALEN);  // 目标MAC（广播）
+    memcpy(arp_pkt->eth.h_source, src_mac, ETH_ALEN); // 源MAC
+    arp_pkt->eth.h_proto = htons(ETH_P_ARP);          // ARP协议标识
+
+    // 6. 填充ARP头
+    arp_pkt->arp.ar_hrd = htons(ARPHRD_ETHER);        // 以太网类型
+    arp_pkt->arp.ar_pro = htons(ETH_P_IP);            // IP协议
+    arp_pkt->arp.ar_hln = ETH_ALEN;                   // MAC长度6
+    arp_pkt->arp.ar_pln = 4;                          // IP长度4
+    arp_pkt->arp.ar_op = htons(ARPOP_REQUEST);        // ARP请求
+
+    // 7. 填充ARP地址信息
+    memcpy(arp_pkt->arp_sha, src_mac, ETH_ALEN);      // 源MAC
+    memcpy(arp_pkt->arp_spa, &src_ip, 4);             // 源IP
+    memcpy(arp_pkt->arp_tha, dst_mac, ETH_ALEN);      // 目标MAC（广播）
+    memcpy(arp_pkt->arp_tpa, &dst_ip, 4);             // 目标IP
+
+    // 8. 设置skb属性
+    skb->dev = dev;
+    skb->pkt_type = PACKET_BROADCAST;
+    skb->protocol = htons(ETH_P_ARP);
+    skb->ip_summed = CHECKSUM_NONE;
+
+    // 9. 发送ARP包（使用提前声明的ret变量）
+    ret = dev_queue_xmit(skb);
+    if (ret == 0) {
+        printk(KERN_INFO "ARP: 成功发送请求 → %s (网卡：%s)\n", DST_IP_STR, ETH_DEV_NAME);
+    } else {
+        printk(KERN_ERR "ARP: 发送失败！错误码：%d\n", ret);
+    }
+
+    // 10. 释放网卡引用
+    dev_put(dev);
+    return ret;
+}
+
+// ==================== 模块初始化/退出函数 ====================
+static int __init arp_send_init(void) {
+    printk(KERN_INFO "ARP发送模块：开始加载...\n");
+    __send_arp_request(); // 模块加载时发送ARP请求
+    return 0;
+}
+
+static void __exit arp_send_exit(void) {
+    printk(KERN_INFO "ARP发送模块：已卸载\n");
+}
+
+// ==================== 模块声明 ====================
+module_init(arp_send_init);
+module_exit(arp_send_exit);
+
+MODULE_LICENSE("GPL");          // 必须声明GPL，否则内核拒绝加载
+MODULE_AUTHOR("Your Name");
+MODULE_DESCRIPTION("极简ARP请求发送驱动（无回包处理）");
+MODULE_VERSION("1.0");
+
+////////
+tcpdump
+20:15:07.628702 ARP, Request who-has 192.168.2.100 (Broadcast) tell 169.254.29.18, length 28
+20:15:07.630807 ARP, Reply 192.168.2.100 is-at c8:53:09:cd:d6:1f (oui Unknown), length 46
