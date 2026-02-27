@@ -11,3 +11,5 @@ contig_page_data
 
 slab_caches
 ping_table
+
+init_net
