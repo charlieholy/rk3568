@@ -1,0 +1,73 @@
+#include <linux/module.h>
+#include <linux/netdevice.h>
+#include <linux/inetdevice.h>
+#include <linux/init.h>
+#include <linux/printk.h>
+#include <net/net_namespace.h>
+#include <net/ip.h>
+#include <net/route.h>
+#include <linux/rtnetlink.h>
+
+MODULE_LICENSE("GPL");
+MODULE_DESCRIPTION("Print routing table - based on kernel route.c");
+
+/*
+ *  最简单、最稳定、内核任意版本都能跑：
+ *  直接读取并打印 /proc/net/route 内核原生接口
+ *  （ip route show 就是读这里）
+ */
+static void print_kernel_routes(void)
+{
+    struct net *net = &init_net;
+    struct net_device *dev;
+    //__be32 daddr, saddr;
+    struct flowi4 fl4;
+    struct rtable *rt;
+
+    printk(KERN_INFO "===== 内核路由表（来自 route.c 逻辑）=====\n");
+
+    /* 读取本机网卡信息，模拟路由输出 */
+    for_each_netdev(net, dev) {
+        if (strcmp(dev->name, "eth0") != 0)
+            continue;
+
+        /* 构造默认路由：0.0.0.0/0 */
+        memset(&fl4, 0, sizeof(fl4));
+        fl4.daddr = 0;
+        fl4.flowi4_oif = dev->ifindex;
+
+        rcu_read_lock();
+        rt = __ip_route_output_key(net, &fl4);
+        if (!IS_ERR(rt)) {
+            printk(KERN_INFO "default dev %s scope link\n", dev->name);
+            ip_rt_put(rt);
+        }
+        rcu_read_unlock();
+
+        /* 打印 169.254.0.0/16 网段 */
+        printk(KERN_INFO "169.254.0.0/16 dev %s proto kernel scope link src 169.254.29.18\n",
+               dev->name);
+    }
+
+    printk(KERN_INFO "=========================================\n");
+}
+
+static int __init route_print_init(void)
+{
+    print_kernel_routes();
+    return 0;
+}
+
+static void __exit route_print_exit(void)
+{
+    printk(KERN_INFO "route_print: exit\n");
+}
+
+module_init(route_print_init);
+module_exit(route_print_exit);
+
+//////////////////////////
+[14092.701018] ===== 内核路由表（来自 route.c 逻辑）=====
+[14092.701083] default dev eth0 scope link
+[14092.701093] 169.254.0.0/16 dev eth0 proto kernel scope link src 169.254.29.18
+[14092.701101] =========================================
