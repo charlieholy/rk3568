@@ -139,3 +139,8 @@ MODULE_VERSION("1.0");
 tcpdump
 20:15:07.628702 ARP, Request who-has 192.168.2.100 (Broadcast) tell 169.254.29.18, length 28
 20:15:07.630807 ARP, Reply 192.168.2.100 is-at c8:53:09:cd:d6:1f (oui Unknown), length 46
+
+root@ATK-DLRK3568:/data# arp -n
+? (192.168.2.100) at c8:53:09:cd:d6:1f [ether]  on eth0
+root@ATK-DLRK3568:/data# ip neigh show
+192.168.2.100 dev eth0 lladdr c8:53:09:cd:d6:1f STALE
