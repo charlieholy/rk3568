@@ -68,3 +68,29 @@ MODULE_VERSION("1.0");
 [ 5433.470830] NetDevice Name: wlan0
 [ 5433.470840] ==== Net device scan completed ====
 
+///////////////////
+(gdb) p ((struct net_device*)0xffffffc0e8d19000)->name
+$7 = "lo", '\000' <repeats 13 times>
+(gdb) p init_net->dev_base_head->next->next
+$8 = (struct list_head *) 0xffffffc0e8d1a050
+(gdb) p ((struct net_device*)0xffffffc0e8d1a000)->name
+$9 = "can0", '\000' <repeats 11 times>
+(gdb) p init_net->dev_base_head->next->next->next
+$10 = (struct list_head *) 0xffffffc0e7afc050
+(gdb) p ((struct net_device*)0xffffffc0e7afc000)->name
+$11 = "eth0", '\000' <repeats 11 times>
+(gdb) p init_net->dev_base_head->next->next->next->next
+$12 = (struct list_head *) 0xffffffc0e7b7c050
+(gdb) p ((struct net_device*)0xffffffc0e7b7c000)->name
+$13 = "eth1", '\000' <repeats 11 times>
+(gdb) p init_net->dev_base_head->next->next->next->next->next
+$14 = (struct list_head *) 0xffffffc0e3525050
+(gdb) p ((struct net_device*)0xffffffc0e3525000)->name
+$15 = "wlan0\000\000\000\000\000\000\000\000\000\000"
+(gdb) p init_net->dev_base_head->next->next->next->next->next->
+A syntax error in expression, near `'.
+(gdb) p init_net->dev_base_head->next->next->next->next->next->next
+$16 = (struct list_head *) 0xffffff80095c4250 <init_net+336>
+(gdb) p ((struct net_device*)0xffffff80095c4200)->name
+$17 = "\030hK\t\200\377\377\377\250\310^\t\200\377\377\377"
+
