@@ -1,0 +1,267 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+#include <stddef.h> // 补充offsetof必需的头文件
+
+/* ==================== 核心结构体复刻 ==================== */
+typedef uint32_t t_key;
+
+struct key_vector {
+    t_key key;          // 节点基准IP（主机序）
+    unsigned char pos;  // IP位偏移：当前节点匹配的IP起始位（0-31）
+    unsigned char bits; // 子节点位数：2^bits = 子节点数量（bits>0=内部节点，bits=0=叶子节点）
+    unsigned char slen; // 32 - 路由前缀长度（如/24路由的slen=8，/0路由的slen=32）
+    union {
+        struct {
+            char dev[16]; // 出接口（如eth0）
+        } leaf;
+        struct key_vector **tnode; // 内部节点：子节点数组
+    };
+    struct key_vector *parent; // 新增：直接存储父节点指针（避免offsetof反向查找）
+};
+
+struct trie {
+    struct key_vector *root_node; // 简化：根节点直接指向第一层内部节点
+};
+
+/* ==================== 常量定义 ==================== */
+#define KEYLENGTH    (8 * sizeof(t_key)) // 32（IPv4总位数）
+#define IS_TNODE(n)  ((n)->bits > 0)      // 是否是内部节点
+#define IS_LEAF(n)   ((n)->bits == 0)     // 是否是叶子节点
+
+/* ==================== 内存管理 ==================== */
+static struct key_vector *kv_alloc(void) {
+    struct key_vector *kv = calloc(1, sizeof(struct key_vector));
+    if (!kv) { perror("kv_alloc"); exit(1); }
+    kv->parent = NULL; // 初始化父节点指针
+    return kv;
+}
+
+/* ==================== 核心辅助函数 ==================== */
+// 子节点数 = 2^bits（正确计算）
+static unsigned long child_length(const struct key_vector *kv) {
+    return (1UL << kv->bits); // bits=3 → 8个子节点
+}
+
+// 计算IP对应的子节点索引（核心）
+static unsigned long get_index(t_key ip, const struct key_vector *kv) {
+    unsigned long index = ip ^ kv->key;
+    return index >> kv->pos; // 按pos位偏移计算索引
+}
+
+// IP字符串转t_key（主机序）
+static t_key ip2key(const char *ip_str) {
+    uint8_t a, b, c, d;
+    sscanf(ip_str, "%hhu.%hhu.%hhu.%hhu", &a, &b, &c, &d);
+    return (a << 24) | (b << 16) | (c << 8) | d;
+}
+
+// t_key转IP字符串
+static void key2ip(t_key key, char *ip_str, int len) {
+    if (len < 16) return;
+    snprintf(ip_str, len, "%u.%u.%u.%u",
+             (key >> 24) & 0xFF, (key >> 16) & 0xFF,
+             (key >> 8) & 0xFF, key & 0xFF);
+}
+
+/* ==================== Trie初始化（简化逻辑） ==================== */
+struct trie *trie_init(void) {
+    struct trie *t = calloc(1, sizeof(struct trie));
+    if (!t) { perror("trie_init"); exit(1); }
+    
+    // 创建第一层内部节点（内核默认：pos=29，bits=3，子节点数=8）
+    struct key_vector *first_node = kv_alloc();
+    first_node->key = 0;        // 基准IP=0.0.0.0
+    first_node->pos = 29;       // 匹配IP的第29-31位（前3位）
+    first_node->bits = 3;       // 子节点数=8
+    first_node->slen = 32;      // 默认slen=32（对应/0路由）
+    first_node->tnode = calloc(child_length(first_node), sizeof(struct key_vector *));
+    if (!first_node->tnode) { perror("tnode alloc"); exit(1); }
+    
+    t->root_node = first_node; // 根节点指向第一层内部节点
+    
+    char ip_buf[16];
+    key2ip(first_node->key, ip_buf, sizeof(ip_buf));
+    printf("[Trie初始化] 第一层内部节点：pos=%d, bits=%d, key=%s（子节点数=%lu）\n",
+           first_node->pos, first_node->bits, ip_buf, child_length(first_node));
+    return t;
+}
+
+/* ==================== Trie插入（核心：简化无offsetof） ==================== */
+void trie_insert(struct trie *t, const char *ip_str, int prefix_len, const char *dev) {
+    t_key ip = ip2key(ip_str);          
+    unsigned char slen = 32 - prefix_len; 
+    struct key_vector *cur_kv = t->root_node;  
+    char ip_buf[16];
+    key2ip(ip, ip_buf, sizeof(ip_buf));
+    
+    printf("\n[插入路由] %s/%d (slen=%d) → dev=%s\n", ip_str, prefix_len, slen, dev);
+    
+    // 遍历内部节点，找到插入位置
+    while (IS_TNODE(cur_kv)) {
+        unsigned long index = get_index(ip, cur_kv);
+        unsigned long child_cnt = child_length(cur_kv);
+        
+        // 打印当前节点信息
+        char cur_ip[16];
+        key2ip(cur_kv->key, cur_ip, sizeof(cur_ip));
+        printf("  [遍历节点] key=%s, pos=%d, bits=%d → 计算索引=%lu（子节点数=%lu）\n",
+               cur_ip, cur_kv->pos, cur_kv->bits, index, child_cnt);
+        
+        // 边界检查：避免索引越界
+        if (index >= child_cnt) {
+            printf("  [插入失败] 索引%lu超过子节点数%lu（IP前缀不匹配当前层级）\n", index, child_cnt);
+            return;
+        }
+        
+        // 子节点不存在 → 创建叶子节点
+        if (!cur_kv->tnode[index]) {
+            printf("  [创建叶子节点] 子节点%lu为空，存储路由信息\n", index);
+            struct key_vector *leaf_kv = kv_alloc();
+            leaf_kv->key = ip;
+            leaf_kv->pos = cur_kv->pos - cur_kv->bits; // 子节点pos = 父节点pos - 父节点bits
+            leaf_kv->bits = 0; // 叶子节点（无自节点）
+            leaf_kv->slen = slen;
+            strncpy(leaf_kv->leaf.dev, dev, sizeof(leaf_kv->leaf.dev)-1);
+            leaf_kv->parent = cur_kv; // 关联父节点
+            
+            cur_kv->tnode[index] = leaf_kv;
+            
+            // 打印叶子节点信息
+            char leaf_ip[16];
+            key2ip(leaf_kv->key, leaf_ip, sizeof(leaf_ip));
+            printf("  [插入成功] 叶子节点：key=%s, pos=%d, slen=%d → dev=%s\n",
+                   leaf_ip, leaf_kv->pos, leaf_kv->slen, leaf_kv->leaf.dev);
+            return;
+        }
+        
+        // 子节点存在 → 移动到子节点继续遍历
+        cur_kv = cur_kv->tnode[index];
+    }
+}
+
+/* ==================== Trie查找（简化无offsetof） ==================== */
+struct key_vector *trie_lookup(struct trie *t, const char *ip_str) {
+    t_key ip = ip2key(ip_str);
+    struct key_vector *cur_kv = t->root_node;
+    char ip_buf[16];
+    key2ip(ip, ip_buf, sizeof(ip_buf));
+    
+    printf("\n[查找路由] %s\n", ip_buf);
+    
+    // 遍历内部节点匹配
+    while (IS_TNODE(cur_kv)) {
+        unsigned long index = get_index(ip, cur_kv);
+        unsigned long child_cnt = child_length(cur_kv);
+        
+        // 打印匹配过程
+        char cur_ip[16];
+        key2ip(cur_kv->key, cur_ip, sizeof(cur_ip));
+        printf("  [匹配节点] key=%s, pos=%d, bits=%d → 索引=%lu（子节点数=%lu）\n",
+               cur_ip, cur_kv->pos, cur_kv->bits, index, child_cnt);
+        
+        // 索引越界/子节点不存在 → 查找失败
+        if (index >= child_cnt || !cur_kv->tnode[index]) {
+            printf("  [查找失败] 无匹配的子节点%lu\n", index);
+            return NULL;
+        }
+        
+        // 移动到子节点
+        cur_kv = cur_kv->tnode[index];
+    }
+    
+    // 找到叶子节点 → 查找成功
+    if (IS_LEAF(cur_kv)) {
+        char leaf_ip[16];
+        key2ip(cur_kv->key, leaf_ip, sizeof(leaf_ip));
+        printf("  [查找成功] 匹配路由：%s/%d → dev=%s\n",
+               leaf_ip, 32 - cur_kv->slen, cur_kv->leaf.dev);
+        return cur_kv;
+    }
+    
+    printf("  [查找失败] 未找到匹配的叶子节点\n");
+    return NULL;
+}
+
+/* ==================== Trie遍历（简化递归） ==================== */
+void trie_traverse_recursive(struct key_vector *kv, int depth) {
+    if (!kv) return;
+    
+    // 打印缩进（展示层级）
+    for (int i=0; i<depth; i++) printf("  ");
+    
+    // 打印节点信息
+    char ip_buf[16];
+    key2ip(kv->key, ip_buf, sizeof(ip_buf));
+    if (IS_TNODE(kv)) {
+        printf("[内部节点] key=%s, pos=%d, bits=%d（子节点数=%lu）\n",
+               ip_buf, kv->pos, kv->bits, child_length(kv));
+        // 递归遍历子节点
+        for (unsigned long i=0; i<child_length(kv); i++) {
+            trie_traverse_recursive(kv->tnode[i], depth+1);
+        }
+    } else if (IS_LEAF(kv)) {
+        printf("[叶子节点] key=%s/%d, slen=%d → dev=%s\n",
+               ip_buf, 32 - kv->slen, kv->slen, kv->leaf.dev);
+    }
+}
+
+void trie_traverse(struct trie *t) {
+    printf("\n[Trie遍历] 完整节点结构（层级展示）：\n");
+    trie_traverse_recursive(t->root_node, 0);
+}
+
+/* ==================== 主函数（测试用例） ==================== */
+int main(void) {
+    // 1. 初始化Trie树
+    struct trie *t = trie_init();
+    
+    // 2. 插入3条典型路由（覆盖不同前缀）
+    trie_insert(t, "0.0.0.0", 0, "eth0");     // 默认路由（/0，slen=32）
+    trie_insert(t, "192.168.0.0", 16, "eth0");// 网段路由（/16，slen=16）
+    trie_insert(t, "192.168.1.10", 32, "eth0");// 主机路由（/32，slen=0）
+    
+    // 3. 遍历Trie，可视化存储结构
+    trie_traverse(t);
+    
+    // 4. 查找测试
+    trie_lookup(t, "192.168.1.10"); // 查找存在的主机路由
+    trie_lookup(t, "10.0.0.1");     // 查找不存在的路由
+    
+    // 简单内存释放（示例）
+    free(t->root_node->tnode);
+    free(t->root_node);
+    free(t);
+    
+    return 0;
+}
+///////
+ubuntu20@NYX:~/opt/linux_sdk/kernel/Linux_driver/INPUT_DEV$ ./a.out
+[Trie初始化] 第一层内部节点：pos=29, bits=3, key=0.0.0.0（子节点数=8）
+
+[插入路由] 0.0.0.0/0 (slen=32) → dev=eth0
+  [遍历节点] key=0.0.0.0, pos=29, bits=3 → 计算索引=0（子节点数=8）
+  [创建叶子节点] 子节点0为空，存储路由信息
+  [插入成功] 叶子节点：key=0.0.0.0, pos=26, slen=32 → dev=eth0
+
+[插入路由] 192.168.0.0/16 (slen=16) → dev=eth0
+  [遍历节点] key=0.0.0.0, pos=29, bits=3 → 计算索引=6（子节点数=8）
+  [创建叶子节点] 子节点6为空，存储路由信息
+  [插入成功] 叶子节点：key=192.168.0.0, pos=26, slen=16 → dev=eth0
+
+[插入路由] 192.168.1.10/32 (slen=0) → dev=eth0
+  [遍历节点] key=0.0.0.0, pos=29, bits=3 → 计算索引=6（子节点数=8）
+
+[Trie遍历] 完整节点结构（层级展示）：
+[内部节点] key=0.0.0.0, pos=29, bits=3（子节点数=8）
+  [叶子节点] key=0.0.0.0/0, slen=32 → dev=eth0
+  [叶子节点] key=192.168.0.0/16, slen=16 → dev=eth0
+
+[查找路由] 192.168.1.10
+  [匹配节点] key=0.0.0.0, pos=29, bits=3 → 索引=6（子节点数=8）
+  [查找成功] 匹配路由：192.168.0.0/16 → dev=eth0
+
+[查找路由] 10.0.0.1
+  [匹配节点] key=0.0.0.0, pos=29, bits=3 → 索引=0（子节点数=8）
+  [查找成功] 匹配路由：0.0.0.0/0 → dev=eth0
