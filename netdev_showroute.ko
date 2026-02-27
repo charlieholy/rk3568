@@ -217,6 +217,7 @@ MODULE_VERSION("2.0");
 
 
 ////////////////////////
+遍历了FIB 表 ID 254（Linux 默认主路由表 RT_TABLE_MAIN）和255（本地路由表 RT_TABLE_LOCAL
 [20664.339128] === Start FIB Trie Traversal (Minimal Version) ===
 [20664.339137]
 [20664.339137] ===== FIB Table ID: 254 =====
@@ -306,3 +307,5 @@ MODULE_VERSION("2.0");
 root@ATK-DLRK3568:/data# ip route show
 default dev eth0 scope link
 169.254.0.0/16 dev eth0 proto kernel scope link src 169.254.29.18
+
+
