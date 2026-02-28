@@ -1,0 +1,53 @@
+stmmac_interrupt
+stmmac_napi_check  
+__napi_schedule  //net/core/dev.c:5901
+static inline void ____napi_schedule(struct softnet_data *sd,
+				     struct napi_struct *napi)
+{
+	list_add_tail(&napi->poll_list, &sd->poll_list);
+	__raise_softirq_irqoff(NET_RX_SOFTIRQ);
+}
+
+open_softirq(NET_RX_SOFTIRQ, net_rx_action);
+net_rx_action
+
+static __latent_entropy void net_rx_action(struct softirq_action *h)
+{
+	struct softnet_data *sd = this_cpu_ptr(&softnet_data);
+	unsigned long time_limit = jiffies +
+		usecs_to_jiffies(netdev_budget_usecs);
+	int budget = netdev_budget;
+	LIST_HEAD(list);
+	LIST_HEAD(repoll);
+
+	local_irq_disable();
+	list_splice_init(&sd->poll_list, &list);
+	local_irq_enable();
+
+	for (;;) {
+		struct napi_struct *n;
+
+		if (list_empty(&list)) {
+			if (!sd_has_rps_ipi_waiting(sd) && list_empty(&repoll))
+				goto out;
+			break;
+		}
+
+		n = list_first_entry(&list, struct napi_struct, poll_list);
+		budget -= napi_poll(n, &repoll);  // poll
+		
+
+static int stmmac_napi_poll(struct napi_struct *napi, int budget)
+{
+	struct stmmac_channel *ch =
+		container_of(napi, struct stmmac_channel, napi);
+	struct stmmac_priv *priv = ch->priv_data;
+	int work_done, rx_done = 0, tx_done = 0;
+	u32 chan = ch->index;
+
+	priv->xstats.napi_poll++;
+
+	if (ch->has_tx)
+		tx_done = stmmac_tx_clean(priv, budget, chan);
+	if (ch->has_rx)
+		rx_done = stmmac_rx(priv, budget, chan); // rx
