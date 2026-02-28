@@ -1,0 +1,10 @@
+drivers/net/ethernet/stmicro/stmmac/dwmac1000.h
+#define GMAC_CONTROL		0x00000000	/* Configuration */
+#define GMAC_FRAME_FILTER	0x00000004	/* Frame Filter */
+#define GMAC_HASH_HIGH		0x00000008	/* Multicast Hash Table High */
+#define GMAC_HASH_LOW		0x0000000c	/* Multicast Hash Table Low */
+
+gmac fe2a0000
+root@ATK-DLRK3568:/# devmem 0xfe2a0110
+0x00003051
+GMAC_MAC_Version 0x0110 W 0x00003051
