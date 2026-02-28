@@ -175,12 +175,21 @@ int main()
     close(fd);
     return 0;
 }
+///////////////////
 
 
-
-root@ATK-DLRK3568:/data# ./test_nyxmmap
-用户态读取内核缓冲区：Hello NYX mmap!
 用户态修改缓冲区为：Hello UserSpace!
 root@ATK-DLRK3568:/data# ./test_nyxmmap
 用户态读取内核缓冲区：Hello UserSpace!
 用户态修改缓冲区为：Hello UserSpace!
+
+
+//////////////////////////
+ubuntu20@NYX:~/opt/linux_sdk/kernel$ aarch64-linux-gnu-nm vmlinux| grep remap_pfn_range
+ffffff8009277c43 r __kstrtab_remap_pfn_range
+ffffff8009262a40 r __ksymtab_remap_pfn_range
+ffffff80081f1030 T remap_pfn_range
+ubuntu20@NYX:~/opt/linux_sdk/kernel$ aarch64-linux-gnu-addr2line -e vmlinux -f -i ffffff80081f1030
+remap_pfn_range
+/home/ubuntu20/opt/linux_sdk/kernel/mm/memory.c:2139
+
