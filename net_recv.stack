@@ -1,3 +1,16 @@
+网卡收到包 → 写入DMA
+硬件中断 → 关闭DMA中断
+NAPI调度 → 软中断
+stmmac_napi_poll
+    ↓
+stmmac_rx  <-- 
+    循环读DMA包
+    转成skb
+    napi_gro_receive 进协议栈
+    重新填充描述符
+    ↓
+读完包 → 重新开DMA中断
+
 stmmac_interrupt
 stmmac_napi_check  
 __napi_schedule  //net/core/dev.c:5901
