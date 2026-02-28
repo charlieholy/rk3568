@@ -8,3 +8,11 @@
           ↳ unix_create()     // AF_UNIX 协议族的创建函数（你之前关注的函数）
             ↳ unix_create1()  // 实际创建 UNIX socket 结构体
               ↳ sock_init_data() // 初始化 socket 操作集（unix_stream_ops）
+
+
+net/unix/af_unix.c
+net/core/datagram.c
+
+peer_wake
+struct sk_buff_head *queue = &sk->sk_receive_queue;
+__skb_unlink(skb, queue);
