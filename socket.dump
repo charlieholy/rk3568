@@ -1,0 +1,10 @@
+用户态: socket(AF_UNIX, SOCK_STREAM, 0)
+↓
+内核态系统调用入口: sys_socket()
+  ↳ __sys_socket()
+    ↳ sock_create()          // 创建 socket 结构体
+      ↳ sock_create_kern()
+        ↳ __sock_create()     // 核心：匹配协议族+类型，调用协议族的创建函数
+          ↳ unix_create()     // AF_UNIX 协议族的创建函数（你之前关注的函数）
+            ↳ unix_create1()  // 实际创建 UNIX socket 结构体
+              ↳ sock_init_data() // 初始化 socket 操作集（unix_stream_ops）
