@@ -193,3 +193,9 @@ ubuntu20@NYX:~/opt/linux_sdk/kernel$ aarch64-linux-gnu-addr2line -e vmlinux -f -
 remap_pfn_range
 /home/ubuntu20/opt/linux_sdk/kernel/mm/memory.c:2139
 
+remap_pfn_range
+remap_p4d_range
+remap_pud_range
+remap_pmd_range
+remap_pte_range
+
