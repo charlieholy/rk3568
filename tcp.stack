@@ -1,0 +1,14 @@
+rk3568：
+ip addr 
+ip addr del 192.168.2.100/24 dev eth0
+ip addr add 192.168.2.200/24 dev eth0
+
+tcpdump tcp port 80
+nginx started..
+
+windows:
+telnet 192.168.2.200 80
+
+16:45:26.760078 IP 192.168.2.100.51079 > 192.168.2.200.www: Flags [S], seq 1826304424, win 65535, options [mss 1460,nop,wscale 8,nop,nop,sackOK], length 0
+16:45:26.760332 IP 192.168.2.200.www > 192.168.2.100.51079: Flags [S.], seq 1709892508, ack 1826304425, win 64240, options [mss 1460,nop,nop,sackOK,nop,wscale 7], length 0
+16:45:26.762070 IP 192.168.2.100.51079 > 192.168.2.200.www: Flags [.], ack 1, win 255, length 0
