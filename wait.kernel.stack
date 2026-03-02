@@ -83,3 +83,8 @@ void init_wait_entry(struct wait_queue_entry *wq_entry, int flags)
 	INIT_LIST_HEAD(&wq_entry->entry);
 }
 EXPORT_SYMBOL(init_wait_entry);
+////////////////////////
+static int __wake_up_common(struct wait_queue_head *wq_head, unsigned int mode,
+			int nr_exclusive, int wake_flags, void *key,
+			wait_queue_entry_t *bookmark)
+ret = curr->func(curr, mode, wake_flags, key); //autoremove_wake_function
