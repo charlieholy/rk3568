@@ -1,0 +1,7 @@
+(gdb) add-symbol-file Linux_driver/INPUT_DEV/keypoll.ko 0x0
+add symbol table from file "Linux_driver/INPUT_DEV/keypoll.ko" at
+        .text_addr = 0x0
+(y or n) y
+Reading symbols from Linux_driver/INPUT_DEV/keypoll.ko...done.
+(gdb) b hello_poll
+Breakpoint 1 at 0x24: file /home/ubuntu20/opt/linux_sdk/kernel/Linux_driver/INPUT_DEV/keypoll.c, line 38.
