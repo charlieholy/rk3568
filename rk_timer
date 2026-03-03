@@ -1,0 +1,36 @@
+rk_timer_set_next_event
+(gdb) bt
+#0  rk_timer_set_next_event (cycles=21505, ce=0xffffffc0e99ef600) at drivers/clocksource/rockchip_timer.c:85
+#1  0xffffff8008141948 in clockevents_program_event (dev=0xffffffc0e99ef600, expires=16432131690120, force=true) at kernel/time/clockevents.c:344
+#2  0xffffff80081428b4 in tick_broadcast_set_event (bc=0xffffffc0e99ef600, cpu=2, expires=16432131690120) at kernel/time/tick-broadcast.c:568
+#3  0xffffff8008142bec in tick_handle_oneshot_broadcast (dev=0xffffffc0e99ef600) at kernel/time/tick-broadcast.c:671
+#4  0xffffff8008a73ff4 in rk_timer_interrupt (irq=<optimized out>, dev_id=0xffffffc0e99ef600) at drivers/clocksource/rockchip_timer.c:120
+#5  0xffffff80081121d4 in __handle_irq_event_percpu (desc=0xffffffc0e99ef800, flags=0xffffff800801bee4) at kernel/irq/handle.c:149
+#6  0xffffff8008112368 in handle_irq_event_percpu (desc=0xffffffc0e99ef800) at kernel/irq/handle.c:189
+#7  0xffffff800811240c in handle_irq_event (desc=0xffffffc0e99ef800) at kernel/irq/handle.c:206
+#8  0xffffff8008116e9c in handle_fasteoi_irq (desc=0xffffffc0e99ef800) at kernel/irq/chip.c:743
+#9  0xffffff8008111214 in generic_handle_irq_desc (desc=<optimized out>) at ./include/linux/irqdesc.h:155
+#10 generic_handle_irq (irq=6) at kernel/irq/irqdesc.c:639
+#11 0xffffff80081119ac in __handle_domain_irq (domain=0xffffffc000236200, hwirq=<optimized out>, lookup=true, regs=0xffffff80099fbc60)
+    at kernel/irq/irqdesc.c:676
+#12 0xffffff8008081174 in handle_domain_irq (regs=<optimized out>, hwirq=<optimized out>, domain=<optimized out>) at ./include/linux/irqdesc.h:173
+#13 gic_handle_irq (regs=0xffffff80099fbc60) at drivers/irqchip/irq-gic-v3.c:373
+#14 0xffffff8008082bf0 in el1_irq () at arch/arm64/kernel/entry.S:645
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
+
+////
+#0  rk_timer_set_next_event (cycles=52980, ce=0xffffffc0e99ef600) at drivers/clocksource/rockchip_timer.c:85
+4#1  0xffffff8008141948 in clockevents_program_event (dev=0xffffffc0e99ef600, expires=16392191694114, force=true) at kernel/time/clockevents.c:344
+#2  0xffffff80081428b4 in tick_broadcast_set_event (bc=0xffffffc0e99ef600, cpu=2, expires=16392191694114) at kernel/time/tick-broadcast.c:568
+#3  0xffffff80081438c0 in __tick_broadcast_oneshot_control (state=<optimized out>) at kernel/time/tick-broadcast.c:768
+#4  0xffffff8008141f68 in tick_broadcast_oneshot_control (state=TICK_BROADCAST_ENTER) at kernel/time/tick-common.c:362
+#5  0xffffff8008a2ae20 in tick_broadcast_enter () at ./include/linux/tick.h:94
+#6  cpuidle_enter_state (dev=0xffffffc0e7514000, drv=0xffffffc0e8c37c00, index=<optimized out>) at drivers/cpuidle/cpuidle.c:214
+#7  0xffffff8008a2b0f8 in cpuidle_enter (drv=0xffffffc0e8c37c00, dev=0xffffffc0e7514000, index=1) at drivers/cpuidle/cpuidle.c:306
+#8  0xffffff80080e71e0 in call_cpuidle (drv=0xffffffc0e8c37c00, dev=0xffffffc0e7514000, next_state=1) at kernel/sched/idle.c:117
+#9  0xffffff80080e754c in cpuidle_idle_call () at kernel/sched/idle.c:201
+#10 do_idle () at kernel/sched/idle.c:264
+#11 0xffffff80080e776c in cpu_startup_entry (state=CPUHP_AP_ONLINE_IDLE) at kernel/sched/idle.c:370
+#12 0xffffff8008094570 in secondary_start_kernel () at arch/arm64/kernel/smp.c:254
+#13 0x0000000000000000 in ?? ()
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
