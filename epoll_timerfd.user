@@ -164,3 +164,26 @@ int main() {
     return 0;
 }
 
+///////////////////////////////////////
+(gdb) bt
+#0  timerfd_poll (file=0xffffffc0e6b2fe00, wait=0xffffff800d6c3c68) at fs/timerfd.c:231
+#1  0xffffff800826801c in vfs_poll (pt=<optimized out>, file=<optimized out>) at ./include/linux/poll.h:90
+#2  ep_item_poll (epi=0xffffffc0e6bfef80, pt=0xffffff800d6c3c68, depth=-128) at fs/eventpoll.c:891
+#3  0xffffff800826824c in ep_send_events_proc (ep=0xffffffc0e5caf700, head=0xffffff800d6c3ce8, priv=0xffffff800d6c3d78) at fs/eventpoll.c:1662
+#4  0xffffff8008267e0c in ep_scan_ready_list (ep=0xffffffc0e5caf700, sproc=0xffffff8008268170 <ep_send_events_proc>, priv=0xffffff800d6c3d78,
+    ep_locked=false, depth=<optimized out>) at fs/eventpoll.c:707
+#5  0xffffff80082685f4 in ep_send_events (maxevents=<optimized out>, events=<optimized out>, ep=<optimized out>) at fs/eventpoll.c:1712
+#6  ep_poll (ep=0xffffffc0e5caf700, events=<optimized out>, maxevents=32, timeout=<optimized out>) at fs/eventpoll.c:1839
+#7  0xffffff80082687d4 in do_epoll_wait (epfd=<optimized out>, events=0x7fd7050600, maxevents=32, timeout=-1) at fs/eventpoll.c:2192
+#8  0xffffff80082699e8 in __do_sys_epoll_pwait (sigsetsize=<optimized out>, sigmask=<optimized out>, timeout=<optimized out>, maxevents=<optimized out>,
+    events=<optimized out>, epfd=<optimized out>) at fs/eventpoll.c:2229
+#9  __se_sys_epoll_pwait (sigsetsize=<optimized out>, sigmask=<optimized out>, timeout=<optimized out>, maxevents=<optimized out>, events=<optimized out>,
+    epfd=<optimized out>) at fs/eventpoll.c:2209
+#10 __arm64_sys_epoll_pwait (regs=<optimized out>) at fs/eventpoll.c:2209
+#11 0xffffff8008095610 in __invoke_syscall (syscall_fn=<optimized out>, regs=<optimized out>) at arch/arm64/kernel/syscall.c:36
+#12 invoke_syscall (syscall_table=<optimized out>, sc_nr=<optimized out>, scno=<optimized out>, regs=<optimized out>) at arch/arm64/kernel/syscall.c:48
+#13 el0_svc_common (regs=0xffffff800d6c3ec0, scno=<optimized out>, syscall_table=0xffffff8008de0870 <sys_call_table>, sc_nr=<optimized out>)
+    at arch/arm64/kernel/syscall.c:117
+#14 0xffffff8008095700 in el0_svc_handler (regs=0xffffff800d6c3ec0) at arch/arm64/kernel/syscall.c:163
+#15 0xffffff8008083848 in el0_svc () at arch/arm64/kernel/entry.S:940
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
