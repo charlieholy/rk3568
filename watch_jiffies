@@ -1,2 +1,15 @@
 (gdb) p &jiffies
 $5 = (volatile unsigned long *) 0xffffff8009457980 <jiffies_64>
+
+
+(gdb) bt
+#0  arch_timer_handler_phys (irq=5, dev_id=0xffffffc0efecd900) at drivers/clocksource/arm_arch_timer.c:660
+#1  0xffffff800811723c in handle_percpu_devid_irq (desc=0xffffffc0e99ef400) at kernel/irq/chip.c:926
+#2  0xffffff8008111214 in generic_handle_irq_desc (desc=<optimized out>) at ./include/linux/irqdesc.h:155
+#3  generic_handle_irq (irq=5) at kernel/irq/irqdesc.c:639
+#4  0xffffff80081119ac in __handle_domain_irq (domain=0xffffffc000236200, hwirq=<optimized out>, lookup=true, regs=0xffffff80097b3d50)
+    at kernel/irq/irqdesc.c:676
+#5  0xffffff8008081174 in handle_domain_irq (regs=<optimized out>, hwirq=<optimized out>, domain=<optimized out>) at ./include/linux/irqdesc.h:173
+#6  gic_handle_irq (regs=0xffffff80097b3d50) at drivers/irqchip/irq-gic-v3.c:373
+#7  0xffffff8008082bf0 in el1_irq () at arch/arm64/kernel/entry.S:645
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
