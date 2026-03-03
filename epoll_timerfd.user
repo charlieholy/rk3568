@@ -1,0 +1,78 @@
+epoll + timerfd 
+ubuntu20@NYX:~/opt/linux_sdk/kernel/test$ ./a.out
+epoll + timerfd 启动成功，每1秒触发一次...
+✅ 定时事件触发！超时次数：1
+//////////////////////////////////
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/timerfd.h>
+#include <sys/epoll.h>
+#include <unistd.h>
+#include <stdint.h>
+
+// 定时周期：1秒 (秒，纳秒)
+#define TIMER_SEC  1
+#define TIMER_NSEC 0
+
+int main() {
+    int timer_fd, epoll_fd;
+    struct epoll_event event, events[10];
+    struct itimerspec ts;
+    int n, i;
+
+    // ========== 1. 创建 timerfd ==========
+    // CLOCK_MONOTONIC：单调时钟，不受系统时间修改影响
+    timer_fd = timerfd_create(CLOCK_MONOTONIC, 0);
+    if (timer_fd < 0) {
+        perror("timerfd_create failed");
+        exit(1);
+    }
+
+    // ========== 2. 设置 timerfd 定时规则 ==========
+    // 首次触发时间
+    ts.it_value.tv_sec = TIMER_SEC;
+    ts.it_value.tv_nsec = TIMER_NSEC;
+    // 周期性触发时间（循环间隔）
+    ts.it_interval.tv_sec = TIMER_SEC;
+    ts.it_interval.tv_nsec = TIMER_NSEC;
+    timerfd_settime(timer_fd, 0, &ts, NULL);
+
+    // ========== 3. 创建 epoll 实例 ==========
+    epoll_fd = epoll_create1(0);
+    if (epoll_fd < 0) {
+        perror("epoll_create1 failed");
+        exit(1);
+    }
+
+    // ========== 4. 将 timerfd 加入 epoll 监听（监听可读事件） ==========
+    event.events = EPOLLIN;    // 监听可读事件
+    event.data.fd = timer_fd;  // 携带的fd数据
+    epoll_ctl(epoll_fd, EPOLL_CTL_ADD, timer_fd, &event);
+
+    printf("epoll + timerfd 启动成功，每1秒触发一次...\n");
+
+    // ========== 5. epoll 循环监听 ==========
+    while (1) {
+        // 阻塞等待事件（-1=永久阻塞）
+        n = epoll_wait(epoll_fd, events, 10, -1);
+        if (n < 0) {
+            perror("epoll_wait failed");
+            break;
+        }
+
+        // 处理触发的事件
+        for (i = 0; i < n; i++) {
+            if (events[i].data.fd == timer_fd) {
+                // 必须读取 timerfd，否则会一直触发事件
+                uint64_t expirations;
+                read(timer_fd, &expirations, sizeof(uint64_t));
+                printf("✅ 定时事件触发！超时次数：%lu\n", expirations);
+            }
+        }
+    }
+
+    // 关闭资源
+    close(timer_fd);
+    close(epoll_fd);
+    return 0;
+}
