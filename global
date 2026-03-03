@@ -34,6 +34,16 @@ init_net
 inet_addr_lst
 arp_tbl
 
+/////////////////
 modules
 (gdb) p modules
 $1 = {next = 0xffffff800119a148, prev = 0xffffff8001146348}
+(gdb) p modules.next
+$2 = (struct list_head *) 0xffffff800119a148
+(gdb) p &((struct module*)0)->list
+$3 = (struct list_head *) 0x8
+(gdb) p (struct module*)0xffffff800119a140
+$4 = (struct module *) 0xffffff800119a140
+(gdb) p *(struct module*)0xffffff800119a140
+$5 = {state = MODULE_STATE_LIVE, list = {next = 0xffffff8001146348, prev = 0xffffff800948a770 <modules>}, name = "keypoll",
+////////////////
