@@ -33,3 +33,7 @@ ping_table
 init_net
 inet_addr_lst
 arp_tbl
+
+modules
+(gdb) p modules
+$1 = {next = 0xffffff800119a148, prev = 0xffffff8001146348}
