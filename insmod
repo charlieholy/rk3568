@@ -1,0 +1,11 @@
+(gdb) bt
+#0  load_module (info=0xffffff800eab3dd0, uargs=0x417c54 <error: Cannot access memory at address 0x417c54>, flags=0) at kernel/module.c:3712
+#1  0xffffff80081506b0 in __do_sys_finit_module (flags=<optimized out>, uargs=<optimized out>, fd=<optimized out>) at kernel/module.c:3953
+#2  __se_sys_finit_module (fd=3, uargs=4291668, flags=0) at kernel/module.c:3929
+#3  0xffffff8008150720 in __arm64_sys_finit_module (regs=0xffffff800eab3ec0) at kernel/module.c:3929
+#4  0xffffff8008095610 in __invoke_syscall (syscall_fn=<optimized out>, regs=<optimized out>) at arch/arm64/kernel/syscall.c:36
+#5  invoke_syscall (syscall_table=<optimized out>, sc_nr=<optimized out>, scno=<optimized out>, regs=<optimized out>) at arch/arm64/kernel/syscall.c:48
+#6  el0_svc_common (regs=0xffffff800eab3ec0, scno=<optimized out>, syscall_table=0xffffff8008de0870 <sys_call_table>, sc_nr=<optimized out>)
+    at arch/arm64/kernel/syscall.c:117
+#7  0xffffff8008095700 in el0_svc_handler (regs=0xffffff800eab3ec0) at arch/arm64/kernel/syscall.c:163
+#8  0xffffff8008083848 in el0_svc () at arch/arm64/kernel/entry.S:940
