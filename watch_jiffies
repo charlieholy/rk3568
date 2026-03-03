@@ -13,3 +13,15 @@ $5 = (volatile unsigned long *) 0xffffff8009457980 <jiffies_64>
 #6  gic_handle_irq (regs=0xffffff80097b3d50) at drivers/irqchip/irq-gic-v3.c:373
 #7  0xffffff8008082bf0 in el1_irq () at arch/arm64/kernel/entry.S:645
 Backtrace stopped: previous frame identical to this frame (corrupt stack?)
+
+
+(gdb) p (struct clock_event_device *)dev_id
+$5 = (struct clock_event_device *) 0xffffffc0efefb900
+(gdb) p *(struct clock_event_device *)dev_id
+$6 = {event_handler = 0xffffff800813532c <hrtimer_interrupt>, set_next_event = 0xffffff8008a746d0 <arch_timer_set_next_event_phys>, set_next_ktime = 0x0,
+  next_event = 21273607872639, max_delta_ns = 89478485382, min_delta_ns = 1000, mult = 103079215, shift = 32,
+  state_use_accessors = CLOCK_EVT_STATE_ONESHOT, features = 10, retries = 456, set_state_periodic = 0x0, set_state_oneshot = 0x0,
+  set_state_oneshot_stopped = 0xffffff8008a742f0 <arch_timer_shutdown_phys>, set_state_shutdown = 0xffffff8008a742f0 <arch_timer_shutdown_phys>,
+  tick_resume = 0x0, broadcast = 0xffffff8008094ce4 <tick_broadcast>, suspend = 0x0, resume = 0x0, min_delta_ticks = 15, max_delta_ticks = 2147483647,
+  name = 0xffffff8009216f20 "arch_sys_timer", rating = 450, irq = 5, bound_on = 0, cpumask = 0xffffff8008de7e38 <cpu_bit_bitmap+32>, list = {
+    next = 0xffffffc0efedd378, prev = 0xffffffc0efef4378}, owner = 0x0}
