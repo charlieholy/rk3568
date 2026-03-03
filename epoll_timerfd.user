@@ -76,3 +76,91 @@ int main() {
     close(epoll_fd);
     return 0;
 }
+///////////////////////
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/timerfd.h>
+#include <sys/epoll.h>
+#include <unistd.h>
+#include <stdint.h>
+
+// 定义3个不同周期的定时器标识
+#define MAX_EVENTS 5
+
+// 创建定时器fd（通用函数：秒+纳秒）
+int create_timerfd(int sec, int nsec) {
+    int fd = timerfd_create(CLOCK_MONOTONIC, 0);
+    struct itimerspec ts = {
+        .it_value = {sec, nsec},    // 首次触发时间
+        .it_interval = {sec, nsec}  // 循环周期
+    };
+    timerfd_settime(fd, 0, &ts, NULL);
+    return fd;
+}
+
+int main() {
+    int epoll_fd;
+    // 3个独立的定时器fd
+    int timer_100ms, timer_1s, timer_5s;
+    struct epoll_event event, events[MAX_EVENTS];
+
+    // ========== 1. 创建3个不同周期的定时器 ==========
+    timer_100ms = create_timerfd(0, 100000000);  // 100毫秒
+    timer_1s   = create_timerfd(1, 0);            // 1秒
+    timer_5s   = create_timerfd(5, 0);            // 5秒
+
+    // ========== 2. 创建epoll实例 ==========
+    epoll_fd = epoll_create1(0);
+
+    // 将3个定时器全部加入epoll监听
+    event.events = EPOLLIN;  // 监听可读事件（定时器超时触发）
+    
+    event.data.fd = timer_100ms;
+    epoll_ctl(epoll_fd, EPOLL_CTL_ADD, timer_100ms, &event);
+
+    event.data.fd = timer_1s;
+    epoll_ctl(epoll_fd, EPOLL_CTL_ADD, timer_1s, &event);
+
+    event.data.fd = timer_5s;
+    epoll_ctl(epoll_fd, EPOLL_CTL_ADD, timer_5s, &event);
+
+    printf("epoll 单线程监听 3 个独立定时器\n");
+    printf("=======================================\n");
+
+    // ========== 3. epoll 主循环 ==========
+    while (1)
+    {
+        // 阻塞等待：任意定时器超时，立即返回
+        int n = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
+
+        for (int i = 0; i < n; i++)
+        {
+            int fd = events[i].data.fd;
+            uint64_t timeout_cnt;  // 存储超时次数
+
+            // 读取定时器：必须读，否则会一直触发事件
+            read(fd, &timeout_cnt, sizeof(uint64_t));
+
+            // 100ms 定时器
+            if (fd == timer_100ms) {
+                printf("[100ms] 高频定时任务执行\n");
+            }
+            // 1秒 定时器
+            else if (fd == timer_1s) {
+                printf("[1秒] 定时任务执行\n");
+            }
+            // 5秒 定时器
+            else if (fd == timer_5s) {
+                printf("[5秒] 定时任务执行\n");
+            }
+        }
+    }
+
+    // 关闭资源（程序正常退出时执行）
+    close(timer_100ms);
+    close(timer_1s);
+    close(timer_5s);
+    close(epoll_fd);
+    return 0;
+}
+
