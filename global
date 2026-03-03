@@ -47,3 +47,16 @@ $4 = (struct module *) 0xffffff800119a140
 (gdb) p *(struct module*)0xffffff800119a140
 $5 = {state = MODULE_STATE_LIVE, list = {next = 0xffffff8001146348, prev = 0xffffff800948a770 <modules>}, name = "keypoll",
 ////////////////
+(gdb) p tick_broadcast_device
+$1 = {evtdev = 0xffffffc0e99ef600, mode = TICKDEV_MODE_ONESHOT}
+(gdb) p tick_broadcast_device.evtdev
+$2 = (struct clock_event_device *) 0xffffffc0e99ef600
+(gdb) p *tick_broadcast_device.evtdev
+$3 = {event_handler = 0xffffff8008142ae8 <tick_handle_oneshot_broadcast>, set_next_event = 0xffffff8008a73ef8 <rk_timer_set_next_event>,
+  set_next_ktime = 0x0, next_event = 16432131690120, max_delta_ns = 178956969070, min_delta_ns = 1000, mult = 51539608, shift = 31,
+  state_use_accessors = CLOCK_EVT_STATE_ONESHOT, features = 35, retries = 84, set_state_periodic = 0xffffff8008a73f50 <rk_timer_set_periodic>,
+  set_state_oneshot = 0x0, set_state_oneshot_stopped = 0x0, set_state_shutdown = 0xffffff8008a73f20 <rk_timer_shutdown>, tick_resume = 0x0,
+  broadcast = 0x0, suspend = 0x0, resume = 0x0, min_delta_ticks = 1, max_delta_ticks = 4294967295, name = 0xffffff8009216c26 "rk_timer", rating = 250,
+  irq = 6, bound_on = 0, cpumask = 0xffffff8008de7e38 <cpu_bit_bitmap+32>, list = {next = 0xffffffc0efeb69b8,
+    prev = 0xffffff80094884f8 <ce_broadcast_hrtimer+184>}, owner = 0x0}
+//////////////////////
