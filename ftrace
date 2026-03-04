@@ -1,0 +1,51 @@
+	trace_timer_expire_entry(timer);
+
+/**
+ * timer_expire_entry - called immediately before the timer callback
+ * @timer:	pointer to struct timer_list
+ *
+ * Allows to determine the timer latency.
+ */
+TRACE_EVENT(timer_expire_entry,
+
+	TP_PROTO(struct timer_list *timer),
+
+	TP_ARGS(timer),
+
+	TP_STRUCT__entry(
+		__field( void *,	timer	)
+		__field( unsigned long,	now	)
+		__field( void *,	function)
+	),
+
+	TP_fast_assign(
+		__entry->timer		= timer;
+		__entry->now		= jiffies;
+		__entry->function	= timer->function;
+	),
+
+	TP_printk("timer=%p function=%pf now=%lu", __entry->timer, __entry->function,__entry->now)
+);
+
+
+# 1. 切换到跟踪目录
+sudo su
+cd /sys/kernel/debug/tracing
+
+# 2. 清空旧日志
+echo 0 > tracing_on
+echo > trace
+
+# 3. 启用 定时器到期 跟踪点
+echo timer:timer_expire_entry > set_event
+
+# 4. 开始跟踪
+echo 1 > tracing_on
+
+# 5. 查看实时输出（执行这行后，系统运行定时器就会打印）
+cat trace_pipe
+
+
+4294889043
+          <idle>-0     [002] d.s.    39.165221: timer_expire_entry: timer=00000000c2c8e08f function=delayed_work_timer_fn now=4294889044
+          <idle>-0     [003] ..s.    39.171869: timer_expire_entry: timer=00000000ef25ba89 function=process_timeout now=4294889046
