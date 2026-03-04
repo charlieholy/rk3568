@@ -26,6 +26,9 @@ $65 = {next = 0xffffffc0e99f8380, dev = 5242880, range = 1, owner = 0x0, get = 0
 
 node_data
 contig_page_data
+///////////////
+ffffff800945e730 d __futex_data
+///////////////////
 
 slab_caches
 ping_table
