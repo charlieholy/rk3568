@@ -1,0 +1,36 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/mman.h>
+
+int main() {
+    // 1. 父进程：创建匿名共享内存，返回虚拟地址 addr
+    int *addr = mmap(NULL, 4,
+                    PROT_READ | PROT_WRITE,
+                    MAP_SHARED | MAP_ANONYMOUS, // 核心：共享+匿名
+                    -1, 0);
+
+    *addr = 100;  // 父进程写入数据
+    printf("父进程：虚拟地址 = %p，写入值 = %d\n", addr, *addr);
+
+    // 2. fork 子进程
+    pid_t pid = fork();
+
+    if (pid == 0) {
+        // 子进程：直接使用 相同的虚拟地址！
+        printf("子进程：虚拟地址 = %p，读取值 = %d\n", addr, *addr);
+        *addr = 200; // 子进程修改数据
+        exit(0);
+    }
+
+    wait(NULL); // 等待子进程
+    printf("父进程：读取修改后的值 = %d\n", *addr);
+    munmap(addr, 4);
+    return 0;
+}
+
+////////////
+ubuntu22@NYX:~/test$ ./a.out
+父进程：虚拟地址 = 0x72f6cb3af000，写入值 = 100
+子进程：虚拟地址 = 0x72f6cb3af000，读取值 = 100
+父进程：读取修改后的值 = 200
