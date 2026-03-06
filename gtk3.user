@@ -1,3 +1,5 @@
+sudo gdb -p 161996 -ex "thread apply all bt" -ex "set confirm off" -ex "quit"
+
 sudo apt install libgtk-3-dev build-essential -y
 gcc gtk3_demo.c -o gtk3_demo `pkg-config --cflags --libs gtk+-3.0`
 ./gtk3_demo
